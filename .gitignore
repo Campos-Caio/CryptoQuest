@@ -1,0 +1,48 @@
+# -----------------------------
+# Flutter (frontend)
+# -----------------------------
+**/build/
+**/.dart_tool/
+**/.idea/
+**/.packages
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.metadata
+**/.android/
+**/.ios/
+**/pubspec.lock
+
+# Arquivos gerados por IDEs e cache
+**/.vscode/
+**/.DS_Store
+**/Thumbs.db
+
+# -----------------------------
+# Python (backend)
+# -----------------------------
+backend/__pycache__/
+backend/*.py[cod]
+backend/.env
+backend/env/
+backend/venv/
+backend/.venv/
+backend/.mypy_cache/
+backend/.pytest_cache/
+backend/*.sqlite3
+
+# Ignorar a chave privada do Firebase
+backend/firebase_key.json
+**/firebase_key.json
+
+# Arquivos de log
+*.log
+
+# Backup ou arquivos temporários
+*.tmp
+*.bak
+*.swp
+
+# -----------------------------
+# Git
+# -----------------------------
+.git/
