@@ -1,17 +1,17 @@
 from fastapi import FastAPI
-from app.repositories.user_repository import create_user, get_user
+from app.repositories import user_repository
+from app.api import auth
 
-app = FastAPI()
 
-@app.get("/")
-def root():
-    return {"message": "API funcionando!"}
+app = FastAPI(
+    title="CryptoQuest backend", 
+    description="API do backend do App CrytpoQuest",
+    version='0.1.0', 
+)
 
-@app.get("/users")
-def teste_create(): 
-    user = {"nome": "Caio","email" : "caio@gmail.com"}
-    return create_user(user) 
+#incluir os routers
+app.include_router(auth.router)
 
-@app.get("/users/{user_id}")
-def get_user(user_id):
-    return get_user(user_id)
+@app.get("/", tags=["Root"])
+async def read_root():
+    return {"message": "Bem-vindo ao Backend CryptoQuest!"}
