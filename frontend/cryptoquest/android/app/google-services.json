@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "252988213671",
+    "project_id": "cryptoquest-90a7b",
+    "storage_bucket": "cryptoquest-90a7b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:252988213671:android:16fd85cb3e2b5e918f8e82",
+        "android_client_info": {
+          "package_name": "com.example.cryptoquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDH9Axyu_slFc4ZkCPhiPeqefdTw0zR_4g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
