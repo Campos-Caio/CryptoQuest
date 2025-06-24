@@ -24,7 +24,7 @@ class MyTextField extends StatelessWidget {
         decoration: InputDecoration(
           suffixIcon: icon,
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.deepPurple),
+          hintStyle: TextStyle(color: Color(0xFF7F5AF0)),
           filled: true,
           fillColor: Colors.grey.shade200,
           enabledBorder: OutlineInputBorder(
@@ -32,11 +32,13 @@ class MyTextField extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.deepPurple),
+            borderSide: const BorderSide(color: Color(0xFF7F5AF0)),
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        style: TextStyle(color: Colors.deepPurple),
+        style: TextStyle(
+          color: Color(0xFF7F5AF0),
+        ),
       ),
     );
   }

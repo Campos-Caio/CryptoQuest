@@ -4,6 +4,7 @@ import 'package:cryptoquest/presentation/widgets/my_button.dart';
 import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
 import 'package:flutter/material.dart';
 
+
 // Importe a tela de login se você já a tiver criada
 // import 'package:cryptoquest/presentation/pages/login_page.dart';
 
@@ -46,19 +47,19 @@ class _RegisterPageState extends State<RegisterPage> {
     // Validacoes Cliente Side
     if (name.isEmpty) {
       _showMessage("O campo Nome deve ser preenchido!", Colors.red);
-      print("Campo nome deve ser preenchido!"); 
+      print("Campo nome deve ser preenchido!");
       return;
     }
     if (email.isEmpty) {
-      _showMessage("O campo email deve ser preenchido!",Colors.red);
+      _showMessage("O campo email deve ser preenchido!", Colors.red);
       return;
     }
     if (password.isEmpty) {
-      _showMessage("O campo senha deve ser preenchido!",Colors.red);
+      _showMessage("O campo senha deve ser preenchido!", Colors.red);
       return;
     }
     if (confirmPassword.isEmpty) {
-      _showMessage("O campo confirmar senha deve ser preenchido!",Colors.red);
+      _showMessage("O campo confirmar senha deve ser preenchido!", Colors.red);
       return;
     }
     if (password != confirmPassword) {
@@ -118,9 +119,7 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } catch (e) {
       // Erro de Conexão ou Outra Exceção
-      _showMessage(
-          'Erro de conexão: Verifique sua internet! ($e)',
-          Colors.red);
+      _showMessage('Erro de conexão: Verifique sua internet! ($e)', Colors.red);
       print('Erro na requisição HTTP: $e');
     }
   }
@@ -131,7 +130,7 @@ class _RegisterPageState extends State<RegisterPage> {
       _message = message;
       _messageColor = color;
     });
-     // Você também pode usar um SnackBar para mensagens temporárias:
+    // Você também pode usar um SnackBar para mensagens temporárias:
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -143,7 +142,6 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 25.0),
@@ -152,11 +150,11 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               const SizedBox(height: 50),
               Image.asset(
-                'assets/images/register_hero.png',
+                'assets/images/cryptoquest_hero.jpg',
                 height: 150,
               ),
               const SizedBox(height: 30),
-              const Text(
+              Text(
                 "Cadastro!",
                 style: TextStyle(
                   fontSize: 32,

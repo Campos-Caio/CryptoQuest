@@ -1,3 +1,4 @@
+import 'package:cryptoquest/config/theme/app_theme.dart';
 import 'package:cryptoquest/presentation/pages/register_page.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart'; 
@@ -19,6 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: "CryptoQuest",
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.appTheme,
       initialRoute: '/register',
       routes: {
         '/register': (context) => const RegisterPage(),
