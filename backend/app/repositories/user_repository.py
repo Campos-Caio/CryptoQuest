@@ -3,6 +3,7 @@ from app.models.user import UserProfile
 from datetime import datetime
 from typing import Optional, Union 
 from fastapi import Depends
+from google.protobuf.timestamp_pb2 import Timestamp
 
 class UserRepository:
     def __init__(self, dbclient):
@@ -31,19 +32,23 @@ class UserRepository:
             level=user_data["level"],
         )
 
-    async def get_user_profile(self, uid:str) -> Union[UserProfile, None]: # Use Union ou Optional[UserProfile]
+    async def get_user_profile(self, uid: str) -> Union[UserProfile, None]:
         """
-        Retorna o perfil do usuario pelo UID
+        Retorna o perfil do usuário pelo UID.
         """
         doc = await self.collection.document(uid).get()
-        if doc.exists:
-            data = doc.to_dict()
-            # Certifique-se de que a data seja tratada corretamente se for um objeto Timestamp do Firestore
-            # Exemplo: data["register_date"] = data["register_date"].astimezone() if hasattr(data["register_date"], 'astimezone') else data["register_date"]
-            if isinstance(data.get("register_date"), type(self.db.collection_group(None).document("dummy").get()._data.get("timestamp_field"))):
-                data["register_date"] = data["register_date"].astimezone()
-            return UserProfile(uid=doc.id, **data)
-        return None
+        if not doc.exists:
+            return None
+
+        data = doc.to_dict()
+
+        # Verifica se o campo "register_date" existe e é um Timestamp
+        if isinstance(data.get("register_date"), Timestamp):
+            # Converte o Timestamp para datetime com fuso horário local (se possível)
+            if hasattr(data["register_date"], "ToDatetime"):
+                data["register_date"] = data["register_date"].ToDatetime().astimezone()
+
+        return UserProfile(uid=doc.id, **data)
 
     async def update_user_Profile(self, uid:str, new_data: dict) -> bool: # Adicione tipo para new_data
         """
