@@ -6,7 +6,6 @@ from app.models.user import UserProfile, FirebaseUser, UserRegister
 from firebase_admin.auth import UserNotFoundError, InvalidIdTokenError, EmailAlreadyExistsError
 from firebase_admin.exceptions import FirebaseError
 
-# Configura o logger para este módulo
 logger = logging.getLogger(__name__)
 
 class AuthService:
@@ -14,10 +13,43 @@ class AuthService:
         self.auth = get_firebase_auth()
         self.user_repo = user_repo
 
+    async def authenticate_and_get_profile(self, id_token: str) -> tuple[FirebaseUser, UserProfile]:
+        logger.info("--- [AUTH SERVICE] Iniciando verificação do token ---")
+
+        try:
+            logger.debug(f"Verificando token com Firebase: {id_token[:30]}...")
+            decoded_token = self.auth.verify_id_token(id_token, clock_skew_seconds=30)
+
+            uid = decoded_token['uid']
+            email = decoded_token.get('email')
+            name = decoded_token.get('name')
+            logger.info(f"Token válido. UID: {uid}, Email: {email}")
+
+            firebase_user_info = FirebaseUser(uid=uid, email=email, name=name)
+
+            logger.debug(f"Buscando perfil no Firestore para UID: {uid}")
+            user_profile = await self.user_repo.get_user_profile(uid)
+
+            if not user_profile:
+                logger.warning(f"Perfil do usuário {uid} não encontrado. Criando novo perfil.")
+                user_profile = await self.user_repo.create_user_profile(uid=uid, email=email, name=name)
+                logger.info(f"Perfil criado com sucesso para UID: {uid}")
+            else:
+                logger.info(f"Perfil encontrado para UID: {uid}")
+
+            return firebase_user_info, user_profile
+
+        except InvalidIdTokenError as e:
+            logger.error(f"Token inválido ou expirado! Detalhes: {str(e)}", exc_info=True)
+            raise ValueError("Token de ID inválido ou expirado! Faça login novamente.")
+        except FirebaseError as e:
+            logger.error(f"Erro do Firebase ao verificar o token: {e.code} - {str(e)}", exc_info=True)
+            raise ValueError(f"Erro nos serviços Firebase: {e.code}")
+        except Exception as e:
+            logger.error(f"Erro inesperado na autenticação: {str(e)}", exc_info=True)
+            raise Exception("Erro inesperado durante a autenticação.")
+
     async def register_user(self, user_data: UserRegister) -> tuple[FirebaseUser, UserProfile]:
-        """
-        Cria um novo usuário no Firebase Auth e seu perfil no Firestore.
-        """
         try:
             user = self.auth.create_user(
                 email=user_data.email,
@@ -45,9 +77,6 @@ class AuthService:
             raise Exception("Erro inesperado no cadastro.")
 
     async def verify_id_token(self, id_token: str) -> FirebaseUser:
-        """
-        Verifica e decodifica o token de ID do Firebase.
-        """
         try:
             decoded_token = self.auth.verify_id_token(id_token)
             return FirebaseUser(
@@ -63,37 +92,6 @@ class AuthService:
         except Exception as e:
             logger.error(f"Erro inesperado na verificação de token: {e}", exc_info=True)
             raise Exception("Erro inesperado ao verificar token.")
-
-    async def authenticate_and_get_profile(self, id_token: str) -> tuple[FirebaseUser, UserProfile]:
-        """
-        Verifica o ID Token, busca ou cria o perfil do usuário no Firestore
-        e retorna as informações do usuário e seu perfil.
-        """
-        try:
-            # 1. Verificar e decodificar o token de ID do Firebase
-            decoded_token = self.auth.verify_id_token(id_token)
-            uid = decoded_token['uid']
-            email = decoded_token.get('email')
-            name = decoded_token.get('name')
-
-            firebase_user_info = FirebaseUser(uid=uid, email=email, name=name)
-
-            # 2. Buscar ou criar perfil de usuário no Firestore
-            user_profile = await self.user_repo.get_user_profile(uid)
-            if not user_profile:
-                logger.warning(f"Perfil de usuário {uid} não encontrado. Criando um novo perfil.")
-                user_profile = await self.user_repo.create_user_profile(uid=uid, email=email, name=name)
-
-            return firebase_user_info, user_profile
-
-        except InvalidIdTokenError:
-            raise ValueError("Token de ID inválido ou expirado! Faça login novamente.")
-        except FirebaseError as e:
-            logger.error(f"Erro no Firebase durante a autenticação: {e.code} - {str(e)}", exc_info=True)
-            raise ValueError(f"Erro nos serviços Firebase: {e.code}")
-        except Exception as e:
-            logger.error(f"Erro inesperado na autenticação/perfil: {e}", exc_info=True)
-            raise Exception("Erro inesperado durante a autenticação.")
 
 async def get_auth_service(user_repo: UserRepository = Depends(get_user_repository)) -> AuthService:
     return AuthService(user_repo)

@@ -1,11 +1,14 @@
 import 'dart:convert';
+
 import 'package:cryptoquest/presentation/widgets/my_button.dart';
 import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
 import 'package:cryptoquest/presentation/widgets/square_tile.dart';
+import 'package:cryptoquest/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,6 +21,8 @@ class _LoginPageState extends State<LoginPage> {
   // Controllers para os campos de text
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
+  final AuthService _authService = AuthService();
 
   bool _isLoading = false;
 
@@ -52,48 +57,13 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // 1. Autenticar usuario no Firebase
-      // Tenta fazer login com as credenciais inseridas
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-              email: emailController.text.trim(),
-              password: passwordController.text.trim());
-
-      if (userCredential.user != null) {
-        // 2.Obter o ID Token do Firebase
-        // Obtem o toke de ID que sera enviado ao backend
-        String? idToken = await userCredential.user!.getIdToken(true);
-        print(idToken); 
-
-        // Verifica se o ID token foi obtido
-        if (idToken != null) {
-          // 3, Autenticar o ID Token no backend
-          // URL do endpoint de autenticacao no backend
-          final String backendUrlAuth =
-              'http://127.0.0.1:8000/auth/authenticate';
-
-          // Requisicao HTTP POST para o backend
-          final response = await http
-              .post(Uri.parse(backendUrlAuth), headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-            'Authorization': 'Bearer $idToken',
-          });
-
-          if (response.statusCode == 200) {
-            showMessage("Login Realizado com sucesso!", isError: false);
-            Navigator.pushReplacementNamed(context, '/home');
-          } else {
-            final errorData = jsonDecode(response.body);
-            showMessage(
-                "Erro no backend: ${errorData['detail'] ?? 'Erro desconhecido!'}");
-          }
-        } else {
-          // Token nao foi obtido corretamente
-          showMessage("Erro: Token de Identificacao nao obtido!");
-        }
-      } else {
-        showMessage("Erro: Usuario nao encontrado apos login no Firebase!");
-      }
+      // Wrapper para o AuthService
+      await _authService.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      ); 
+      showMessage('Login efetuado com sucesso!', isError: false);
+      Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       // Tratamento de erros especificos do FirebaseAuth
       String message;
@@ -112,6 +82,33 @@ class _LoginPageState extends State<LoginPage> {
       } else {
         message = 'Erro de autenticação: ${e.message}';
       }
+      showMessage(message);
+      print("FirebaseAuthException: ${e.code} - ${e.message}");
+    } catch (e) {
+      // Tratamento de outros erros gerais.
+      showMessage("Ocorreu um erro inesperado: $e");
+      print("Erro inesperado: $e"); // Para depuração
+    } finally {
+      //  Define o estado de carregamento de volta para false, independentemente do resultado.
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Wrapper do Login com google 
+    try{
+      await _authService.signInWithGoogle();
+      showMessage('Login efetuado com sucesso!', isError: false);
+      Navigator.pushReplacementNamed(context, '/home');
+    } on FirebaseAuthException catch (e) {
+      // Tratamento de erros especificos do FirebaseAuth
+      String message = 'Erro de autenticação: ${e.message}';
       showMessage(message);
       print("FirebaseAuthException: ${e.code} - ${e.message}");
     } catch (e) {
@@ -238,9 +235,7 @@ class _LoginPageState extends State<LoginPage> {
                           children: [
                             SquareTile(
                                 imagePath: "assets/images/google.png",
-                                auth: () {
-                                  // TODO auth com google
-                                }),
+                                auth: signInWithGoogle),
                           ],
                         )
                       ],

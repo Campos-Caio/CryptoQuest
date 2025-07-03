@@ -4,9 +4,6 @@ import 'package:cryptoquest/presentation/widgets/my_button.dart';
 import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
 import 'package:flutter/material.dart';
 
-// Importe a tela de login se você já a tiver criada
-// import 'package:cryptoquest/presentation/pages/login_page.dart';
-
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -96,7 +93,7 @@ class _RegisterPageState extends State<RegisterPage> {
         _showMessage(
             'Registro concluido com sucesso! Bem vindo(a) ${responseBody['name']}',
             Colors.green);
-        // Navigator.pushReplacementNamed(context, "/home"); 
+            Navigator.pushReplacementNamed(context, "/home"); 
 
         // Limpar os campos do formulário após o sucesso
         nameController.clear();
