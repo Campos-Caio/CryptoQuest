@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, logger, status, Header
 from typing import Annotated 
+import logging
 
 from app.models.user import (
     UserRegister,
@@ -15,6 +16,7 @@ from firebase_admin.auth import UserNotFoundError
 from app.repositories.user_repository import UserRepository, get_user_repository 
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -61,26 +63,40 @@ async def read_current_user_profile(
     return user_profile
 
 @router.post("/authenticate", response_model=AuthSuccess)
-async def authenticate_user_endpoint(authorization: Annotated[str, Header()], auth_service: Annotated[AuthService, Depends(get_auth_service)]): 
+async def authenticate_user_endpoint(
+    authorization: Annotated[str, Header()],
+    auth_service: Annotated[AuthService, Depends(get_auth_service)]
+):
     """
-    Endpoint para autenticar um usuario no backend apos ele ter feito login
-    Com sucesso no frontend (Flutter) usando o Firebase Client SDK.
-    Recebe o Firebase ID Token no cabecalho 'Authorization: Bearer <ID_TOKEN>'.
-    Verifica o token, e retorna o perfil do usuario do Firestore.
+    Endpoint para autenticar um usuário com token do Firebase.
     """
+    logger.info("--- [INÍCIO DO PROCESSO DE AUTENTICAÇÃO] ---")
 
-    if not authorization or not authorization.startswith("Bearer"): 
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token de autenticacao ausente ou mal informado!")
-    
-    id_token = authorization[len("Bearer "):].strip()
-
-    try: 
-        firebase_user, user_profile = await auth_service.authenticate_and_get_profile(id_token)
-        return AuthSuccess(message="Usuario autenticado e perfil carregador com sucesso!", uid=firebase_user.uid, user_profile=user_profile)
-    except ValueError as error: 
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error))
-    except Exception as error: 
+    if not authorization or not authorization.startswith("Bearer "):
+        logger.warning("Token ausente ou mal formatado no cabeçalho Authorization.")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail= f"Erro interno do servidor: {error}", 
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de autenticação ausente ou mal informado!"
+        )
+
+    id_token = authorization[len("Bearer "):].strip()
+    logger.debug(f"Token recebido com {len(id_token)} caracteres")
+    logger.debug(f"Token (início): {id_token[:30]}...")
+
+    try:
+        firebase_user, user_profile = await auth_service.authenticate_and_get_profile(id_token)
+        logger.info(f"Usuário autenticado com sucesso: UID={firebase_user.uid}")
+        return AuthSuccess(
+            message="Usuário autenticado com sucesso!",
+            uid=firebase_user.uid,
+            user_profile=user_profile
+        )
+    except ValueError as error:
+        logger.warning(f"Falha na autenticação: {str(error)}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(error))
+    except Exception as error:
+        logger.error(f"Erro interno inesperado: {str(error)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno do servidor: {error}",
         )

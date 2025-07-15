@@ -1,4 +1,5 @@
 import 'package:cryptoquest/config/theme/app_theme.dart';
+import 'package:cryptoquest/presentation/pages/home_page.dart';
 import 'package:cryptoquest/presentation/pages/login_page.dart';
 import 'package:cryptoquest/presentation/pages/register_page.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +27,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/register': (context) => const RegisterPage(),
         '/login' : (context) => LoginPage(), 
+        '/home' : (context) => HomePage(), 
       }
     );
   }
