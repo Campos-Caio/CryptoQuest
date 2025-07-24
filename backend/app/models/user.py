@@ -30,6 +30,7 @@ class UserProfile(BaseModel):
     email: EmailStr 
     register_date: datetime 
     level: Optional[int] = 1 
+    has_completed_questionnaire: bool = False
 
     class Config: 
         # Permite que o Pydantic mapeie o campo 'id' do Firestore para 'uid'
@@ -46,3 +47,5 @@ class AuthSuccess(BaseModel):
     uid: str 
     token: Optional[str] = None # Token de ID JWT, util para testes
     user_profile: Optional[UserProfile] = None # Dados do perfil do Firestore
+    knowledge_profile: Optional[dict] = None
+    initial_answers: Optional[dict] = None
