@@ -20,6 +20,8 @@ class AuthService {
 
     // 2. Obtem o ID Token
     final idToken = await userCredential.user!.getIdToken(true);
+    print('--- SEU ID TOKEN DO FIREBASE ---');
+    print(idToken);
     if (idToken == null) {
       throw Exception("Nao foi possivel encontrar o Token!");
     }
@@ -63,16 +65,17 @@ class AuthService {
         await http.post(Uri.parse(_backendUrl), headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       'Authorization': 'Bearer $idToken'
-    }); 
+    });
 
-    if(response.statusCode != 200){
+    if (response.statusCode != 200) {
       final errorData = jsonDecode(response.body);
-      // Lanca um erro com a mensagem do backend 
-      throw Exception("Erro interno no servidor: ${errorData['detail'] ?? 'Erro desconhecido!'}"); 
+      // Lanca um erro com a mensagem do backend
+      throw Exception(
+          "Erro interno no servidor: ${errorData['detail'] ?? 'Erro desconhecido!'}");
     }
   }
 
-  Future<void> signOut() async{
+  Future<void> signOut() async {
     await _firebaseAuth.signOut();
     await _googleSignIn.signOut();
   }

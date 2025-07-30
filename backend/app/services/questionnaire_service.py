@@ -1,0 +1,81 @@
+from app.models.questionnaire import * 
+from app.repositories.user_repository import UserRepository
+
+INITIAL_QUESTIONS = InitialQuestionnaire(
+    title="Questionário de Nivelamento - CryptoQuest",
+    questions=[
+        Question(
+            id="q1",
+            text="Qual seu nível de familiaridade com criptomoedas?",
+            options=[
+                QuestionOption(id="q1a", text="Nunca ouvi falar ou sei muito pouco.", score=1),
+                QuestionOption(id="q1b", text="Já ouvi falar, mas não sei como funciona.", score=2),
+                QuestionOption(id="q1c", text="Entendo os conceitos básicos (ex: Bitcoin).", score=3),
+                QuestionOption(id="q1d", text="Já investi ou estudei a fundo.", score=4),
+            ],
+        ),
+        Question(
+            id="q2",
+            text="O que você entende por 'Blockchain'?",
+            options=[
+                QuestionOption(id="q2a", text="Não sei o que é.", score=1),
+                QuestionOption(id="q2b", text="É um tipo de moeda digital.", score=2),
+                QuestionOption(id="q2c", text="É um 'livro-razão' digital, público e distribuído.", score=3),
+                QuestionOption(id="q2d", text="É uma tecnologia para criar contratos inteligentes.", score=4),
+            ],
+        ),
+        # Adicione mais perguntas aqui
+    ],
+)
+
+class QuestionnaireService: 
+    def __init__(self,user_repo: UserRepository): 
+        self.user_repo = user_repo
+        self.questions_map = {q.id: q for q in INITIAL_QUESTIONS.questions} 
+    
+    def get_initial_questionnaire(self) -> InitialQuestionnaire:
+        """Retorna a estrutura do questionario inicial!"""
+        return INITIAL_QUESTIONS 
+    
+    async def process_submission(self, uid: str, submission: QuestionnaireSubmission) -> KnowledgeProfile: 
+        """Processa as respostas, calcula perfil e gera trilha"""
+        total_score = 0 
+        for answer in submission.answers: 
+            question = self.questions_map.get(answer.question_id)
+            if question: 
+                for option in question.options: 
+                    if option.id == answer.selected_option_id: 
+                        total_score += option.score 
+                        break 
+        
+        # Logica para definir o perfil e a trilha com base na pontuacao 
+        if total_score <= 3: 
+            profile_name = 'Explorador Curioso'
+            learning_path_ids = ['modulo_introducao', "modulo_introducao_crypto"]
+        elif total_score <= 6: 
+            profile_name = 'Iniciante Promissor'
+            learning_path_ids = ['modulo_blockchain-101', "modulo_wallets"]
+        else: 
+            profile_name = 'Entusiasta Preparado'
+            learning_path_ids = ['modulo_defi', "modulo_nfts"]
+
+        knowledge_profile = KnowledgeProfile(
+            profile_name=profile_name, 
+            score = total_score, 
+            learning_path_ids = learning_path_ids 
+        )
+
+        # Dados a serem salvos no Firestore 
+        update_data = {
+            'knowledge_profile':  knowledge_profile.model_dump(), 
+            'initial_answers':submission.model_dump(), 
+            'has_completed_questionnaire':True, 
+        }
+
+        # Atualiza o doc do User 
+        await self.user_repo.update_user_Profile(uid, update_data)
+
+        return knowledge_profile 
+            
+    
+                        

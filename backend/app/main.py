@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth
+from app.api import questionnaire_api
 
 
 app = FastAPI(
@@ -19,6 +20,7 @@ app.add_middleware(
 
 #incluir os routers
 app.include_router(auth.router)
+app.include_router(questionnaire_api.router)
 
 @app.get("/", tags=["Root"])
 async def read_root():
