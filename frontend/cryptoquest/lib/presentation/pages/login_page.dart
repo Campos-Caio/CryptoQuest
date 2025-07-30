@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:cryptoquest/presentation/widgets/my_button.dart';
 import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
 import 'package:cryptoquest/presentation/widgets/square_tile.dart';
@@ -8,7 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:provider/provider.dart';
+import 'package:cryptoquest/services/auth_notifier.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,61 +38,41 @@ class _LoginPageState extends State<LoginPage> {
   void showMessage(String message, {bool isError = true}) {
     Fluttertoast.showToast(
       msg: message,
-      toastLength: Toast.LENGTH_LONG, // Mensagem longa
-      gravity: ToastGravity.BOTTOM, // Posição inferior
-      timeInSecForIosWeb: 3, // Duração para iOS/Web
-      backgroundColor: isError
-          ? Colors.redAccent
-          : Colors.green, // Cores diferentes para erro/sucesso
+      toastLength: Toast.LENGTH_LONG,
+      gravity: ToastGravity.BOTTOM,
+      timeInSecForIosWeb: 3,
+      backgroundColor: isError ? Colors.redAccent : Colors.green,
       textColor: Colors.white,
       fontSize: 16.0,
     );
   }
 
-  // Metodo de login principal
+  // Metodo de login principal refatorado para funcionar com provider
   Future<void> signIn() async {
-    // Define o estado de carregamento para true e atualiza UI
-    setState(() {
-      _isLoading = true;
-    });
+    // Acessa o AuthProvider sem ouvir por mudanças (apenas para chamar a função)
+    final authProvider = Provider.of<AuthNotifier>(context, listen: false);
 
-    try {
-      // Wrapper para o AuthService
-      await _authService.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      ); 
+    // Chama o método de login do provider
+    final success = await authProvider.login(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (success) {
       showMessage('Login efetuado com sucesso!', isError: false);
-      Navigator.pushReplacementNamed(context, '/home');
-    } on FirebaseAuthException catch (e) {
-      // Tratamento de erros especificos do FirebaseAuth
-      String message;
+      final userProfile = authProvider.userProfile;
 
-      if (e.code == 'user-not-found') {
-        message = 'Nenhum Usuario foi encontrado com este email!';
-      } else if (e.code == 'wrong-password') {
-        message = 'Senha incorreta!';
-      } else if (e.code == 'invalid-email') {
-        message = 'O formato do email é inválido.';
-      } else if (e.code == 'network-request-failed') {
-        message = 'Erro de conexão: Verifique sua internet.';
-      }
-      if (e.code == 'invalid-email') {
-        message = 'Email Invalido!';
+      // Lógica de redirecionamento
+      if (userProfile != null && userProfile.hasCompletedQuestionnaire) {
+        Navigator.pushReplacementNamed(context, '/home');
       } else {
-        message = 'Erro de autenticação: ${e.message}';
+        Navigator.pushReplacementNamed(context, '/questionnaire');
       }
-      showMessage(message);
-      print("FirebaseAuthException: ${e.code} - ${e.message}");
-    } catch (e) {
-      // Tratamento de outros erros gerais.
-      showMessage("Ocorreu um erro inesperado: $e");
-      print("Erro inesperado: $e"); // Para depuração
-    } finally {
-      //  Define o estado de carregamento de volta para false, independentemente do resultado.
-      setState(() {
-        _isLoading = false;
-      });
+    } else {
+      // Mostra a mensagem de erro que o provider armazenou
+      showMessage(authProvider.errorMessage ?? 'Ocorreu um erro desconhecido.');
     }
   }
 
@@ -101,8 +81,8 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
 
-    // Wrapper do Login com google 
-    try{
+    // Wrapper do Login com google
+    try {
       await _authService.signInWithGoogle();
       showMessage('Login efetuado com sucesso!', isError: false);
       Navigator.pushReplacementNamed(context, '/home');
@@ -127,102 +107,62 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                SizedBox(
-                  height: screenHeight * 0.05,
-                ),
-                Image.asset(
-                  'assets/images/btc_purple.png',
-                  height: screenHeight * 0.15,
-                ),
-                Column(
+    return Consumer<AuthNotifier>(
+      builder: (context, authProvider, child) {
+        return Scaffold(
+          body: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Text(
-                      "CryptoQuest",
-                      style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    ),
-                    Text(
-                      "Uma jornada pelo mundo Cripto",
-                      style: TextStyle(fontSize: 16, color: Colors.white70),
-                      textAlign: TextAlign.center,
-                    ),
                     SizedBox(
-                      height: screenHeight * 0.025,
+                      height: screenHeight * 0.05,
                     ),
-                    MyTextField(
-                      controller: emailController,
-                      hintText: "Email ou nome de Usuario",
-                      obscureText: false,
-                      icon: Icon(Icons.email),
+                    Image.asset(
+                      'assets/images/btc_purple.png',
+                      height: screenHeight * 0.15,
                     ),
-                    MyTextField(
-                      controller: passwordController,
-                      hintText: "Senha",
-                      obscureText: true,
-                      icon: Icon(Icons.password),
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.01,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Esqueceu a senha?",
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.025,
-                    ),
-                    _isLoading
-                        ? CircularProgressIndicator(
-                            color:
-                                Colors.deepPurple) // Indicador de carregamento
-                        : MyButton(
-                            onTap: signIn,
-                            buttonCollor: Colors.deepPurple,
-                            text: "Login"),
                     Column(
                       children: [
+                        Text(
+                          "CryptoQuest",
+                          style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                        Text(
+                          "Uma jornada pelo mundo Cripto",
+                          style: TextStyle(fontSize: 16, color: Colors.white70),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(
+                          height: screenHeight * 0.025,
+                        ),
+                        MyTextField(
+                          controller: emailController,
+                          hintText: "Email ou nome de Usuario",
+                          obscureText: false,
+                          icon: Icon(Icons.email),
+                        ),
+                        MyTextField(
+                          controller: passwordController,
+                          hintText: "Senha",
+                          obscureText: true,
+                          icon: Icon(Icons.password),
+                        ),
+                        SizedBox(
+                          height: screenHeight * 0.01,
+                        ),
                         Padding(
-                          padding: EdgeInsetsGeometry.symmetric(horizontal: 25),
+                          padding: const EdgeInsets.symmetric(horizontal: 25.0),
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Divider(
-                                  thickness: 0.5,
-                                  color: Colors.deepPurple[400],
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsetsGeometry.symmetric(
-                                    horizontal: screenHeight * 0.01),
-                                child: Text(
-                                  "Ou entre com",
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Divider(
-                                  thickness: 0.5,
-                                  color: Colors.deepPurple[400],
-                                ),
+                              Text(
+                                "Esqueceu a senha?",
+                                style: TextStyle(color: Colors.white70),
                               ),
                             ],
                           ),
@@ -230,50 +170,96 @@ class _LoginPageState extends State<LoginPage> {
                         SizedBox(
                           height: screenHeight * 0.025,
                         ),
+                        _isLoading
+                            ? CircularProgressIndicator(
+                                color: Colors
+                                    .deepPurple) // Indicador de carregamento
+                            : MyButton(
+                                onTap: signIn,
+                                buttonCollor: Colors.deepPurple,
+                                text: "Login"),
+                        Column(
+                          children: [
+                            Padding(
+                              padding:
+                                  EdgeInsetsGeometry.symmetric(horizontal: 25),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(
+                                      thickness: 0.5,
+                                      color: Colors.deepPurple[400],
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsetsGeometry.symmetric(
+                                        horizontal: screenHeight * 0.01),
+                                    child: Text(
+                                      "Ou entre com",
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(
+                                      thickness: 0.5,
+                                      color: Colors.deepPurple[400],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              height: screenHeight * 0.025,
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SquareTile(
+                                    imagePath: "assets/images/google.png",
+                                    auth: signInWithGoogle),
+                              ],
+                            )
+                          ],
+                        ),
+                        SizedBox(
+                          height: screenHeight * 0.025,
+                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SquareTile(
-                                imagePath: "assets/images/google.png",
-                                auth: signInWithGoogle),
+                            const Text(
+                              'Ainda nao possui uma conta?',
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 14),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pushReplacementNamed(
+                                    context, "/register");
+                              },
+                              child: Text(
+                                " Cadastre-se",
+                                style: TextStyle(
+                                    color: Colors.deepPurple,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ],
-                        )
-                      ],
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.025,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Ainda nao possui uma conta?',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pushReplacementNamed(
-                                context, "/register");
-                          },
-                          child: Text(
-                            " Cadastre-se",
-                            style: TextStyle(
-                                color: Colors.deepPurple,
-                                fontWeight: FontWeight.bold),
-                          ),
+                        SizedBox(
+                          height: screenHeight * 0.02,
                         ),
                       ],
-                    ),
-                    SizedBox(
-                      height: screenHeight * 0.02,
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
