@@ -20,7 +20,15 @@ void main() async {
     (MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthNotifier()),
-        ChangeNotifierProvider(create: (_) => QuestionnaireProvider()),
+        ChangeNotifierProxyProvider<AuthNotifier, QuestionnaireProvider>(
+          // O 'create' é chamado uma vez para criar a instância inicial.
+          create: (context) => QuestionnaireProvider(
+            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
+          ),
+          // O 'update' é chamado sempre que o AuthNotifier muda.
+          update: (context, authNotifier, previousQuestionnaireProvider) =>
+              QuestionnaireProvider(authNotifier: authNotifier),
+        ),
       ],
       child: const MyApp(),
     )),

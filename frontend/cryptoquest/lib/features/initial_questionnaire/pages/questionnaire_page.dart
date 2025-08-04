@@ -13,17 +13,11 @@ class QuestionnairePage extends StatefulWidget {
 class _QuestionnairePageState extends State<QuestionnairePage> {
   final PageController _pageController = PageController();
 
-  String _userToken = ''; 
-
   @override
   void initState() {
     super.initState();
-
-    _userToken =
-        'eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk1MWRkZTkzMmViYWNkODhhZmIwMDM3YmZlZDhmNjJiMDdmMDg2NmIiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiQ2FpbyIsImlzcyI6Imh0dHBzOi8vc2VjdXJldG9rZW4uZ29vZ2xlLmNvbS9jcnlwdG9xdWVzdC05MGE3YiIsImF1ZCI6ImNyeXB0b3F1ZXN0LTkwYTdiIiwiYXV0aF90aW1lIjoxNzUzODkwODQ3LCJ1c2VyX2lkIjoia3Z1WDY2RUlvV09FY2o4QzRTM3dmeUZNVFJLMiIsInN1YiI6Imt2dVg2NkVJb1dPRWNqOEM0UzN3ZnlGTVRSSzIiLCJpYXQiOjE3NTM4OTA4NDgsImV4cCI6MTc1Mzg5NDQ0OCwiZW1haWwiOiJ0ZXN0ZUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsidGVzdGVAZ21haWwuY29tIl19LCJzaWduX2luX3Byb3ZpZGVyIjoicGFzc3dvcmQifX0.Ck7dfii5wqqL3VsuUFjuZ5GJbg5iwRPd1bkmCT1wOvZEvHRbst3YlzmANMZzNOeQ3hRRUQBdE-g9G4uuMaXutN-24wui7C5By7suiH1ssfdbEQNUoxCSlj2LzAxHCW5S9b3os-bjaBOBCYPN0956kdploPno9BpF_g0U2yOUlAiQiTkjAA92F89tGPxSnjwJy0V7lFKcr_MWiflEO6GYxBjqexs_Xwlp91_iEj77Flsuh0qFTWpUsAA3UfZEJtWBkOgdIycCuMTXP336paoB_hfB8hqXHQ65vVzTzqwOSbPzYGu2jBkyBXV5cN1bXU16ee30engfqi-MW1gn6KSPCQ';
-    // Inicial a busca Pelas perguntas assim que a tela eh construida
     Provider.of<QuestionnaireProvider>(context, listen: false)
-        .fetchQuestionnaire(_userToken);
+        .fetchQuestionnaire();
   }
 
   @override
@@ -118,16 +112,18 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
             Center(
               child: ElevatedButton(
                 onPressed: () async {
-                  final sucess = await provider.submitAllAnswers(_userToken);
+                  final provider = Provider.of<QuestionnaireProvider>(context,
+                      listen: false);
+                  final sucess = await provider.submitAllAnswers();
+
+                  if (!mounted) return; 
 
                   if (sucess) {
                     // Navegar para tela principal do app
-                    // Navigator.of(context).pushReplacementNamed('/home)
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text("Respostas Enviadas com sucesso!")));
+                    Navigator.pushReplacementNamed(context, '/home');
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text("Error: ${provider.errorMessage}")));
+                        content: Text("Error: ${provider.errorMessage ?? 'Ocorreu um erro desconhecido!'} ")));
                   }
                 },
                 child: provider.isLoading
