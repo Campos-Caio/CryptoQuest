@@ -1,33 +1,7 @@
+from typing import Annotated
+from fastapi import Depends
 from app.models.questionnaire import * 
-from app.repositories.user_repository import UserRepository
-
-INITIAL_QUESTIONS = InitialQuestionnaire(
-    title="Questionário de Nivelamento - CryptoQuest",
-    questions=[
-        Question(
-            id="q1",
-            text="Qual seu nível de familiaridade com criptomoedas?",
-            options=[
-                QuestionOption(id="q1a", text="Nunca ouvi falar ou sei muito pouco.", score=1),
-                QuestionOption(id="q1b", text="Já ouvi falar, mas não sei como funciona.", score=2),
-                QuestionOption(id="q1c", text="Entendo os conceitos básicos (ex: Bitcoin).", score=3),
-                QuestionOption(id="q1d", text="Já investi ou estudei a fundo.", score=4),
-            ],
-        ),
-        Question(
-            id="q2",
-            text="O que você entende por 'Blockchain'?",
-            options=[
-                QuestionOption(id="q2a", text="Não sei o que é.", score=1),
-                QuestionOption(id="q2b", text="É um tipo de moeda digital.", score=2),
-                QuestionOption(id="q2c", text="É um 'livro-razão' digital, público e distribuído.", score=3),
-                QuestionOption(id="q2d", text="É uma tecnologia para criar contratos inteligentes.", score=4),
-            ],
-        ),
-        # Adicione mais perguntas aqui
-    ],
-)
-
+from app.repositories.user_repository import UserRepository, get_user_repository
 class QuestionnaireService: 
     def __init__(self,user_repo: UserRepository): 
         self.user_repo = user_repo
@@ -76,6 +50,40 @@ class QuestionnaireService:
         await self.user_repo.update_user_Profile(uid, update_data)
 
         return knowledge_profile 
+
+def get_questionnaire_service(
+        user_repo: Annotated[UserRepository, Depends(get_user_repository)]
+) -> QuestionnaireService: 
+    return QuestionnaireService(user_repo=user_repo)
+
+INITIAL_QUESTIONS = InitialQuestionnaire(
+    title="Questionário de Nivelamento - CryptoQuest",
+    questions=[
+        Question(
+            id="q1",
+            text="Qual seu nível de familiaridade com criptomoedas?",
+            options=[
+                QuestionOption(id="q1a", text="Nunca ouvi falar ou sei muito pouco.", score=1),
+                QuestionOption(id="q1b", text="Já ouvi falar, mas não sei como funciona.", score=2),
+                QuestionOption(id="q1c", text="Entendo os conceitos básicos (ex: Bitcoin).", score=3),
+                QuestionOption(id="q1d", text="Já investi ou estudei a fundo.", score=4),
+            ],
+        ),
+        Question(
+            id="q2",
+            text="O que você entende por 'Blockchain'?",
+            options=[
+                QuestionOption(id="q2a", text="Não sei o que é.", score=1),
+                QuestionOption(id="q2b", text="É um tipo de moeda digital.", score=2),
+                QuestionOption(id="q2c", text="É um 'livro-razão' digital, público e distribuído.", score=3),
+                QuestionOption(id="q2d", text="É uma tecnologia para criar contratos inteligentes.", score=4),
+            ],
+        ),
+        # Adicione mais perguntas aqui
+    ],
+)
+
+
             
     
                         

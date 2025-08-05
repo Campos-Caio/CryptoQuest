@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:cryptoquest/presentation/widgets/my_button.dart';
 import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
 import 'package:cryptoquest/presentation/widgets/square_tile.dart';
@@ -6,7 +5,6 @@ import 'package:cryptoquest/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:cryptoquest/services/auth_notifier.dart';
 

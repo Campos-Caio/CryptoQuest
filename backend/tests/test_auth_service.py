@@ -1,3 +1,4 @@
+from firebase_admin import auth, exceptions
 import pytest
 from datetime import datetime
 from app.models.user import UserRegister, UserProfile
@@ -65,3 +66,22 @@ async def test_auth_service_register_user(monkeypatch, mocker):
     assert user_profile.name == "Test User"
     assert user_profile.email == "mock@test.com"
     assert user_profile.uid == "test_uid_123"
+
+async def test_register_user_email_already_exists(mocker): 
+    """
+        Testa se o servico levanta um ValueError quando o email ja existe
+    """
+
+    mocker.patch(
+        "firebase_admin.auth.create_user", 
+        side_effect = exceptions.AlreadyExistsError("Email Already exists", None)
+    )
+
+    mocker_user_repo = UserRepository(dbclient=mocker.MagicMock())
+    auth_service = AuthService(user_repo=mocker_user_repo)
+    user_data = UserRegister(name="Test User", email="exists@exemple.com", password="password123")
+
+    with pytest.raises(ValueError) as excinfo: 
+        await auth_service.register_user(user_data=user_data)
+
+    assert "Erro no Firebase Auth durante o cadastro: ALREADY_EXISTS" in str(excinfo.value)
