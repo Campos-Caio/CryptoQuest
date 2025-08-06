@@ -1,19 +1,24 @@
-class Mission: 
-    def __init__(self, id, title, description, type, content, dificulty, reward):
-        self.id = id
-        self.title = title
-        self.description = description
-        self.type = type
-        self.content = content
-        self.dificulty = dificulty
-        self.reward = reward
-        self.userProgress = None 
+from pydantic import BaseModel, Field 
+from typing import List, Dict 
 
-    def initMision(self): 
-        self.status = 'Em andamento'
+class QuizOption(BaseModel): 
+    text: str 
 
-    def finishMision(self): 
-        self.status = 'Concluído'
-    
-    def getNextMission(self, previous_mission, user):
-        print(" Retorna Próxima missão com base na anterior")
+class QuizQuestion(BaseModel): 
+    text: str
+    options: List[QuizOption]
+    correct_answer_index = int 
+
+class Quiz(BaseModel): 
+    id: str = Field(..., alias='_id')
+    title: str 
+    questions: List[QuizQuestion]
+
+class Mission(BaseModel): 
+    id: str = Field(...,alias='_id')
+    title: str 
+    description: str 
+    type: str 
+    reward_points: int 
+    required_level: int 
+    content_type: str 
