@@ -44,6 +44,13 @@ class UserProfile(BaseModel):
         # from_attributes = True # Pydantic v2+ (Antigo: orm_mode = True)
         pass 
 
+
+class UserProfileUpdate(BaseModel):
+    '''
+        Model para os dados que podem ser atualizados no perfil do usuario
+    '''
+    name: Optional[str] = None
+
 # Modelo para resposta de sucesso login/registro 
 # Representa a resposta de sucesso para login ou registro 
 class AuthSuccess(BaseModel): 

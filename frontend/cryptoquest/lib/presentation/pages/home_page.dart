@@ -1,27 +1,54 @@
 import 'package:cryptoquest/presentation/widgets/crypto_card.dart';
+import 'package:cryptoquest/services/auth_notifier.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+
     return Scaffold(
       appBar: AppBar(
         title: Text("CryptoQuest"),
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.person),
-          onPressed: () {
-            // TODO Drawer do User
-          },
-        ),
         actions: [
           Image.asset(
             'assets/images/btc_purple.png',
             height: 40,
           )
         ],
+      ),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text(authNotifier.userProfile?.name ?? 'Usuario'),
+              accountEmail: Text(authNotifier.userProfile?.email ?? ""),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Meu perfil"),
+              onTap: () {
+                // Fecha o drawer e navega para a pagina de perfil
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/profile');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text("Sair"),
+              onTap: () {
+                authNotifier.logout();
+                Navigator.of(context)
+                    .pushNamedAndRemoveUntil('/login', (route) => false); 
+              },
+            )
+          ],
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(

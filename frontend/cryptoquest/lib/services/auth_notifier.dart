@@ -1,6 +1,7 @@
 import 'package:cryptoquest/features/auth/user_profile_model.dart';
+import 'package:cryptoquest/features/profile/models/user_profile_update.dart';
 import 'package:flutter/material.dart';
-import 'package:cryptoquest/services/auth_service.dart'; 
+import 'package:cryptoquest/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthNotifier extends ChangeNotifier {
@@ -67,5 +68,38 @@ class AuthNotifier extends ChangeNotifier {
     _userProfile = null;
     _token = null;
     notifyListeners();
+  }
+
+  /// Atualiza o perfil do usuario, chama o servico e atualiza o estado local
+  /// Args:
+  ///   updateModel(UserProfileUpdate): Os novos dados a serem salvos.
+  /// Returns:
+  ///   bool: true se a operacao foi bem sucedida, false caso contrario
+  Future<bool> updateUserProfile(UserProfileUpdate updateModel) async {
+    if (_token == null) {
+      _errorMessage = 'Usuario nao autenticado.';
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updateProfile =
+          await _authService.updateUserProfile(_token!, updateModel);
+
+      // Se foi bem sucedido, atualiza o peril local para que a UI mude instantaneamente
+      _userProfile = updateProfile;
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      _isLoading = false;
+      notifyListeners(); 
+      return false; 
+    }
   }
 }

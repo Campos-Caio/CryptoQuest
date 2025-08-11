@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cryptoquest/features/auth/user_profile_model.dart';
+import 'package:cryptoquest/features/profile/models/user_profile_update.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
@@ -7,7 +8,8 @@ import 'package:http/http.dart' as http;
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final String _backendUrl = 'http://10.0.2.2:8000/auth'; // URL base da autenticação
+  final String _backendUrl =
+      'http://10.0.2.2:8000/auth'; // URL base da autenticação
 
   // Retorna o UserProfile após o login
   Future<UserProfile> signInWithEmailAndPassword({
@@ -24,7 +26,7 @@ class AuthService {
 
     return _authenticateWithBackend(idToken);
   }
-  
+
   // Retorna o UserProfile após o login com Google
   Future<UserProfile> signInWithGoogle() async {
     final googleUser = await _googleSignIn.signIn();
@@ -35,7 +37,8 @@ class AuthService {
         accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
 
     final userCredential = await _firebaseAuth.signInWithCredential(credential);
-    if (userCredential.user == null) throw Exception('Usuário não encontrado no Firebase');
+    if (userCredential.user == null)
+      throw Exception('Usuário não encontrado no Firebase');
 
     final idToken = await userCredential.user!.getIdToken();
     if (idToken == null) throw Exception("Não foi possível obter o Token!");
@@ -59,12 +62,64 @@ class AuthService {
       return UserProfile.fromJson(responseData['user_profile']);
     } else {
       final errorData = jsonDecode(response.body);
-      throw Exception("Erro do servidor: ${errorData['detail'] ?? 'Erro desconhecido'}");
+      throw Exception(
+          "Erro do servidor: ${errorData['detail'] ?? 'Erro desconhecido'}");
     }
   }
 
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
     await _googleSignIn.signOut();
+  }
+
+  Future<UserProfile> updateUserProfile(
+
+      /// Atualiza os dados do perfil do usuario no backend.
+      ///
+      /// Args:
+      ///   token (string): O token de autenticacao do usuario.
+      ///   updateModel(UserProfileUpdate): O objeto com novos dados do perfil.
+      /// Returns:
+      ///   UserProfile: O perfil de usuariop atualizado, retornado pelo backend.
+      String token,
+      UserProfileUpdate updateModel) async {
+    final response = await http.put(
+      Uri.parse('http://10.0.2.2:8000/user/me'),
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode(updateModel.toJson()),
+    );
+
+    if (response.statusCode == 200) {
+      return UserProfile.fromJson(jsonDecode(response.body));
+    } else {
+      final errorData = jsonDecode(response.body);
+      throw Exception('Falha ao autorizar o perfil: ${errorData['detail']}');
+    }
+  }
+
+  /// Atualiza o email do usuario no FirebaseAuthentication
+  /// Args:
+  ///   newEmail: O novo email desejado
+  /// Esta eh uma operacao sensivel e pode exigir reatenticacao
+  Future<void> updateEmail(String newEmail) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw Exception('Nenhm usuario logado!');
+
+    // O Sdk do Firebase Lida com a logica de seguranca
+    await user.verifyBeforeUpdateEmail(newEmail);
+  }
+
+  /// Atualiza a senha do usuario no Firebase Authentication
+  /// Args:
+  ///   newPassword(String): A nova desejada.
+  /// Essa eh uma operacao sensivel e pode exigir reautenticacao.
+  Future<void> updatePassword(String newPassword) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw Exception("Nenhum usuario logado!");
+
+    await user.updatePassword(newPassword); 
   }
 }
