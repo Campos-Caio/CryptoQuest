@@ -7,7 +7,7 @@ class QuizOption(BaseModel):
 class QuizQuestion(BaseModel): 
     text: str
     options: List[QuizOption]
-    correct_answer_index = int 
+    correct_answer_index: int 
 
 class Quiz(BaseModel): 
     id: str = Field(..., alias='_id')
