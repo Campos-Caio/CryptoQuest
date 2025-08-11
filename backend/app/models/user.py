@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr 
-from typing import Optional 
+from typing import Dict, Optional 
 from datetime import datetime 
 
 # Modelo para o corpo da requisicao 
@@ -31,6 +31,10 @@ class UserProfile(BaseModel):
     register_date: datetime 
     level: Optional[int] = 1 
     has_completed_questionnaire: bool = False
+    points: int = 0 
+    completed_missions: Dict[str, datetime] = {}
+    knowledge_profile: Optional[dict] = None 
+    initial_answers: Optional[dict] = None
 
     class Config: 
         # Permite que o Pydantic mapeie o campo 'id' do Firestore para 'uid'
@@ -49,3 +53,4 @@ class AuthSuccess(BaseModel):
     user_profile: Optional[UserProfile] = None # Dados do perfil do Firestore
     knowledge_profile: Optional[dict] = None
     initial_answers: Optional[dict] = None
+
