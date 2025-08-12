@@ -27,8 +27,8 @@ async def update_current_user_profile(
     update_dict = update_data.model_dump(exclude_unset=True)
 
     # Atualiza o perfil no banco de dados 
-    await user_repo.update_user_profile(current_user.uid, update_dict)
+    await user_repo.update_user_Profile(current_user.uid, update_dict)
 
     # Retorna o perfil atualizado 
-    updated_profile = await user_repo.get_user_profile(current_user)
+    updated_profile = await user_repo.get_user_profile(current_user.uid)
     return updated_profile 

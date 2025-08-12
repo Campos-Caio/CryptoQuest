@@ -8,8 +8,6 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-
     return Scaffold(
       appBar: AppBar(
         title: Text("CryptoQuest"),
@@ -21,34 +19,40 @@ class HomePage extends StatelessWidget {
           )
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            UserAccountsDrawerHeader(
-              accountName: Text(authNotifier.userProfile?.name ?? 'Usuario'),
-              accountEmail: Text(authNotifier.userProfile?.email ?? ""),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text("Meu perfil"),
-              onTap: () {
-                // Fecha o drawer e navega para a pagina de perfil
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/profile');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text("Sair"),
-              onTap: () {
-                authNotifier.logout();
-                Navigator.of(context)
-                    .pushNamedAndRemoveUntil('/login', (route) => false); 
-              },
-            )
-          ],
-        ),
+      drawer: Consumer<AuthNotifier>(
+        builder: (context, authNotifier, child){
+          final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+
+          return Drawer(
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              UserAccountsDrawerHeader(
+                accountName: Text(authNotifier.userProfile?.name ?? 'Usuario'),
+                accountEmail: Text(authNotifier.userProfile?.email ?? ""),
+              ),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text("Meu perfil"),
+                onTap: () {
+                  // Fecha o drawer e navega para a pagina de perfil
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/profile');
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text("Sair"),
+                onTap: () {
+                  authNotifier.logout();
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/login', (route) => false); 
+                },
+              )
+            ],
+          ),
+        );
+        },
       ),
       body: Center(
         child: SingleChildScrollView(

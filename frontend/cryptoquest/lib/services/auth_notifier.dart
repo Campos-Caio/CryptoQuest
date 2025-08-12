@@ -98,8 +98,45 @@ class AuthNotifier extends ChangeNotifier {
     } catch (error) {
       _errorMessage = error.toString();
       _isLoading = false;
-      notifyListeners(); 
-      return false; 
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Busca os dados mais recentes do perfil do usuário no backend e atualiza o estado.
+  ///
+  /// Essencial para ser chamado após operações como a mudança de e-mail,
+  /// para que a UI reflita os dados atualizados.
+  Future<void> refreshUserProfile() async {
+    // Se não houver token, não há o que fazer.
+    if (_token == null) return;
+
+    // Embora a UI não precise mostrar um loading para esta ação de fundo,
+    // é uma boa prática gerenciar o estado.
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Chama o novo método no serviço para buscar os dados atualizados
+      final refreshedProfile = await _authService.fetchUserProfile(_token!);
+      // Atualiza o perfil local com os novos dados
+      _userProfile = refreshedProfile;
+      _errorMessage = null;
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+    /// Recarrega os dados do usuário do Firebase e atualiza o backend.
+  /// Essencial após mudanças no Firebase Auth (ex: email).
+  Future<void> refreshFirebaseUser() async {
+    await FirebaseAuth.instance.currentUser?.reload();
+    _token = await FirebaseAuth.instance.currentUser?.getIdToken(true);
+    if (_token != null) {
+      await refreshUserProfile(); // Chama a função que já temos para buscar do nosso backend
     }
   }
 }

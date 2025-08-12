@@ -84,7 +84,7 @@ class AuthService {
       String token,
       UserProfileUpdate updateModel) async {
     final response = await http.put(
-      Uri.parse('http://10.0.2.2:8000/user/me'),
+      Uri.parse('http://10.0.2.2:8000/users/me'),
       headers: {
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': 'Bearer $token'
@@ -120,6 +120,45 @@ class AuthService {
     final user = _firebaseAuth.currentUser;
     if (user == null) throw Exception("Nenhum usuario logado!");
 
-    await user.updatePassword(newPassword); 
+    await user.updatePassword(newPassword);
+  }
+
+  /// Busca o perfil completo do usuário autenticado a partir do backend.
+  ///
+  /// Usa o endpoint GET /auth/me que já criamos e testamos.
+  ///
+  /// Args:
+  ///   token (String): O token de autenticação do usuário.
+  ///
+  /// Returns:
+  ///   UserProfile: O perfil do usuário.
+  Future<UserProfile> fetchUserProfile(String token) async {
+    final response = await http.get(
+      Uri.parse(
+          'http://10.0.2.2:8000/auth/me'), // Endpoint para buscar o perfil
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return UserProfile.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Falha ao carregar o perfil do usuário.');
+    }
+  }
+
+  /// Reautentica o usuário com sua senha atual.
+  /// Necessário para operações sensíveis como mudar e-mail ou senha.
+  Future<void> reauthenticateWithPassword(String password) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw Exception("Nenhum usuário logado.");
+    
+    // Pega as credenciais atuais do usuário
+    final cred = EmailAuthProvider.credential(email: user.email!, password: password);
+    
+    // Tenta reautenticar
+    await user.reauthenticateWithCredential(cred);
   }
 }
