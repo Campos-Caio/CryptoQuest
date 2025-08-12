@@ -12,7 +12,20 @@
           "package_name": "com.example.cryptoquest"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "252988213671-lpkcg8q142d73q3gfvoi6etnhenem91v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.cryptoquest",
+            "certificate_hash": "fde165d792304df16f94e82bf68f45cd6ca99b38"
+          }
+        },
+        {
+          "client_id": "252988213671-9fdqoj2ania09428rvj73cg9eskiv696.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDH9Axyu_slFc4ZkCPhiPeqefdTw0zR_4g"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "252988213671-9fdqoj2ania09428rvj73cg9eskiv696.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "252988213671-e82lc9sn98a8gf0b5dtf2fts3jpl718e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.cryptoquest"
+              }
+            }
+          ]
         }
       }
     }

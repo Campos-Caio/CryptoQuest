@@ -1,6 +1,7 @@
 import 'package:cryptoquest/config/theme/app_theme.dart';
 import 'package:cryptoquest/features/initial_questionnaire/pages/questionnaire_page.dart';
 import 'package:cryptoquest/features/initial_questionnaire/state/questionnaire_provider.dart';
+import 'package:cryptoquest/features/profile/pages/profile_page.dart';
 import 'package:cryptoquest/presentation/pages/home_page.dart';
 import 'package:cryptoquest/presentation/pages/login_page.dart';
 import 'package:cryptoquest/presentation/pages/register_page.dart';
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
           '/login': (context) => LoginPage(),
           '/home': (context) => HomePage(),
           '/questionnaire': (context) => const QuestionnairePage(),
+          '/profile':(context) => const ProfilePage(), 
         });
   }
 }
