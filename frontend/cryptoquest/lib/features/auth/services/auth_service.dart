@@ -4,12 +4,11 @@ import 'package:cryptoquest/features/profile/models/user_profile_update.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:cryptoquest/core/config/app_config.dart';
 
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final String _backendUrl =
-      'http://10.0.2.2:8000/auth'; // URL base da autenticação
 
   // Retorna o UserProfile após o login
   Future<UserProfile> signInWithEmailAndPassword({
@@ -49,7 +48,7 @@ class AuthService {
   // Metodo com retorno do User profile
   Future<UserProfile> _authenticateWithBackend(String idToken) async {
     final response = await http.post(
-      Uri.parse('$_backendUrl/authenticate'),
+      Uri.parse('${AppConfig.baseUrl}/auth/authenticate'),
       headers: {
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': 'Bearer $idToken'
@@ -84,7 +83,7 @@ class AuthService {
       String token,
       UserProfileUpdate updateModel) async {
     final response = await http.put(
-      Uri.parse('http://10.0.2.2:8000/users/me'),
+      Uri.parse('${AppConfig.baseUrl}/users/me'),
       headers: {
         'Content-Type': 'application/json; charset=UTF-8',
         'Authorization': 'Bearer $token'
@@ -135,7 +134,7 @@ class AuthService {
   Future<UserProfile> fetchUserProfile(String token) async {
     final response = await http.get(
       Uri.parse(
-          'http://10.0.2.2:8000/auth/me'), // Endpoint para buscar o perfil
+          '${AppConfig.baseUrl}/auth/me'), // Endpoint para buscar o perfil
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

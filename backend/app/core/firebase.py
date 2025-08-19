@@ -3,6 +3,7 @@ import json
 import firebase_admin
 from firebase_admin import credentials, auth, firestore
 from google.cloud.firestore_v1.async_client import AsyncClient
+from .config import settings
 
 # Arquivo que centraliza a inicializacao do Firebase 
 # Fornece as instancias de Auth e firebase de forma eficiente 
