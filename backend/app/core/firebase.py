@@ -1,68 +1,64 @@
 import os
 import json
 import firebase_admin
+import google.auth
 from firebase_admin import credentials, auth, firestore
 from google.cloud.firestore_v1.async_client import AsyncClient
+from google.auth import credentials as google_auth_credentials 
 
-# --- Lógica de Carregamento de Credenciais Centralizada ---
-
+# --- Lógica de Carregamento de Credenciais (continua a mesma) ---
 def _load_credentials():
     """
-    Carrega as credenciais do Firebase a partir de uma variável de ambiente
-    (para produção) ou de um arquivo local (para desenvolvimento).
-    Retorna o objeto de credencial ou o dicionário de credenciais.
+    Carrega as credenciais e retorna o objeto de credencial.
     """
-    # Tenta pegar as credenciais da variável de ambiente primeiro (usada na Render)
     creds_json_str = os.getenv("FIREBASE_CREDENTIALS_JSON")
-    
     if creds_json_str:
-        print("Carregando credenciais da variável de ambiente...")
         creds_dict = json.loads(creds_json_str)
-        return credentials.Certificate(creds_dict), creds_dict
+        return credentials.Certificate(creds_dict)
     else:
-        # Se não encontrar, tenta usar o arquivo local (para rodar no seu PC)
-        print("Carregando credenciais de arquivo local...")
-        cred_path = "cryptoquest-90a7b-firebase-adminsdk-hwp98-415277cd9f.json" # Verifique o nome do arquivo
+        cred_path = "firebase_key.json"
         if not os.path.exists(cred_path):
             raise FileNotFoundError(f"Arquivo de credenciais não encontrado: {cred_path}")
-        return credentials.Certificate(cred_path), cred_path
+        return credentials.Certificate(cred_path)
 
 # --- Inicialização ---
-
 _db_client_async = None
+_cred_object = _load_credentials()
 
 def initialize_firebase():
     """
-    Inicializa o app Firebase Admin, mas SOMENTE se ele ainda não existir.
+    Inicializa o app Firebase Admin se ainda não existir.
     """
     if not firebase_admin._apps:
         try:
-            cred_object, _ = _load_credentials() # Carrega as credenciais
-            firebase_admin.initialize_app(cred_object)
+            print("Inicializando Firebase App...")
+            firebase_admin.initialize_app(_cred_object)
             print("Firebase inicializado com sucesso!")
         except Exception as e:
             print(f"!!! ERRO CRÍTICO AO INICIALIZAR FIREBASE: {e} !!!")
             raise e
 
 # --- Funções de Dependência ---
-
 def get_firebase_auth():
-    """Retorna o serviço de auth do Firebase."""
     return auth
 
 async def get_firestore_db_async() -> AsyncClient:
-    """Retorna uma instância assíncrona do Cliente Firestore."""
+    """
+    Retorna uma instância assíncrona do Cliente Firestore.
+    """
     global _db_client_async
     if _db_client_async is None:
-        # Usa a mesma lógica centralizada para obter as credenciais
-        _, cred_source = _load_credentials()
+        print("Criando instância do Firestore AsyncClient...")
         
-        # O AsyncClient pode ser inicializado a partir do dicionário ou do caminho do arquivo
-        if isinstance(cred_source, dict):
-             _db_client_async = AsyncClient(credentials=credentials.Certificate(cred_source))
-        else:
-             _db_client_async = AsyncClient.from_service_account_json(cred_source)
+        # a partir do app Firebase já inicializado.
+        project_id = firebase_admin.get_app().project_id
+        
+        # A biblioteca google-auth sabe como encontrar as credenciais padrão do ambiente
+        # que o firebase-admin já configurou.
+        creds, _ = google.auth.default()
 
+        _db_client_async = AsyncClient(project=project_id, credentials=creds)
+        print("Instância do Firestore AsyncClient criada.")
     return _db_client_async
 
 # --- Execução da Inicialização ---
