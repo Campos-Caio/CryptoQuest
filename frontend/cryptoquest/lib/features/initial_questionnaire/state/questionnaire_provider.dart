@@ -1,7 +1,7 @@
 import 'package:cryptoquest/features/initial_questionnaire/models/question_model.dart';
-import 'package:cryptoquest/services/questionnaire_api_service.dart';
+import 'package:cryptoquest/features/initial_questionnaire/services/questionnaire_api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:cryptoquest/services/auth_notifier.dart';
+import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 
 class UserAnswer {
   final String questionId;

@@ -1,5 +1,5 @@
-import 'package:cryptoquest/presentation/widgets/crypto_card.dart';
-import 'package:cryptoquest/services/auth_notifier.dart';
+import 'package:cryptoquest/features/home/widgets/crypto_card.dart';
+import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

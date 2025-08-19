@@ -1,7 +1,7 @@
 import 'package:cryptoquest/features/auth/user_profile_model.dart';
 import 'package:cryptoquest/features/profile/models/user_profile_update.dart';
 import 'package:flutter/material.dart';
-import 'package:cryptoquest/services/auth_service.dart';
+import 'package:cryptoquest/features/auth/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthNotifier extends ChangeNotifier {

@@ -1,7 +1,7 @@
 import os
-import firebase_admin 
-from firebase_admin import credentials, firestore, auth
-from .config import settings
+import json
+import firebase_admin
+from firebase_admin import credentials, auth, firestore
 from google.cloud.firestore_v1.async_client import AsyncClient
 
 # Arquivo que centraliza a inicializacao do Firebase 
@@ -10,21 +10,31 @@ from google.cloud.firestore_v1.async_client import AsyncClient
 _firebase_app = None 
 _firestore_async_db_client_instance = None 
 
-def initialize_firebase(): 
+def initialize_firebase():
     """
-        Inicializa o app Firebase Admin, mas SOMENTE se ele ainda não existir.
+    Inicializa o app Firebase Admin usando variáveis de ambiente (para produção)
+    ou um arquivo local (para desenvolvimento).
     """
-    CRED_PATH = settings.FIREBASE_CREDENTIALS 
-    global _firebase_app 
     if not firebase_admin._apps:
         try:
-            # Verifica se o arquivo de credencial realmente existe antes de tentar usar
-            if not os.path.exists(CRED_PATH):
-                raise FileNotFoundError(f"Arquivo de credenciais do Firebase não encontrado em: {CRED_PATH}")
+            # Procura pela variável de ambiente primeiro (usada na Render)
+            creds_json_str = os.getenv("FIREBASE_CREDENTIALS_JSON")
 
-            cred = credentials.Certificate(CRED_PATH)
+            if creds_json_str:
+                print("Firebase inicializando com credenciais de variável de ambiente...")
+                creds_dict = json.loads(creds_json_str)
+                cred = credentials.Certificate(creds_dict)
+            else:
+                # Se não encontrar, procura pelo arquivo local (para rodar no seu PC)
+                print("Firebase inicializando com arquivo de credenciais local...")
+                cred_path = "cryptoquest-90a7b-firebase-adminsdk-hwp98-415277cd9f.json" # Verifique se o nome está correto
+                if not os.path.exists(cred_path):
+                    raise FileNotFoundError(f"Arquivo de credenciais não encontrado: {cred_path}")
+                cred = credentials.Certificate(cred_path)
+
             firebase_admin.initialize_app(cred)
             print("Firebase inicializado com sucesso!")
+
         except Exception as e:
             print(f"!!! ERRO CRÍTICO AO INICIALIZAR FIREBASE: {e} !!!")
             raise e

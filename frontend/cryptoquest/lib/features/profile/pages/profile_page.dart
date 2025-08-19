@@ -1,7 +1,7 @@
 
 import 'package:cryptoquest/features/profile/models/user_profile_update.dart';
-import 'package:cryptoquest/services/auth_notifier.dart';
-import 'package:cryptoquest/services/auth_service.dart';
+import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/auth/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
