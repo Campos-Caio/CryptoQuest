@@ -1,29 +1,30 @@
 import os
 import json
 import firebase_admin
-import google.auth
 from firebase_admin import credentials, auth, firestore
 from google.cloud.firestore_v1.async_client import AsyncClient
-from google.auth import credentials as google_auth_credentials 
 
-# --- Lógica de Carregamento de Credenciais (continua a mesma) ---
+# --- Lógica de Carregamento de Credenciais Centralizada ---
+
 def _load_credentials():
     """
     Carrega as credenciais e retorna o objeto de credencial.
     """
     creds_json_str = os.getenv("FIREBASE_CREDENTIALS_JSON")
     if creds_json_str:
+        print("Carregando credenciais da variável de ambiente...")
         creds_dict = json.loads(creds_json_str)
         return credentials.Certificate(creds_dict)
     else:
-        cred_path = "firebase_key.json"
+        print("Carregando credenciais de arquivo local...")
+        cred_path = "cryptoquest-90a7b-firebase-adminsdk-hwp98-415277cd9f.json" # Seu arquivo local
         if not os.path.exists(cred_path):
             raise FileNotFoundError(f"Arquivo de credenciais não encontrado: {cred_path}")
         return credentials.Certificate(cred_path)
 
 # --- Inicialização ---
 _db_client_async = None
-_cred_object = _load_credentials()
+_cred_object = _load_credentials() # Carrega as credenciais uma única vez
 
 def initialize_firebase():
     """
@@ -50,14 +51,11 @@ async def get_firestore_db_async() -> AsyncClient:
     if _db_client_async is None:
         print("Criando instância do Firestore AsyncClient...")
         
-        # a partir do app Firebase já inicializado.
-        project_id = firebase_admin.get_app().project_id
+        # passamos diretamente as credenciais que já carregamos.
+        project_id = _cred_object.project_id
         
-        # A biblioteca google-auth sabe como encontrar as credenciais padrão do ambiente
-        # que o firebase-admin já configurou.
-        creds, _ = google.auth.default()
-
-        _db_client_async = AsyncClient(project=project_id, credentials=creds)
+        _db_client_async = AsyncClient(project=project_id, credentials=_cred_object)
+        
         print("Instância do Firestore AsyncClient criada.")
     return _db_client_async
 
