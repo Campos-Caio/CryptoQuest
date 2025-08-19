@@ -1,4 +1,4 @@
-import 'package:cryptoquest/config/theme/app_theme.dart';
+import 'package:cryptoquest/core/config/theme/app_theme.dart';
 import 'package:cryptoquest/features/initial_questionnaire/pages/questionnaire_page.dart';
 import 'package:cryptoquest/features/initial_questionnaire/state/questionnaire_provider.dart';
 import 'package:cryptoquest/features/profile/pages/profile_page.dart';
