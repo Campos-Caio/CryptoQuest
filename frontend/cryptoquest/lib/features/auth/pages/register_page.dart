@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:cryptoquest/presentation/widgets/my_button.dart';
-import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
+import 'package:cryptoquest/shared/widgets/my_button.dart';
+import 'package:cryptoquest/shared/widgets/my_text_field.dart';
 import 'package:flutter/material.dart';
 
 class RegisterPage extends StatefulWidget {

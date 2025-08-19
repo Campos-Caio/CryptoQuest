@@ -1,12 +1,12 @@
-import 'package:cryptoquest/presentation/widgets/my_button.dart';
-import 'package:cryptoquest/presentation/widgets/my_text_field.dart';
-import 'package:cryptoquest/presentation/widgets/square_tile.dart';
-import 'package:cryptoquest/services/auth_service.dart';
+import 'package:cryptoquest/shared/widgets/my_button.dart';
+import 'package:cryptoquest/shared/widgets/my_text_field.dart';
+import 'package:cryptoquest/features/auth/widgets/square_tile.dart';
+import 'package:cryptoquest/features/auth/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-import 'package:cryptoquest/services/auth_notifier.dart';
+import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
