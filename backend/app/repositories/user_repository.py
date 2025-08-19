@@ -1,4 +1,4 @@
-from app.core.firebase import get_firestore_db, get_firestore_db_async 
+from app.core.firebase import get_firestore_db_async
 from app.models.user import UserProfile
 from datetime import datetime
 from typing import Optional, Union 
