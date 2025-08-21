@@ -9,6 +9,37 @@ import 'package:cryptoquest/core/config/app_config.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+    /// Cadastra um novo usuário no backend e, em seguida, realiza o login
+  /// para obter o perfil completo e o token de autenticação.
+  Future<UserProfile> signUpWithEmailAndPassword({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    // 1. Faz a chamada para o endpoint de registro que criamos no backend.
+    final response = await http.post(
+      Uri.parse('${AppConfig.baseUrl}/auth/register'), // Chama o endpoint de registro
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode({
+        'name': name,
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    // 2. Verifica se o backend criou o usuário com sucesso.
+    if (response.statusCode == 201) { // 201 Created
+      // 3. Se o cadastro deu certo, o usuário agora existe.
+      //    A maneira mais robusta de obter o estado completo (token, perfil)
+      //    é simplesmente realizar o login com as credenciais que acabamos de usar.
+      print("Cadastro no backend bem-sucedido. Realizando login para obter o perfil...");
+      return signInWithEmailAndPassword(email: email, password: password);
+    } else {
+      // Se o backend retornou um erro (ex: e-mail já existe), lança uma exceção.
+      final errorData = jsonDecode(response.body);
+      throw Exception("Falha ao cadastrar: ${errorData['detail'] ?? 'Erro desconhecido'}");
+    }
+  }
 
   // Retorna o UserProfile após o login
   Future<UserProfile> signInWithEmailAndPassword({
