@@ -130,13 +130,43 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-    /// Recarrega os dados do usuário do Firebase e atualiza o backend.
+  /// Recarrega os dados do usuário do Firebase e atualiza o backend.
   /// Essencial após mudanças no Firebase Auth (ex: email).
   Future<void> refreshFirebaseUser() async {
     await FirebaseAuth.instance.currentUser?.reload();
     _token = await FirebaseAuth.instance.currentUser?.getIdToken(true);
     if (_token != null) {
       await refreshUserProfile(); // Chama a função que já temos para buscar do nosso backend
+    }
+  }
+
+  Future<bool> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners(); // Avisa a UI que o processo começou
+
+    try {
+      // Chama o novo método do serviço. Ele já retorna o perfil completo.
+      _userProfile = await _authService.signUpWithEmailAndPassword(
+        name: name,
+        email: email,
+        password: password,
+      );
+      // Pega o token do usuário recém-logado
+      _token = await FirebaseAuth.instance.currentUser?.getIdToken();
+
+      _isLoading = false;
+      notifyListeners(); // Avisa a UI que o processo terminou com sucesso
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      _isLoading = false;
+      notifyListeners(); // Avisa a UI que deu erro
+      return false;
     }
   }
 }

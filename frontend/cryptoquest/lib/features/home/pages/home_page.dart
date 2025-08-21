@@ -30,6 +30,9 @@ class HomePage extends StatelessWidget {
               UserAccountsDrawerHeader(
                 accountName: Text(authNotifier.userProfile?.name ?? 'Usuario'),
                 accountEmail: Text(authNotifier.userProfile?.email ?? ""),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple[700], 
+                ),
               ),
               ListTile(
                 leading: const Icon(Icons.person),
