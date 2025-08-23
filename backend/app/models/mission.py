@@ -21,4 +21,15 @@ class Mission(BaseModel):
     type: str 
     reward_points: int 
     required_level: int 
-    content_type: str 
+    content_id: str 
+
+class QuizSubmision(BaseModel): 
+    """
+    Representa o payload que o frontend envia ao submeter as respostas de um quiz.
+    
+    Attributes:
+        answers (List[int]): Uma lista de inteiros, onde cada número é o 
+                             índice da opção que o usuário selecionou para cada
+                             pergunta, na ordem em que foram apresentadas.
+    """
+    answers: List[int] 

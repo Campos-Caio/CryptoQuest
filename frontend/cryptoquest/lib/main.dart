@@ -1,6 +1,7 @@
 import 'package:cryptoquest/core/config/theme/app_theme.dart';
 import 'package:cryptoquest/features/initial_questionnaire/pages/questionnaire_page.dart';
 import 'package:cryptoquest/features/initial_questionnaire/state/questionnaire_provider.dart';
+import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
 import 'package:cryptoquest/features/profile/pages/profile_page.dart';
 import 'package:cryptoquest/features/home/pages/home_page.dart';
 import 'package:cryptoquest/features/auth/pages/login_page.dart';
@@ -29,6 +30,13 @@ void main() async {
           // O 'update' é chamado sempre que o AuthNotifier muda.
           update: (context, authNotifier, previousQuestionnaireProvider) =>
               QuestionnaireProvider(authNotifier: authNotifier),
+        ),
+        ChangeNotifierProxyProvider<AuthNotifier, MissionNotifier>(
+          create: (context) => MissionNotifier(
+            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
+          ),
+          update: (context, authNotifier, previousMissionNotifier) =>
+              MissionNotifier(authNotifier: authNotifier),
         ),
       ],
       child: const MyApp(),

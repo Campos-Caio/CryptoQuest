@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from grpc import Status
 
 from app.dependencies.auth import get_current_user
-from app.models.mission import Mission
+from app.models.mission import Mission, QuizSubmision
 from app.models.user import FirebaseUser, UserProfile
 from app.repositories.user_repository import UserRepository, get_user_repository
 from app.services.mission_service import MissionService, get_mission_service
@@ -46,23 +46,25 @@ async def get_daily_missions_endpoint(
     user_profile = await user_repo.get_user_profile(current_user.uid)
     if not user_profile:
         raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Perfil do usuario nao encontrado!",
         )
 
     dayli_missions = await mission_service.get_daily_missions_for_user(user_profile)
-    return dayli_missions 
+    return dayli_missions
+
 
 @router.post(
-    "/{mission_id}/complete", 
+    "/{mission_id}/complete",
     response_model=UserProfile,
-    summary='Submete uma missao como concluida e recebe recompensas'
+    summary="Submete uma missao como concluida e recebe recompensas",
 )
-async def complete_missions_endpoint(
-    mission_id: str, 
-    current_user: Annotated[FirebaseUser, Depends(get_current_user)], 
-    mission_service: Annotated[MissionService, Depends(get_mission_service)], 
-): 
+async def complete_mission_endpoint(
+    mission_id: str,
+    submision: QuizSubmision,
+    current_user: Annotated[FirebaseUser, Depends(get_current_user)],
+    mission_service: Annotated[MissionService, Depends(get_mission_service)],
+):
     """
     Processa a conclusão de uma missão por um usuário.
 
@@ -82,19 +84,23 @@ async def complete_missions_endpoint(
         UserProfile: O perfil do usuário atualizado após receber as recompensas.
     """
 
-    logger.info(f"Usuario {current_user.uid} esta tentando completar a missao {mission_id}")
+    logger.info(
+        f"Usuario {current_user.uid} esta tentando completar a missao {mission_id}"
+    )
 
-    try: 
+    try:
         updated_user_profile = await mission_service.complete_mission(
-            user_uid = current_user, mission_id= mission_id 
+            user_uid=current_user, mission_id=mission_id, submision=submision
         )
-        return updated_user_profile 
-    
+        return updated_user_profile
+
     except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_404_BAD_REQUEST, detail = str(error))
-    except Exception as error: 
-        logger.error(f"Erro inesperado ao completao missaso para {current_user.uid}: {error}")
+        raise HTTPException(status_code=status.HTTP_404_BAD_REQUEST, detail=str(error))
+    except Exception as error:
+        logger.error(
+            f"Erro inesperado ao completao missaso para {current_user.uid}: {error}", exec_info=True
+        )
         raise HTTPException(
-            status_code= status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail='Ocorreu um erro ao processar a conclusao da missao'
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ocorreu um erro ao processar a conclusao da missao",
         )
