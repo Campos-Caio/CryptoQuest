@@ -102,10 +102,13 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(
                   height: 16.0,
                 ),
-                Expanded(child: ListView.builder(itemBuilder: (context, index) {
-                  final mission = missionNotifier.dailyMissions[index];
-                  return MissionCard(mission: mission);
-                }))
+                Expanded(
+                    child: ListView.builder(
+                        itemCount: missionNotifier.dailyMissions.length,
+                        itemBuilder: (context, index) {
+                          final mission = missionNotifier.dailyMissions[index];
+                          return MissionCard(mission: mission);
+                        }))
               ],
             );
           },
