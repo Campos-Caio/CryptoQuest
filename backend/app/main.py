@@ -1,3 +1,4 @@
+from backend.app.api import quizzes_api
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth
@@ -25,6 +26,7 @@ app.include_router(auth.router)
 app.include_router(questionnaire_api.router)
 app.include_router(missions_api.router)
 app.include_router(user_api.router)
+app.include_router(quizzes_api.router)
 
 @app.get("/", tags=["Root"])
 async def read_root():
