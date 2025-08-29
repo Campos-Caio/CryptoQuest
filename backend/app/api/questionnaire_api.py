@@ -5,15 +5,9 @@ import logging
 from app.models.questionnaire import InitialQuestionnaire, QuestionnaireSubmission, KnowledgeProfile
 from app.models.user import FirebaseUser
 from app.dependencies.auth import get_current_user
-from app.services.questionnaire_service import QuestionnaireService 
+from app.services.questionnaire_service import QuestionnaireService, get_questionnaire_service 
 from app.repositories.user_repository import UserRepository, get_user_repository
-from app.services.questionnaire_service import QuestionnaireService, get_questionnaire_service
-
-# Function para injetar o service 
-def get_questionnaire_service(
-        user_repo: Annotated[UserRepository, Depends(get_user_repository)]
-) -> QuestionnaireService: 
-    return QuestionnaireService(user_repo)
+ 
 
 router = APIRouter(prefix='/questionnaire',tags=['Questionnaire'])
 logger = logging.getLogger(__name__)

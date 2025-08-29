@@ -2,6 +2,7 @@ import 'package:cryptoquest/core/config/theme/app_theme.dart';
 import 'package:cryptoquest/features/initial_questionnaire/pages/questionnaire_page.dart';
 import 'package:cryptoquest/features/initial_questionnaire/state/questionnaire_provider.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
+import 'package:cryptoquest/features/missions/services/mission_api_service.dart';
 import 'package:cryptoquest/features/profile/pages/profile_page.dart';
 import 'package:cryptoquest/features/home/pages/home_page.dart';
 import 'package:cryptoquest/features/auth/pages/login_page.dart';
@@ -12,35 +13,26 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(
-    (MultiProvider(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthNotifier()),
         ChangeNotifierProxyProvider<AuthNotifier, QuestionnaireProvider>(
-          // O 'create' é chamado uma vez para criar a instância inicial.
           create: (context) => QuestionnaireProvider(
             authNotifier: Provider.of<AuthNotifier>(context, listen: false),
           ),
-          // O 'update' é chamado sempre que o AuthNotifier muda.
           update: (context, authNotifier, previousQuestionnaireProvider) =>
               QuestionnaireProvider(authNotifier: authNotifier),
         ),
-        ChangeNotifierProxyProvider<AuthNotifier, MissionNotifier>(
-          create: (context) => MissionNotifier(
-            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
-          ),
-          update: (context, authNotifier, previousMissionNotifier) =>
-              MissionNotifier(authNotifier: authNotifier),
-        ),
+        ChangeNotifierProvider(create: (_) => MissionNotifier()),
       ],
       child: const MyApp(),
-    )),
+    ),
   );
 }
 
@@ -50,16 +42,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: "CryptoQuest",
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.appTheme,
-        initialRoute: '/login',
-        routes: {
-          '/register': (context) => const RegisterPage(),
-          '/login': (context) => LoginPage(),
-          '/home': (context) => HomePage(),
-          '/questionnaire': (context) => const QuestionnairePage(),
-          '/profile':(context) => const ProfilePage(), 
-        });
+      title: "CryptoQuest",
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.appTheme,
+      initialRoute: '/login',
+      routes: {
+        '/register': (context) => const RegisterPage(),
+        '/login': (context) => LoginPage(),
+        '/home': (context) => HomePage(),
+        '/questionnaire': (context) => const QuestionnairePage(),
+        '/profile': (context) => const ProfilePage(),
+      },
+    );
   }
 }

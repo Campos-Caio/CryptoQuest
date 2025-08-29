@@ -1,7 +1,9 @@
 import 'package:cryptoquest/features/home/widgets/crypto_card.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/missions/models/mission_model.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
 import 'package:cryptoquest/features/missions/widgets/mission_card.dart';
+import 'package:cryptoquest/features/quiz/pages/quiz_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,8 +20,34 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Pede ao MissionNotifier para buscar as missões assim que a tela é carregada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MissionNotifier>(context, listen: false).fetchDailyMissions();
+      final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+      final missionNotifier = Provider.of<MissionNotifier>(context, listen: false);
+      
+      if (authNotifier.token != null) {
+        missionNotifier.fetchDailyMissions(authNotifier.token!);
+      }
     });
+  }
+
+  void _onMissionTap(BuildContext context, Mission mission) {
+    if (mission.type == 'QUIZ') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => QuizPage(
+            missionId: mission.id,
+            quizId: mission.contentId,
+            missionTitle: mission.title,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Funcionalidade ${mission.type} em desenvolvimento'),
+        ),
+      );
+    }
   }
 
   @override
@@ -39,15 +67,12 @@ class _HomePageState extends State<HomePage> {
       ),
       drawer: Consumer<AuthNotifier>(
         builder: (context, authNotifier, child) {
-          final authNotifier =
-              Provider.of<AuthNotifier>(context, listen: false);
           return Drawer(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
                 UserAccountsDrawerHeader(
-                  accountName:
-                      Text(authNotifier.userProfile?.name ?? 'Usuario'),
+                  accountName: Text(authNotifier.userProfile?.name ?? 'Usuario'),
                   accountEmail: Text(authNotifier.userProfile?.email ?? ""),
                   decoration: BoxDecoration(
                     color: Colors.deepPurple[700],
@@ -57,7 +82,6 @@ class _HomePageState extends State<HomePage> {
                   leading: const Icon(Icons.person),
                   title: const Text("Meu perfil"),
                   onTap: () {
-                    // Fecha o drawer e navega para a pagina de perfil
                     Navigator.pop(context);
                     Navigator.pushNamed(context, '/profile');
                   },
@@ -81,14 +105,35 @@ class _HomePageState extends State<HomePage> {
         child: Consumer<MissionNotifier>(
           builder: (context, missionNotifier, child) {
             if (missionNotifier.isLoading) {
-              return Center(
+              return const Center(
                 child: CircularProgressIndicator(),
               );
             }
 
             if (missionNotifier.errorMessage != null) {
               return Center(
-                child: Text(missionNotifier.errorMessage!),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(missionNotifier.errorMessage!),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+                        if (authNotifier.token != null) {
+                          missionNotifier.fetchDailyMissions(authNotifier.token!);
+                        }
+                      },
+                      child: const Text('Tentar Novamente'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (missionNotifier.dailyMissions.isEmpty) {
+              return const Center(
+                child: Text('Nenhuma missão disponível hoje'),
               );
             }
 
@@ -96,54 +141,25 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Missoes Diarias',
+                  'Missões Diárias',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const SizedBox(
-                  height: 16.0,
-                ),
+                const SizedBox(height: 16.0),
                 Expanded(
-                    child: ListView.builder(
-                        itemCount: missionNotifier.dailyMissions.length,
-                        itemBuilder: (context, index) {
-                          final mission = missionNotifier.dailyMissions[index];
-                          return MissionCard(mission: mission);
-                        }))
+                  child: ListView.builder(
+                    itemCount: missionNotifier.dailyMissions.length,
+                    itemBuilder: (context, index) {
+                      final mission = missionNotifier.dailyMissions[index];
+                      return MissionCard(
+                        mission: mission,
+                        onTap: () => _onMissionTap(context, mission),
+                      );
+                    },
+                  ),
+                ),
               ],
             );
           },
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: Column(
-                children: [
-                  // Missão Diária
-                  CryptoCard(
-                    title: "Trilha Ativa",
-                    subtitle: "BlockChain Basico",
-                    icon: Icon(Icons.query_builder,
-                        color: Color(0xFF00FFC8), size: 32),
-                  ),
-
-                  // Missão Diária
-                  CryptoCard(
-                    title: "Missao Diaria",
-                    subtitle: "Complete um Quizz sobre BTC",
-                    icon: Icon(Icons.check_circle,
-                        color: Color(0xFF00FFC8), size: 32),
-                  ),
-
-                  // Ranking
-                  CryptoCard(
-                    title: "Ranking",
-                    subtitle: "Ver Classificacao",
-                    icon: Icon(Icons.emoji_events,
-                        color: Color(0xFF00FFC8), size: 32),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );
