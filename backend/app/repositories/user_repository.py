@@ -1,6 +1,6 @@
 from app.core.firebase import get_firestore_db_async
 from app.models.user import UserProfile
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Union 
 from fastapi import Depends
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -18,7 +18,7 @@ class UserRepository:
         user_data = {
             "name": name,
             "email": email,
-            "register_date": datetime.now(),
+            "register_date": datetime.now(timezone.utc),
             "level": 1,
         }
 

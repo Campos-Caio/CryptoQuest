@@ -1,27 +1,82 @@
 import 'dart:convert';
-
-import 'package:cryptoquest/core/config/app_config.dart';
 import 'package:cryptoquest/features/missions/models/mission_model.dart';
+import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/config/app_config.dart';
+
 
 class MissionApiService {
-  /// Busca a lista de missoes diarias para o usuário autenticado
-  Future<List<Mission>> getDailyMissions(String token) async {
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/missions/daily'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
-    );
+  static String baseUrl = AppConfig.baseUrl;
 
-    if (response.statusCode == 200) {
-      // Decodifica a resposta, que eh uma lista de objetos JSON
-      final List<dynamic> responseBody = jsonDecode(response.body);
-      // Converte cada objeto Json em um Objeto mission e retorna a lista
-      return responseBody.map((json) => Mission.fromJson(json)).toList();
-    } else {
-      throw Exception('Falha ao carregar as missões diárias.'); 
+  // Buscar missões diárias (NÃO static - manter como método de instância)
+  Future<List<Mission>> getDailyMissions(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/missions/daily'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> missionsJson = json.decode(response.body);
+        return missionsJson.map((json) => Mission.fromJson(json)).toList();
+      } else {
+        throw Exception('Falha ao carregar missões: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro de conexão: $e');
+    }
+  }
+
+  // Buscar quiz específico
+  Future<Quiz> getQuiz(String quizId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/quizzes/$quizId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final quizJson = json.decode(response.body);
+        return Quiz.fromJson(quizJson);
+      } else {
+        throw Exception('Falha ao carregar quiz: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro de conexão: $e');
+    }
+  }
+
+  // Completar missão
+  Future<Map<String, dynamic>> completeMission(
+    String missionId, 
+    List<int> answers, 
+    String token
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/missions/$missionId/complete'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'answers': answers,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Falha ao completar missão: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro de conexão: $e');
     }
   }
 }

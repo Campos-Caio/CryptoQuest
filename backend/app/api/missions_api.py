@@ -1,7 +1,6 @@
 import logging
 from typing import Annotated, List
-from fastapi import APIRouter, Depends, HTTPException
-from grpc import Status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies.auth import get_current_user
 from app.models.mission import Mission, QuizSubmision
@@ -50,8 +49,8 @@ async def get_daily_missions_endpoint(
             detail="Perfil do usuario nao encontrado!",
         )
 
-    dayli_missions = await mission_service.get_daily_missions_for_user(user_profile)
-    return dayli_missions
+    daily_missions = await mission_service.get_daily_missions_for_user(user_profile)
+    return daily_missions
 
 
 @router.post(
@@ -61,7 +60,7 @@ async def get_daily_missions_endpoint(
 )
 async def complete_mission_endpoint(
     mission_id: str,
-    submision: QuizSubmision,
+    submission: QuizSubmision,
     current_user: Annotated[FirebaseUser, Depends(get_current_user)],
     mission_service: Annotated[MissionService, Depends(get_mission_service)],
 ):
@@ -90,7 +89,7 @@ async def complete_mission_endpoint(
 
     try:
         updated_user_profile = await mission_service.complete_mission(
-            user_uid=current_user, mission_id=mission_id, submision=submision
+            user_id=current_user.uid, mission_id=mission_id, submission=submission
         )
         return updated_user_profile
 
@@ -98,7 +97,7 @@ async def complete_mission_endpoint(
         raise HTTPException(status_code=status.HTTP_404_BAD_REQUEST, detail=str(error))
     except Exception as error:
         logger.error(
-            f"Erro inesperado ao completao missaso para {current_user.uid}: {error}", exec_info=True
+            f"Erro inesperado ao completar missão para {current_user.uid}: {error}", exc_info=True
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
