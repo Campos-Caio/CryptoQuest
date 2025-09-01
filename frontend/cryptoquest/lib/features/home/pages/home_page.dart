@@ -1,9 +1,9 @@
-import 'package:cryptoquest/features/home/widgets/crypto_card.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/home/widgets/feature_card.dart';
 import 'package:cryptoquest/features/missions/models/mission_model.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
-import 'package:cryptoquest/features/missions/widgets/mission_card.dart';
 import 'package:cryptoquest/features/quiz/pages/quiz_page.dart';
+import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -21,8 +21,9 @@ class _HomePageState extends State<HomePage> {
     // Pede ao MissionNotifier para buscar as missões assim que a tela é carregada
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-      final missionNotifier = Provider.of<MissionNotifier>(context, listen: false);
-      
+      final missionNotifier =
+          Provider.of<MissionNotifier>(context, listen: false);
+
       if (authNotifier.token != null) {
         missionNotifier.fetchDailyMissions(authNotifier.token!);
       }
@@ -72,7 +73,8 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.zero,
               children: [
                 UserAccountsDrawerHeader(
-                  accountName: Text(authNotifier.userProfile?.name ?? 'Usuario'),
+                  accountName:
+                      Text(authNotifier.userProfile?.name ?? 'Usuario'),
                   accountEmail: Text(authNotifier.userProfile?.email ?? ""),
                   decoration: BoxDecoration(
                     color: Colors.deepPurple[700],
@@ -102,64 +104,61 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Consumer<MissionNotifier>(
-          builder: (context, missionNotifier, child) {
-            if (missionNotifier.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-
-            if (missionNotifier.errorMessage != null) {
-              return Center(
+        child: ListView(
+          children: [
+            FeatureCard(
+              title: "Trilha Ativa",
+              subtitle: "BlockChain Básico",
+              icon: Icons.rocket_launch_rounded,
+              iconColor: const Color(0xFF00FFC8),
+              trailing: SizedBox(
+                width: 120,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(missionNotifier.errorMessage!),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-                        if (authNotifier.token != null) {
-                          missionNotifier.fetchDailyMissions(authNotifier.token!);
-                        }
-                      },
-                      child: const Text('Tentar Novamente'),
+                    LinearProgressIndicator(
+                      value: 3 / 5,
+                      color: const Color(0xFF00FFC8),
+                      backgroundColor: Colors.white24,
+                      minHeight: 6,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    const SizedBox(height: 6),
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: Text("3 / 5",
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12)),
                     ),
                   ],
                 ),
-              );
-            }
-
-            if (missionNotifier.dailyMissions.isEmpty) {
-              return const Center(
-                child: Text('Nenhuma missão disponível hoje'),
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Missões Diárias',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 16.0),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: missionNotifier.dailyMissions.length,
-                    itemBuilder: (context, index) {
-                      final mission = missionNotifier.dailyMissions[index];
-                      return MissionCard(
-                        mission: mission,
-                        onTap: () => _onMissionTap(context, mission),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+              onTap: () {
+                // navegação futura para a trilha ativa
+              },
+            ),
+            FeatureCard(
+              title: "Missão Diária",
+              subtitle: "Complete um Quizz sobre BTC",
+              icon: Icons.check_circle,
+              iconColor: const Color(0xFF00FFC8),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MissionsPages()),
+                );
+              },
+            ),
+            FeatureCard(
+              title: "Ranking",
+              subtitle: "Ver Classificação",
+              icon: Icons.emoji_events,
+              iconColor: const Color(0xFF00FFC8),
+              onTap: () {
+                // navegação futura para ranking
+              },
+            ),
+          ],
         ),
       ),
     );

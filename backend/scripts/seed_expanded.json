@@ -1,0 +1,194 @@
+{
+  "quizzes": {
+    "btc_quiz_01": {
+      "title": "Fundamentos do Bitcoin",
+      "questions": [
+        {
+          "text": "O que é a Blockchain do Bitcoin?",
+          "options": [
+            { "text": "Um registro de transações distribuído" },
+            { "text": "Um tipo de carteira digital" },
+            { "text": "Uma empresa de mineração" }
+          ],
+          "correct_answer_index": 0
+        },
+        {
+          "text": "Qual é a principal característica do Bitcoin?",
+          "options": [
+            { "text": "É controlado por um banco central" },
+            { "text": "É descentralizado e peer-to-peer" },
+            { "text": "É uma moeda física" },
+            { "text": "É emitido por governos" }
+          ],
+          "correct_answer_index": 1
+        }
+      ]
+    },
+    "btc_quiz_02": {
+      "title": "Mineração e Consenso",
+      "questions": [
+        {
+          "text": "O que é Proof of Work (PoW)?",
+          "options": [
+            { "text": "Um sistema de prova de identidade" },
+            { "text": "Um mecanismo de consenso que requer trabalho computacional" },
+            { "text": "Um tipo de carteira digital" },
+            { "text": "Um protocolo de segurança" }
+          ],
+          "correct_answer_index": 1
+        },
+        {
+          "text": "Qual é o propósito da mineração no Bitcoin?",
+          "options": [
+            { "text": "Apenas gerar novos bitcoins" },
+            { "text": "Validar transações e criar novos blocos" },
+            { "text": "Controlar o preço do Bitcoin" },
+            { "text": "Armazenar bitcoins" }
+          ],
+          "correct_answer_index": 1
+        }
+      ]
+    },
+    "eth_quiz_01": {
+      "title": "Introdução ao Ethereum",
+      "questions": [
+        {
+          "text": "O que é o Ethereum?",
+          "options": [
+            { "text": "Apenas uma criptomoeda" },
+            { "text": "Uma plataforma blockchain para aplicações descentralizadas" },
+            { "text": "Um tipo de carteira digital" },
+            { "text": "Um exchange de criptomoedas" }
+          ],
+          "correct_answer_index": 1
+        },
+        {
+          "text": "O que são Smart Contracts?",
+          "options": [
+            { "text": "Contratos físicos digitais" },
+            { "text": "Códigos que executam automaticamente quando condições são atendidas" },
+            { "text": "Acordos entre usuários" },
+            { "text": "Tipos de carteiras" }
+          ],
+          "correct_answer_index": 1
+        }
+      ]
+    },
+    "defi_quiz_01": {
+      "title": "DeFi - Finanças Descentralizadas",
+      "questions": [
+        {
+          "text": "O que significa DeFi?",
+          "options": [
+            { "text": "Digital Finance" },
+            { "text": "Decentralized Finance" },
+            { "text": "Direct Finance" },
+            { "text": "Digital Future" }
+          ],
+          "correct_answer_index": 1
+        },
+        {
+          "text": "Qual é o principal benefício do DeFi?",
+          "options": [
+            { "text": "Maior velocidade nas transações" },
+            { "text": "Eliminação de intermediários financeiros" },
+            { "text": "Menor volatilidade" },
+            { "text": "Maior segurança" }
+          ],
+          "correct_answer_index": 1
+        }
+      ]
+    },
+    "wallet_quiz_01": {
+      "title": "Carteiras Digitais",
+      "questions": [
+        {
+          "text": "Qual é a diferença entre Hot Wallet e Cold Wallet?",
+          "options": [
+            { "text": "Hot wallets são mais seguras" },
+            { "text": "Hot wallets estão conectadas à internet, cold wallets não" },
+            { "text": "Cold wallets são mais baratas" },
+            { "text": "Não há diferença significativa" }
+          ],
+          "correct_answer_index": 1
+        },
+        {
+          "text": "O que é uma seed phrase?",
+          "options": [
+            { "text": "Uma senha simples" },
+            { "text": "Uma frase de 12-24 palavras para recuperar a carteira" },
+            { "text": "Um código de verificação" },
+            { "text": "Um nome de usuário" }
+          ],
+          "correct_answer_index": 1
+        }
+      ]
+    }
+  },
+  "missions": {
+    "quiz_btc_basico_1": {
+      "title": "Quiz Rápido: O que é Bitcoin?",
+      "description": "Teste seus conhecimentos básicos sobre a primeira criptomoeda.",
+      "type": "QUIZ",
+      "reward_points": 50,
+      "required_level": 1,
+      "content_id": "btc_quiz_01"
+    },
+    "quiz_btc_mineracao_1": {
+      "title": "Quiz: Mineração e Consenso",
+      "description": "Aprenda sobre como funciona a mineração do Bitcoin.",
+      "type": "QUIZ",
+      "reward_points": 75,
+      "required_level": 2,
+      "content_id": "btc_quiz_02"
+    },
+    "quiz_eth_intro_1": {
+      "title": "Quiz: Introdução ao Ethereum",
+      "description": "Descubra o que é o Ethereum e como funciona.",
+      "type": "QUIZ",
+      "reward_points": 60,
+      "required_level": 2,
+      "content_id": "eth_quiz_01"
+    },
+    "quiz_defi_basico_1": {
+      "title": "Quiz: DeFi - O Futuro das Finanças",
+      "description": "Teste seus conhecimentos sobre Finanças Descentralizadas.",
+      "type": "QUIZ",
+      "reward_points": 80,
+      "required_level": 3,
+      "content_id": "defi_quiz_01"
+    },
+    "quiz_wallet_seguranca_1": {
+      "title": "Quiz: Segurança de Carteiras",
+      "description": "Aprenda sobre como proteger suas criptomoedas.",
+      "type": "QUIZ",
+      "reward_points": 70,
+      "required_level": 2,
+      "content_id": "wallet_quiz_01"
+    },
+    "leitura_wallets_1": {
+      "title": "Leitura: O que são Hot Wallets?",
+      "description": "Aprenda a diferença entre carteiras quentes e frias.",
+      "type": "ARTICLE_READ",
+      "reward_points": 30,
+      "required_level": 3,
+      "content_id": "artigo_hot_wallets"
+    },
+    "leitura_defi_1": {
+      "title": "Leitura: Introdução ao DeFi",
+      "description": "Entenda o que são Finanças Descentralizadas.",
+      "type": "ARTICLE_READ",
+      "reward_points": 40,
+      "required_level": 4,
+      "content_id": "artigo_defi_intro"
+    },
+    "desafio_btc_1": {
+      "title": "Desafio: Calcular Taxa de Mineração",
+      "description": "Calcule a taxa de mineração atual do Bitcoin.",
+      "type": "CHALLENGE",
+      "reward_points": 100,
+      "required_level": 5,
+      "content_id": "desafio_taxa_mineracao"
+    }
+  }
+}

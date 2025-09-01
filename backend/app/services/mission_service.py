@@ -25,24 +25,12 @@ class MissionService:
 
     async def get_daily_missions_for_user(self, user: UserProfile) -> list:
         """
-        Retorna as missões diárias do usuário. Se for a primeira chamada do dia,
-        atribui novas missões. Caso contrário, retorna as missões já atribuídas.
+        Retorna as missões elegíveis para o usuário em tempo real.
+        Não usa mais cache diário - sempre busca missões disponíveis.
         """
-        today = datetime.now(timezone.utc).date()
+        print(f"DEBUG: Buscando missões elegíveis para usuário {user.uid} (nível: {user.level})")
         
-        # Verifica se já tem missões atribuídas para hoje
-        if (user.daily_assigned_at and 
-            user.daily_assigned_at.date() == today and 
-            user.daily_missions):
-            # Retorna as missões já atribuídas para hoje
-            return await self._get_missions_by_ids(user.daily_missions)
-        
-        # Primeira chamada do dia - atribui novas missões
-        return await self._assign_daily_missions(user, today)
-    
-    async def _assign_daily_missions(self, user: UserProfile, today: datetime.date) -> list:
-        """Atribui novas missões diárias para o usuário"""
-        # Busca todas as missões disponíveis
+        # Buscar todas as missões disponíveis
         mission_ref = self.db.collection("missions")
         all_missions_docs = mission_ref.stream()
         all_missions = []
@@ -52,36 +40,42 @@ class MissionService:
             mission_data["_id"] = doc.id
             all_missions.append(mission_data)
 
+        print(f"DEBUG: Total de missões encontradas: {len(all_missions)}")
+
         # Filtra missões elegíveis
         eligible_missions = []
         for mission in all_missions:
+            mission_id = mission.get("id") or mission.get("_id")
+            print(f"DEBUG: Verificando missão {mission_id} - Nível requerido: {mission.get('required_level', 1)}")
+            
             # Filtro 1: Usuário tem o nível necessário?
             if user.level < mission.get("required_level", 1):
+                print(f"DEBUG: Missão {mission_id} - Nível insuficiente (usuário: {user.level}, requerido: {mission.get('required_level', 1)})")
                 continue
 
-            # Filtro 2: Usuário já completou essa missão hoje?
-            mission_id = mission.get("id") or mission.get("_id")
+            # Filtro 2: Usuário já completou essa missão alguma vez?
             if mission_id in user.completed_missions:
-                completion_date = user.completed_missions[mission_id].date()
-                if completion_date == today:
-                    continue  # Já completou hoje
+                print(f"DEBUG: Missão {mission_id} - Já foi completada pelo usuário, pulando")
+                continue
 
+            print(f"DEBUG: Missão {mission_id} - Elegível para seleção")
             eligible_missions.append(mission)
+
+        print(f"DEBUG: Missões elegíveis encontradas: {len(eligible_missions)}")
 
         # Seleciona até 3 missões aleatoriamente
         num_missions = min(len(eligible_missions), 3)
         if num_missions == 0:
+            print("DEBUG: Nenhuma missão disponível para o usuário")
             return []  # Nenhuma missão disponível
             
         selected_missions = random.sample(eligible_missions, num_missions)
         selected_ids = [m.get("id") or m.get("_id") for m in selected_missions]
         
-        # Salva as missões atribuídas no perfil do usuário
-        update_data = {
-            "daily_missions": selected_ids,
-            "daily_assigned_at": datetime.now(timezone.utc)
-        }
-        await self.user_repo.update_user_Profile(user.uid, update_data)
+        print(f"DEBUG: Missões selecionadas: {selected_ids}")
+        print(f"DEBUG: Títulos das missões selecionadas:")
+        for mission in selected_missions:
+            print(f"  - {mission.get('title', 'Sem título')} (ID: {mission.get('_id')})")
         
         return selected_missions
     
@@ -125,17 +119,14 @@ class MissionService:
         mission_data = mission_doc.to_dict()
         user_data = user_doc.to_dict() or {}
 
-        # Verificações de conclusão anterior (no mesmo dia)
+        # Verificar se o usuário já completou essa missão
         completed_map = user_data.get("completed_missions", {}) or {}
-        completed_at = completed_map.get(mission_id)
-        if completed_at:
-            try:
-                completed_date = completed_at.date() if hasattr(completed_at, "date") else None
-            except Exception:
-                completed_date = None
-            today = datetime.now(timezone.utc).date()
-            if completed_date == today:
-                raise ValueError("Missão já concluída hoje.")
+        if mission_id in completed_map:
+            raise ValueError("Esta missão já foi concluída anteriormente.")
+
+        # Verificar se o usuário tem nível suficiente
+        if user_data.get("level", 1) < mission_data.get("required_level", 1):
+            raise ValueError("Nível insuficiente para esta missão.")
 
         # Validação de QUIZ
         if mission_data.get("type") == "QUIZ":

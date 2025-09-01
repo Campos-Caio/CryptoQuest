@@ -5,17 +5,17 @@ import '../../quiz/models/quiz_model.dart';
 
 class MissionNotifier extends ChangeNotifier {
   final MissionApiService _apiService = MissionApiService();
-  
+
   // Estado
   List<Mission> _dailyMissions = [];
   bool _isLoading = false;
   String? _errorMessage;
-  
+
   // Estado do quiz
   Quiz? _currentQuiz;
   bool _isLoadingQuiz = false;
   String? _quizError;
-  
+
   // Estado de submissão
   bool _isSubmitting = false;
   String? _submitError;
@@ -32,15 +32,15 @@ class MissionNotifier extends ChangeNotifier {
   String? get submitError => _submitError;
   Map<String, dynamic>? get lastCompletedMission => _lastCompletedMission;
 
-  // Carregar missões diárias
+  // Carregar missões elegíveis (filtradas por nível e status de conclusão)
   Future<void> fetchDailyMissions(String token) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
-      
+
       final missions = await _apiService.getDailyMissions(token);
-      
+
       _dailyMissions = missions;
       _isLoading = false;
       notifyListeners();
@@ -57,13 +57,13 @@ class MissionNotifier extends ChangeNotifier {
       _isLoadingQuiz = true;
       _quizError = null;
       notifyListeners();
-      
+
       final quiz = await _apiService.getQuiz(quizId, token);
-      
+
       _currentQuiz = quiz;
       _isLoadingQuiz = false;
       notifyListeners();
-      
+
       return quiz;
     } catch (e) {
       _quizError = e.toString();
@@ -75,37 +75,28 @@ class MissionNotifier extends ChangeNotifier {
 
   // Completar missão
   Future<bool> completeMission(
-    String missionId, 
-    List<int> answers, 
-    String token
-  ) async {
+      String missionId, List<int> answers, String token) async {
     try {
       _isSubmitting = true;
       _submitError = null;
       notifyListeners();
-      
-      final result = await _apiService.completeMission(missionId, answers, token);
-      
-      // Atualizar missões (remover a completada ou marcar como completa)
-      final updatedMissions = _dailyMissions.map((mission) {
-        if (mission.id == missionId) {
-          // Você pode adicionar um campo 'completed' ao modelo Mission se necessário
-          return mission;
-        }
-        return mission;
-      }).toList();
-      
-      _dailyMissions = updatedMissions;
+
+      final result =
+          await _apiService.completeMission(missionId, answers, token);
+
+      // Remover a missão completada da lista
+      _dailyMissions.removeWhere((mission) => mission.id == missionId);
       _isSubmitting = false;
       _lastCompletedMission = result;
       notifyListeners();
-      
+
       return true;
     } catch (e) {
       _submitError = e.toString();
       _isSubmitting = false;
       notifyListeners();
-      return false;
+      // Re-throw o erro para que seja capturado pelo quiz_page.dart
+      rethrow;
     }
   }
 

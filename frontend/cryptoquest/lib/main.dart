@@ -2,12 +2,12 @@ import 'package:cryptoquest/core/config/theme/app_theme.dart';
 import 'package:cryptoquest/features/initial_questionnaire/pages/questionnaire_page.dart';
 import 'package:cryptoquest/features/initial_questionnaire/state/questionnaire_provider.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
-import 'package:cryptoquest/features/missions/services/mission_api_service.dart';
 import 'package:cryptoquest/features/profile/pages/profile_page.dart';
 import 'package:cryptoquest/features/home/pages/home_page.dart';
 import 'package:cryptoquest/features/auth/pages/login_page.dart';
 import 'package:cryptoquest/features/auth/pages/register_page.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -52,6 +52,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomePage(),
         '/questionnaire': (context) => const QuestionnairePage(),
         '/profile': (context) => const ProfilePage(),
+        '/missions': (context) => const MissionsPages(),
       },
     );
   }
