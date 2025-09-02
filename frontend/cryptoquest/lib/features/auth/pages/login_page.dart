@@ -79,22 +79,41 @@ class _LoginPageState extends State<LoginPage> {
       _isLoading = true;
     });
 
-    // Wrapper do Login com google
+    // Acessa o AuthProvider sem ouvir por mudanças (apenas para chamar a função)
+    final authProvider = Provider.of<AuthNotifier>(context, listen: false);
+
     try {
-      await _authService.signInWithGoogle();
-      showMessage('Login efetuado com sucesso!', isError: false);
-      Navigator.pushReplacementNamed(context, '/home');
+      // Usa o provider em vez de chamar o serviço diretamente
+      final userProfile = await authProvider.signInWithGoogle();
+
+      if (!mounted) return;
+
+      if (userProfile != null) {
+        showMessage('Login efetuado com sucesso!', isError: false);
+
+        // Lógica de redirecionamento simplificada e robusta
+        // Usa APENAS o perfil retornado diretamente (mais confiável)
+        if (userProfile.hasCompletedQuestionnaire == true) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          Navigator.pushReplacementNamed(context, '/questionnaire');
+        }
+      } else {
+        // Mostra a mensagem de erro que o provider armazenou
+        showMessage(
+            authProvider.errorMessage ?? 'Ocorreu um erro desconhecido.');
+      }
     } on FirebaseAuthException catch (e) {
-      // Tratamento de erros especificos do FirebaseAuth
+      // Tratamento de erros específicos do FirebaseAuth
       String message = 'Erro de autenticação: ${e.message}';
       showMessage(message);
       print("FirebaseAuthException: ${e.code} - ${e.message}");
     } catch (e) {
-      // Tratamento de outros erros gerais.
+      // Tratamento de outros erros gerais
       showMessage("Ocorreu um erro inesperado: $e");
       print("Erro inesperado: $e"); // Para depuração
     } finally {
-      //  Define o estado de carregamento de volta para false, independentemente do resultado.
+      // Define o estado de carregamento de volta para false, independentemente do resultado
       setState(() {
         _isLoading = false;
       });

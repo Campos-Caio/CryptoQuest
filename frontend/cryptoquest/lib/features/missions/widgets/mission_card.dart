@@ -22,9 +22,7 @@ class MissionCard extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(mission.description),
         trailing: Text("+${mission.rewardPoints}XP"),
-        onTap: onTap ?? () {
-          print("Iniciando missao: ${mission.id}");
-        },
+        onTap: onTap,
       ),
     );
   }

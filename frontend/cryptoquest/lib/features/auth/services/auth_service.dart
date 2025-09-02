@@ -9,7 +9,8 @@ import 'package:cryptoquest/core/config/app_config.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-    /// Cadastra um novo usuário no backend e, em seguida, realiza o login
+
+  /// Cadastra um novo usuário no backend e, em seguida, realiza o login
   /// para obter o perfil completo e o token de autenticação.
   Future<UserProfile> signUpWithEmailAndPassword({
     required String name,
@@ -18,7 +19,8 @@ class AuthService {
   }) async {
     // 1. Faz a chamada para o endpoint de registro que criamos no backend.
     final response = await http.post(
-      Uri.parse('${AppConfig.baseUrl}/auth/register'), // Chama o endpoint de registro
+      Uri.parse(
+          '${AppConfig.baseUrl}/auth/register'), // Chama o endpoint de registro
       headers: {'Content-Type': 'application/json; charset=UTF-8'},
       body: jsonEncode({
         'name': name,
@@ -28,16 +30,19 @@ class AuthService {
     );
 
     // 2. Verifica se o backend criou o usuário com sucesso.
-    if (response.statusCode == 201) { // 201 Created
+    if (response.statusCode == 201) {
+      // 201 Created
       // 3. Se o cadastro deu certo, o usuário agora existe.
       //    A maneira mais robusta de obter o estado completo (token, perfil)
       //    é simplesmente realizar o login com as credenciais que acabamos de usar.
-      print("Cadastro no backend bem-sucedido. Realizando login para obter o perfil...");
+      print(
+          "Cadastro no backend bem-sucedido. Realizando login para obter o perfil...");
       return signInWithEmailAndPassword(email: email, password: password);
     } else {
       // Se o backend retornou um erro (ex: e-mail já existe), lança uma exceção.
       final errorData = jsonDecode(response.body);
-      throw Exception("Falha ao cadastrar: ${errorData['detail'] ?? 'Erro desconhecido'}");
+      throw Exception(
+          "Falha ao cadastrar: ${errorData['detail'] ?? 'Erro desconhecido'}");
     }
   }
 
@@ -88,8 +93,11 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final responseData = jsonDecode(response.body);
+
       // O backend retorna um objeto AuthSuccess que contém o user_profile
-      return UserProfile.fromJson(responseData['user_profile']);
+      final userProfileData = responseData['user_profile'];
+
+      return UserProfile.fromJson(userProfileData);
     } else {
       final errorData = jsonDecode(response.body);
       throw Exception(
@@ -184,10 +192,11 @@ class AuthService {
   Future<void> reauthenticateWithPassword(String password) async {
     final user = _firebaseAuth.currentUser;
     if (user == null) throw Exception("Nenhum usuário logado.");
-    
+
     // Pega as credenciais atuais do usuário
-    final cred = EmailAuthProvider.credential(email: user.email!, password: password);
-    
+    final cred =
+        EmailAuthProvider.credential(email: user.email!, password: password);
+
     // Tenta reautenticar
     await user.reauthenticateWithCredential(cred);
   }

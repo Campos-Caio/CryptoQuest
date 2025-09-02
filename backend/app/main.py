@@ -31,3 +31,8 @@ app.include_router(quizzes_api.router)
 @app.get("/", tags=["Root"])
 async def read_root():
     return {"message": "Bem-vindo ao Backend CryptoQuest!"}
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """Endpoint para verificação de saúde do serviço (Docker healthcheck)"""
+    return {"status": "healthy", "service": "cryptoquest-backend"}

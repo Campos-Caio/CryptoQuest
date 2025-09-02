@@ -4,11 +4,10 @@ import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/app_config.dart';
 
-
 class MissionApiService {
   static String baseUrl = AppConfig.baseUrl;
 
-  // Buscar missões diárias (NÃO static - manter como método de instância)
+  // Buscar missões elegíveis filtradas por nível e status de conclusão
   Future<List<Mission>> getDailyMissions(String token) async {
     try {
       final response = await http.get(
@@ -54,10 +53,7 @@ class MissionApiService {
 
   // Completar missão
   Future<Map<String, dynamic>> completeMission(
-    String missionId, 
-    List<int> answers, 
-    String token
-  ) async {
+      String missionId, List<int> answers, String token) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/missions/$missionId/complete'),
@@ -73,9 +69,16 @@ class MissionApiService {
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Falha ao completar missão: ${response.statusCode}');
+        // Capturar o corpo da resposta para obter a mensagem de erro
+        final errorBody = json.decode(response.body);
+        final errorMessage = errorBody['detail'] ?? 'Erro desconhecido';
+        throw Exception('$errorMessage (${response.statusCode})');
       }
     } catch (e) {
+      // Se já é uma Exception com mensagem de erro, re-throw
+      if (e is Exception) {
+        rethrow;
+      }
       throw Exception('Erro de conexão: $e');
     }
   }
