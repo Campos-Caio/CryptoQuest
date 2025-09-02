@@ -34,8 +34,10 @@ class AuthService:
                 logger.warning(f"Perfil do usuário {uid} não encontrado. Criando novo perfil.")
                 user_profile = await self.user_repo.create_user_profile(uid=uid, email=email, name=name)
                 logger.info(f"Perfil criado com sucesso para UID: {uid}")
+                logger.info(f"🔍 [AuthService] Novo perfil criado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
             else:
                 logger.info(f"Perfil encontrado para UID: {uid}")
+                logger.info(f"🔍 [AuthService] Perfil existente - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
 
             return firebase_user_info, user_profile
 

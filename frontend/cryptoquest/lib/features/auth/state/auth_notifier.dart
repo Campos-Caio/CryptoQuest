@@ -45,22 +45,37 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  Future<bool> signInWithGoogle() async {
+  /// ✅ MÉTODO ROBUSTO: Executa login com Google e retorna o UserProfile garantindo estado atualizado
+  Future<UserProfile?> signInWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
       _userProfile = await _authService.signInWithGoogle();
+
       _token = await FirebaseAuth.instance.currentUser?.getIdToken();
+
       _isLoading = false;
+
+      // Garante que o estado seja atualizado
       notifyListeners();
-      return true;
+
+      // Aguarda um ciclo de frame para garantir propagação
+      await Future.delayed(Duration.zero);
+
+      return _userProfile;
     } catch (e) {
       _errorMessage = e.toString();
       _isLoading = false;
       notifyListeners();
-      return false;
+      return null;
     }
+  }
+
+  /// ✅ MÉTODO AUXILIAR: Verifica se o usuário deve ir para home ou questionário
+  bool shouldGoToHome() {
+    if (_userProfile == null) return false;
+    return _userProfile!.hasCompletedQuestionnaire;
   }
 
   Future<void> logout() async {

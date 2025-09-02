@@ -1,4 +1,4 @@
-// Model para retornar o perfil do usuario. 
+// Model para retornar o perfil do usuario.
 class UserProfile {
   final String uid;
   final String name;

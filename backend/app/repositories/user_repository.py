@@ -20,17 +20,23 @@ class UserRepository:
             "email": email,
             "register_date": datetime.now(timezone.utc),
             "level": 1,
+            "has_completed_questionnaire": False,  # ✅ EXPLICITAMENTE define como False para novos usuários
         }
 
         await self.collection.document(uid).set(user_data)
+        print(f"🔍 [UserRepository] Perfil criado no Firestore com dados: {user_data}")
+        
         # Retorna o UserProfile Completo
-        return UserProfile(
+        user_profile = UserProfile(
             uid=uid,
             name=name,
             email=email,
             register_date=user_data["register_date"],
             level=user_data["level"],
+            has_completed_questionnaire=False,  # ✅ Garante que o campo seja incluído no retorno
         )
+        print(f"🔍 [UserRepository] UserProfile retornado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
+        return user_profile
 
     async def get_user_profile(self, uid: str) -> Union[UserProfile, None]:
         """
@@ -48,7 +54,19 @@ class UserRepository:
             if hasattr(data["register_date"], "ToDatetime"):
                 data["register_date"] = data["register_date"].ToDatetime().astimezone()
 
-        return UserProfile(uid=doc.id, **data)
+        # ✅ Garante que campos com valores padrão sejam definidos se não existirem
+        # Isso é importante para perfis criados antes da correção
+        if "has_completed_questionnaire" not in data:
+            data["has_completed_questionnaire"] = False
+            print(f"🔍 [UserRepository] Campo has_completed_questionnaire não encontrado, definindo como False")
+        if "points" not in data:
+            data["points"] = 0
+        if "level" not in data:
+            data["level"] = 1
+
+        user_profile = UserProfile(uid=doc.id, **data)
+        print(f"🔍 [UserRepository] Perfil recuperado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
+        return user_profile
 
     async def update_user_Profile(self, uid:str, new_data: dict) -> bool: # Adicione tipo para new_data
         """
