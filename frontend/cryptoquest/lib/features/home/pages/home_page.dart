@@ -1,9 +1,8 @@
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/home/widgets/feature_card.dart';
-import 'package:cryptoquest/features/missions/models/mission_model.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
-import 'package:cryptoquest/features/quiz/pages/quiz_page.dart';
 import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
+import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,38 +22,19 @@ class _HomePageState extends State<HomePage> {
       final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
       final missionNotifier =
           Provider.of<MissionNotifier>(context, listen: false);
+      final learningPathProvider =
+          Provider.of<LearningPathProvider>(context, listen: false);
 
       if (authNotifier.token != null) {
         missionNotifier.fetchDailyMissions(authNotifier.token!);
+        learningPathProvider.loadLearningPaths();
+        learningPathProvider.loadUserProgress(authNotifier.token!);
       }
     });
   }
 
-  void _onMissionTap(BuildContext context, Mission mission) {
-    if (mission.type == 'QUIZ') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => QuizPage(
-            missionId: mission.id,
-            quizId: mission.contentId,
-            missionTitle: mission.title,
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Funcionalidade ${mission.type} em desenvolvimento'),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final authNotifier = Provider.of<AuthNotifier>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text("CryptoQuest"),
@@ -106,35 +86,64 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            FeatureCard(
-              title: "Trilha Ativa",
-              subtitle: "BlockChain Básico",
-              icon: Icons.rocket_launch_rounded,
-              iconColor: const Color(0xFF00FFC8),
-              trailing: SizedBox(
-                width: 120,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    LinearProgressIndicator(
-                      value: 3 / 5,
-                      color: const Color(0xFF00FFC8),
-                      backgroundColor: Colors.white24,
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    const SizedBox(height: 6),
-                    const Align(
-                      alignment: Alignment.centerRight,
-                      child: Text("3 / 5",
-                          style:
-                              TextStyle(color: Colors.white70, fontSize: 12)),
-                    ),
-                  ],
-                ),
-              ),
-              onTap: () {
-                // navegação futura para a trilha ativa
+            Consumer<LearningPathProvider>(
+              builder: (context, learningPathProvider, child) {
+                // Busca a primeira trilha ativa ou em progresso
+                String title = "Trilhas de Aprendizado";
+                String subtitle = "Explore novas trilhas";
+                double progressValue = 0.0;
+                String progressText = "0 / 0";
+
+                if (learningPathProvider.learningPaths.isNotEmpty) {
+                  final firstPath = learningPathProvider.learningPaths.first;
+                  final pathProgress =
+                      learningPathProvider.getPathProgress(firstPath.id);
+
+                  if (pathProgress != null) {
+                    title = firstPath.name;
+                    subtitle = "Continue sua jornada";
+                    progressValue = pathProgress.progressPercentage / 100;
+                    progressText =
+                        "${pathProgress.completedMissions.length} / ${firstPath.modules.fold(0, (sum, module) => sum + module.missions.length)}";
+                  } else {
+                    title = firstPath.name;
+                    subtitle = "Inicie sua jornada";
+                  }
+                }
+
+                return FeatureCard(
+                  title: title,
+                  subtitle: subtitle,
+                  icon: Icons.rocket_launch_rounded,
+                  iconColor: const Color(0xFF00FFC8),
+                  trailing: learningPathProvider.learningPaths.isNotEmpty
+                      ? SizedBox(
+                          width: 120,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              LinearProgressIndicator(
+                                value: progressValue,
+                                color: const Color(0xFF00FFC8),
+                                backgroundColor: Colors.white24,
+                                minHeight: 6,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              const SizedBox(height: 6),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(progressText,
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/learning-paths');
+                  },
+                );
               },
             ),
             FeatureCard(

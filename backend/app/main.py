@@ -5,6 +5,7 @@ from app.api import questionnaire_api
 from app.api import missions_api
 from app.api import user_api
 from app.api import quizzes_api
+from app.api import learning_paths_api
 
 
 app = FastAPI(
@@ -27,6 +28,7 @@ app.include_router(questionnaire_api.router)
 app.include_router(missions_api.router)
 app.include_router(user_api.router)
 app.include_router(quizzes_api.router)
+app.include_router(learning_paths_api.router)
 
 @app.get("/", tags=["Root"])
 async def read_root():
