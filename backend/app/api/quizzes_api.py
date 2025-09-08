@@ -1,6 +1,6 @@
 import logging
 from typing import Annotated
-from backend.app.models.quizz import Quizz
+from app.models.quizz import Quiz
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies.auth import get_current_user
@@ -11,7 +11,7 @@ from app.core.firebase import get_firestore_db_async
 router = APIRouter(prefix="/quizzes", tags=["Quizzes"])
 logger = logging.getLogger(__name__) 
 
-@router.get('/{quiz_id}', response_model=Quizz, summary='Busca o conteudo de um quiz pelo ID')
+@router.get('/{quiz_id}', response_model=Quiz, summary='Busca o conteudo de um quiz pelo ID')
 async def get_quiz_content_endpoint(
     quiz_id: str, 
     db = Depends(get_firestore_db_async), 
