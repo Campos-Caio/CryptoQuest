@@ -68,6 +68,8 @@ class LearningPathService:
             # Busca o progresso do usuário
             progress = self.repository.get_user_progress(user_id, path_id)
             logger.info(f"Progresso encontrado: {progress is not None}")
+            if progress:
+                logger.info(f"Progresso encontrado para usuário {user_id}")
             
             # Calcula estatísticas
             stats = await self._calculate_path_stats(path, progress)
@@ -118,58 +120,6 @@ class LearningPathService:
             logger.error(f"Erro no service ao iniciar trilha: {e}")
             raise
     
-    async def complete_mission(self, user_id: str, path_id: str, mission_id: str, score: int) -> Dict[str, Any]:
-        """Conclui uma missão e atualiza o progresso"""
-        try:
-            logger.info(f"Concluindo missão {mission_id} para usuário {user_id} na trilha {path_id}")
-            
-            # Busca a trilha para validar a missão
-            path = self.repository.get_learning_path_by_id(path_id)
-            if not path:
-                raise ValueError(f"Trilha {path_id} não encontrada")
-            
-            # Valida se a missão existe na trilha
-            mission_exists = False
-            mission_module = None
-            for module in path.modules:
-                for mission in module.missions:
-                    if mission.id == mission_id:
-                        mission_exists = True
-                        mission_module = module
-                        break
-                if mission_exists:
-                    break
-            
-            if not mission_exists:
-                raise ValueError(f"Missão {mission_id} não encontrada na trilha {path_id}")
-            
-            # Verifica se a pontuação é suficiente
-            required_score = mission_module.missions[0].required_score if mission_module.missions else 70
-            if score < required_score:
-                raise ValueError(f"Pontuação {score} insuficiente. Mínimo necessário: {required_score}")
-            
-            # Atualiza o progresso
-            progress = await self.repository.complete_mission(user_id, path_id, mission_id, score)
-            
-            # Verifica se o módulo foi concluído
-            module_completed = await self._check_module_completion(progress, mission_module)
-            
-            # Verifica se a trilha foi concluída
-            path_completed = await self._check_path_completion(progress, path)
-            
-            result = {
-                "progress": progress,
-                "module_completed": module_completed,
-                "path_completed": path_completed,
-                "next_module": await self._get_next_module(path, progress) if not path_completed else None
-            }
-            
-            logger.info(f"Missão {mission_id} concluída com sucesso para usuário {user_id}")
-            return result
-            
-        except Exception as e:
-            logger.error(f"Erro no service ao concluir missão: {e}")
-            raise
     
     # ==================== MÉTODOS AUXILIARES ====================
     
@@ -207,6 +157,53 @@ class LearningPathService:
             logger.error(f"Erro ao calcular estatísticas: {e}")
             return {}
     
+    async def _check_and_persist_module_completion(self, progress: UserPathProgress, learning_path) -> None:
+        """Verifica e persiste conclusão de módulos de forma robusta"""
+        try:
+            modules_completed = []
+            
+            for module in learning_path.modules:
+                # Obter missões do módulo
+                module_missions = [mission.id for mission in module.missions]
+                
+                # Verificar quais missões do módulo foram concluídas
+                completed_module_missions = [mid for mid in progress.completed_missions if mid in module_missions]
+                
+                # Verificar se módulo foi concluído
+                is_module_completed = len(completed_module_missions) == len(module_missions)
+                
+                if is_module_completed and module.id not in progress.completed_modules:
+                    progress.completed_modules.append(module.id)
+                    modules_completed.append(module.id)
+                    
+                    # Persistir imediatamente no banco
+                    self.repository.complete_module(progress.user_id, progress.path_id, module.id)
+            
+            if modules_completed:
+                logger.info(f"Módulos concluídos: {modules_completed}")
+                
+        except Exception as e:
+            logger.error(f"Erro ao verificar conclusão de módulos: {e}")
+            raise
+
+    async def _verify_progress_integrity(self, progress: UserPathProgress, learning_path) -> None:
+        """Verifica a integridade dos dados de progresso"""
+        try:
+            # Recarregar progresso do banco para verificar se foi salvo
+            saved_progress = self.repository.get_user_progress(progress.user_id, progress.path_id)
+            
+            if saved_progress:
+                # Verificar se os dados estão consistentes
+                if len(saved_progress.completed_modules) != len(progress.completed_modules):
+                    logger.warning(f"Inconsistência detectada no progresso do usuário {progress.user_id}")
+                    # Forçar atualização
+                    self.repository.update_progress(progress)
+            else:
+                logger.error(f"Progresso não encontrado no banco para usuário {progress.user_id}")
+                
+        except Exception as e:
+            logger.error(f"Erro ao verificar integridade: {e}")
+
     async def _check_module_completion(self, progress: UserPathProgress, module) -> bool:
         """Verifica se um módulo foi concluído"""
         try:
@@ -216,7 +213,7 @@ class LearningPathService:
             if len(completed_module_missions) == len(module_missions):
                 # Módulo concluído
                 if module.id not in progress.completed_modules:
-                    await self.repository.complete_module(progress.user_id, progress.path_id, module.id)
+                    self.repository.complete_module(progress.user_id, progress.path_id, module.id)
                     progress.completed_modules.append(module.id)
                 return True
             
@@ -369,13 +366,18 @@ class LearningPathService:
             
             logger.info(f"Missão completada: score={score:.1f}%, success={success}, points={points_earned}")
             
+            # Buscar progresso atualizado após as mudanças
+            updated_progress = self.repository.get_user_progress(user_id, path_id)
+            
             return {
                 "score": int(score),
                 "success": success,
                 "points": points_earned,
                 "correct_answers": correct_answers,
                 "total_questions": total_questions,
-                "required_score": mission.required_score
+                "required_score": mission.required_score,
+                "progress": updated_progress.model_dump() if updated_progress else None,
+                "next_module_unlocked": await self._get_next_unlocked_module(path_id, user_id)
             }
             
         except Exception as e:
@@ -432,9 +434,84 @@ class LearningPathService:
                 if len(progress.completed_missions) >= total_missions:
                     progress.completed_at = datetime.utcnow()
             
+            # Verificar e persistir conclusão de módulos
+            if learning_path:
+                await self._check_and_persist_module_completion(progress, learning_path)
+            
             # Salvar progresso
             self.repository.update_progress(progress)
+            
+            # Verificar integridade dos dados
+            await self._verify_progress_integrity(progress, learning_path)
+
+            # Verificar se deve avançar para o próximo módulo
+            await self._advance_to_next_module(progress, learning_path)
             
         except Exception as e:
             logger.error(f"Erro ao atualizar progresso do usuário: {e}")
             raise
+    
+    async def _advance_to_next_module(self, progress: UserPathProgress, learning_path: LearningPath):
+        """Avança para o próximo módulo disponível"""
+        try:
+            # Se não há módulo atual, define o primeiro
+            if not progress.current_module_id:
+                if learning_path.modules:
+                    first_module = min(learning_path.modules, key=lambda x: x.order)
+                    progress.current_module_id = first_module.id
+                    self.repository.update_progress(progress)
+                return
+            
+            # Encontra o módulo atual
+            current_module = None
+            for module in learning_path.modules:
+                if module.id == progress.current_module_id:
+                    current_module = module
+                    break
+            
+            if not current_module:
+                return
+            
+            # Verifica se o módulo atual foi concluído
+            module_missions = [mission.id for mission in current_module.missions]
+            completed_module_missions = [mid for mid in progress.completed_missions if mid in module_missions]
+            
+            if len(completed_module_missions) == len(module_missions):
+                # Módulo concluído, avança para o próximo
+                next_module = None
+                for module in learning_path.modules:
+                    if module.order > current_module.order and module.id not in progress.completed_modules:
+                        next_module = module
+                        break
+                
+                if next_module:
+                    progress.current_module_id = next_module.id
+                    self.repository.update_progress(progress)
+                    logger.info(f"Usuário {progress.user_id} avançou para módulo {next_module.id}")
+        
+        except Exception as e:
+            logger.error(f"Erro ao avançar para próximo módulo: {e}")
+    
+    async def _get_next_unlocked_module(self, path_id: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Retorna informações sobre o próximo módulo desbloqueado"""
+        try:
+            progress = self.repository.get_user_progress(user_id, path_id)
+            learning_path = self.repository.get_learning_path_by_id(path_id)
+            
+            if not progress or not learning_path:
+                return None
+            
+            # Encontra o próximo módulo não concluído
+            for module in sorted(learning_path.modules, key=lambda x: x.order):
+                if module.id not in progress.completed_modules:
+                    return {
+                        "id": module.id,
+                        "name": module.name,
+                        "order": module.order,
+                        "is_unlocked": True
+                    }
+            
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao buscar próximo módulo: {e}")
+            return None
