@@ -58,7 +58,7 @@ class LearningPathRepository:
                             if "mission_id" not in mission:
                                 mission["mission_id"] = mission.get("id", "")
             
-            logger.info(f"Dados da trilha {path_id}: {data}")
+            logger.info(f"Trilha {path_id} encontrada")
             return LearningPath(**data)
 
         except Exception as e:

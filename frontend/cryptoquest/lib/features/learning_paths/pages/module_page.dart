@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../features/quiz/pages/quiz_page.dart';
+import '../../../features/auth/state/auth_notifier.dart';
 import '../widgets/mission_list_item.dart';
 import '../models/learning_path_model.dart';
 import '../models/user_path_progress_model.dart';
 import '../theme/learning_path_colors.dart';
 import '../widgets/glassmorphism_card.dart';
+import '../providers/learning_path_provider.dart';
 
 class ModulePage extends StatefulWidget {
   final String pathId;
@@ -359,13 +362,23 @@ class _ModulePageState extends State<ModulePage> {
           isLearningPathMission: true, // Marca como missão de trilha
         ),
       ),
-    ).then((result) {
-      // O QuizPage já lida com a conclusão da missão
-      // Aqui podemos apenas atualizar a UI se necessário
+    ).then((result) async {
       if (result != null && result is Map<String, dynamic>) {
-        setState(() {
-          // Força atualização da UI para mostrar missão como concluída
-        });
+        // Recarrega o progresso da trilha
+        final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+        final learningPathProvider =
+            Provider.of<LearningPathProvider>(context, listen: false);
+
+        if (authNotifier.token != null) {
+          await learningPathProvider.refreshPathDetails(
+              widget.pathId, authNotifier.token);
+        }
+
+        // Força rebuild da página
+        setState(() {});
+
+        // Retorna resultado para a página anterior
+        Navigator.of(context).pop(result);
       }
     });
   }

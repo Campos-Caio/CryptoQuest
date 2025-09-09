@@ -139,7 +139,7 @@ async def get_user_progress(
     """
     try:
         user_id = current_user.uid
-        progress_list = await learning_path_service.repository.get_all_user_progress(user_id)
+        progress_list = learning_path_service.repository.get_all_user_progress(user_id)
         return progress_list
     except Exception as e:
         raise HTTPException(
