@@ -1,5 +1,6 @@
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
+import 'package:cryptoquest/features/learning_paths/services/learning_path_service.dart';
 import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,12 +9,16 @@ class QuizPage extends StatefulWidget {
   final String missionId;
   final String quizId;
   final String missionTitle;
+  final String? pathId; // Para missões de trilhas de aprendizado
+  final bool isLearningPathMission; // Flag para identificar tipo de missão
 
   QuizPage({
     Key? key,
     required this.missionId,
     required this.quizId,
     required this.missionTitle,
+    this.pathId,
+    this.isLearningPathMission = false,
   }) : super(key: key);
 
   @override
@@ -151,15 +156,31 @@ class _QuizPageState extends State<QuizPage> {
       });
 
       final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-      final missionNotifier =
-          Provider.of<MissionNotifier>(context, listen: false);
 
       if (authNotifier.token != null) {
-        final success = await missionNotifier.completeMission(
-          widget.missionId,
-          selectedAnswers,
-          authNotifier.token!,
-        );
+        bool success = false;
+        Map<String, dynamic>? result;
+
+        if (widget.isLearningPathMission && widget.pathId != null) {
+          // Usar serviço de trilhas de aprendizado
+          final learningPathService = LearningPathService();
+          result = await learningPathService.completeMission(
+            widget.pathId!,
+            widget.missionId,
+            selectedAnswers,
+            authNotifier.token!,
+          );
+          success = result['success'] == true;
+        } else {
+          // Usar serviço de missões diárias (comportamento original)
+          final missionNotifier =
+              Provider.of<MissionNotifier>(context, listen: false);
+          success = await missionNotifier.completeMission(
+            widget.missionId,
+            selectedAnswers,
+            authNotifier.token!,
+          );
+        }
 
         if (success && mounted) {
           // Calcular pontuação
@@ -246,7 +267,14 @@ class _QuizPageState extends State<QuizPage> {
                 TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pop();
+                      // Retorna o resultado para a tela anterior (trilhas)
+                      Navigator.of(context).pop({
+                        'score': percentage.round(),
+                        'success': percentage >= 70,
+                        'points': result?['points'] ?? 0,
+                        'level': result?['level'] ?? 1,
+                        'answers': selectedAnswers, // Adiciona as respostas
+                      });
                     },
                     child: const Text("OK"))
               ],
