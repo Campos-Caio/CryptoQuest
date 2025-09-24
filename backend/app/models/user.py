@@ -31,7 +31,9 @@ class UserProfile(BaseModel):
     register_date: datetime 
     level: Optional[int] = 1 
     has_completed_questionnaire: bool = False
-    points: int = 0 
+    points: int = 0
+    xp: int = 0
+    badges: List[str] = Field(default_factory=list)
     completed_missions: Dict[str, datetime] = Field(default_factory=dict)
     daily_missions: List[str] = Field(default_factory=list)
     daily_assigned_at: Optional[datetime] = None

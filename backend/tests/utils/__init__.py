@@ -1,0 +1,4 @@
+"""
+Utilitários compartilhados para testes.
+"""
+

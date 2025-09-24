@@ -22,7 +22,7 @@ async def override_get_current_user_existing():
 
 pytestmark = pytest.mark.asyncio
 
-async def test_submit_questionnaire_success_for_new_user(mocker):
+async def test_submit_questionnaire_success_for_new_user(mocker, mock_user_profile_new):
     # Arrange
     class MockUserRepository:
         async def get_user_profile(self, uid: str):

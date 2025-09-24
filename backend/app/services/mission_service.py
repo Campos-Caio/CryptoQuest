@@ -5,8 +5,14 @@ from app.repositories.user_repository import UserRepository, get_user_repository
 from app.models.user import UserProfile
 from app.models.mission import QuizSubmision
 from app.core.firebase import get_firestore_db_async
+from app.services.reward_service import RewardService, get_reward_service
+from app.services.event_bus import get_event_bus
+from app.models.events import MissionCompletedEvent, LevelUpEvent, EventType
 import random
 from datetime import datetime, timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Define quantos pontos são necessários para cada nível.
 # Manter isso aqui facilita a manutenção e o balanceamento do jogo.
@@ -19,9 +25,11 @@ LEVEL_UP_REQUIREMENTS = {
 
 
 class MissionService:
-    def __init__(self, user_repo: UserRepository, dbclient):
+    def __init__(self, user_repo: UserRepository, dbclient, reward_service: RewardService = None):
         self.user_repo = user_repo
         self.db = dbclient
+        self.reward_service = reward_service
+        self.event_bus = get_event_bus()
 
     async def get_daily_missions_for_user(self, user: UserProfile) -> list:
         """
@@ -73,7 +81,7 @@ class MissionService:
         selected_ids = [m.get("id") or m.get("_id") for m in selected_missions]
         
         print(f"DEBUG: Missões selecionadas: {selected_ids}")
-        print(f"DEBUG: Títulos das missões selecionadas:")
+        print("DEBUG: Títulos das missões selecionadas:")
         for mission in selected_missions:
             print(f"  - {mission.get('title', 'Sem título')} (ID: {mission.get('_id')})")
         
@@ -153,9 +161,21 @@ class MissionService:
                     f"Você acertou {score_percentage:.0f}%. É necessário acertar pelo menos 70% para concluir."
                 )
 
+        # Calcular score baseado no tipo de missão
+        if mission_data.get("type") == "QUIZ":
+            score_percentage = ((correct_answers / len(questions)) * 100) if questions else 0
+        else:
+            score_percentage = 100  # Para outros tipos de missão
+
+        # Determinar tipo de missão
+        mission_type = "daily" if mission_data.get("type") == "DAILY" else "learning_path"
+
         # Recompensa e progressão
+        old_level = user_data.get("level", 1) or 1
         new_points = (user_data.get("points", 0) or 0) + (mission_data.get("reward_points", 0) or 0)
-        new_level = user_data.get("level", 1) or 1
+        new_level = old_level
+        
+        # Verificar level up
         while True:
             required_points_for_next_level = LEVEL_UP_REQUIREMENTS.get(new_level + 1)
             if required_points_for_next_level and new_points >= required_points_for_next_level:
@@ -172,6 +192,55 @@ class MissionService:
 
         await user_ref.update(update_data)
 
+        # 🎯 NOVO: Emitir eventos para o sistema de badges
+        try:
+            # Evento de missão completada
+            mission_event = MissionCompletedEvent(
+                user_id=user_id,
+                mission_id=mission_id,
+                score=score_percentage,
+                mission_type=mission_type,
+                points_earned=mission_data.get("reward_points", 0) or 0,
+                xp_earned=mission_data.get("reward_xp", 0) or 0
+            )
+            await self.event_bus.emit(mission_event)
+            logger.info(f"🎯 Evento de missão completada emitido: {mission_id}")
+
+            # Evento de level up (se aplicável)
+            if new_level > old_level:
+                level_up_event = LevelUpEvent(
+                    user_id=user_id,
+                    old_level=old_level,
+                    new_level=new_level,
+                    points_required=LEVEL_UP_REQUIREMENTS.get(new_level, 0),
+                    points_earned=new_points - (user_data.get("points", 0) or 0)
+                )
+                await self.event_bus.emit(level_up_event)
+                logger.info(f"🎯 Evento de level up emitido: {old_level} -> {new_level}")
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao emitir eventos: {e}")
+            # Não falha a missão se houver erro nos eventos
+
+        # 🎁 SISTEMA LEGADO: Manter compatibilidade com RewardService
+        if self.reward_service:
+            try:
+                logger.info(f"🎁 Concedendo recompensas legadas para missão {mission_id} (score: {score_percentage:.1f}%)")
+                
+                # Conceder recompensas
+                reward_result = await self.reward_service.award_mission_completion(
+                    user_id=user_id,
+                    mission_id=mission_id,
+                    score=score_percentage,
+                    mission_type=mission_type
+                )
+                
+                logger.info(f"✅ Recompensas legadas concedidas: {reward_result}")
+                
+            except Exception as e:
+                logger.error(f"❌ Erro ao conceder recompensas legadas: {e}")
+                # Não falha a missão se houver erro nas recompensas
+
         # Retorno do perfil atualizado
         user_data.update({"points": new_points, "level": new_level})
         # completed_missions pode não existir
@@ -183,6 +252,7 @@ class MissionService:
 
 def get_mission_service(
     user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    reward_service: Annotated[RewardService, Depends(get_reward_service)],
     db_client=Depends(get_firestore_db_async),
 ) -> MissionService:
     """
@@ -197,4 +267,4 @@ def get_mission_service(
     Return:
         Uma instancia de MissionService
     """
-    return MissionService(user_repo=user_repo, dbclient=db_client)
+    return MissionService(user_repo, db_client, reward_service)

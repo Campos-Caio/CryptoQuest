@@ -25,7 +25,7 @@ async def override_get_current_user():
 
 
 # -- Testes --
-async def test_register_user_sucess(mocker):
+async def test_register_user_sucess(mocker, mock_user_profile):
     """
     Testa o endpoint de registro de usuario com sucesso (201 Created)
     Passado o usuario de teste
@@ -59,7 +59,7 @@ async def test_register_user_sucess(mocker):
     app.dependency_overrides = {}
 
 
-async def test_get_me_sucess(mocker):
+async def test_get_me_sucess(mocker, mock_user_profile):
     """
     Testa o endpoint /me com um usuario autenticado
     """

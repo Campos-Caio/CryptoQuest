@@ -54,6 +54,12 @@ def initialize_firebase():
 def get_firebase_auth():
     return auth
 
+def get_firestore_db():
+    """
+    Retorna uma instância síncrona do Cliente Firestore.
+    """
+    return firestore.client()
+
 async def get_firestore_db_async() -> AsyncClient:
     """
     Retorna uma instância assíncrona do Cliente Firestore.

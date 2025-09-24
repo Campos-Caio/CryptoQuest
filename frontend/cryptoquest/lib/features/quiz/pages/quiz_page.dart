@@ -2,6 +2,7 @@ import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
 import 'package:cryptoquest/features/learning_paths/services/learning_path_service.dart';
 import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
+import 'package:cryptoquest/features/rewards/providers/reward_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -192,6 +193,9 @@ class _QuizPageState extends State<QuizPage> {
           }
           double percentage = (correctAnswers / quiz!.questions.length) * 100;
 
+          // 🎯 NOVA INTEGRAÇÃO: Processar recompensas e badges
+          await _processRewardsAndBadges(percentage);
+
           // Mostrar resultado
           _showResultDialog(percentage);
         }
@@ -240,6 +244,66 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
+  // 🎯 NOVO MÉTODO: Processar recompensas e badges
+  Future<void> _processRewardsAndBadges(double percentage) async {
+    try {
+      final rewardProvider = Provider.of<RewardProvider>(context, listen: false);
+      final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+      
+      if (authNotifier.token != null) {
+        // Chamar API de recompensas para processar badges
+        final rewardResult = await rewardProvider.awardMissionCompletion(
+          widget.missionId,
+          percentage,
+          'QUIZ',
+        );
+
+        if (rewardResult != null && mounted) {
+          // Mostrar notificação de badges conquistados
+          _showBadgeNotification(rewardResult);
+        }
+      }
+    } catch (e) {
+      print('Erro ao processar recompensas: $e');
+      // Não mostrar erro para o usuário, apenas log
+    }
+  }
+
+  // 🎯 NOVO MÉTODO: Mostrar notificação de badges
+  void _showBadgeNotification(Map<String, dynamic> rewardResult) {
+    final badgesEarned = rewardResult['badges_earned'] as List<dynamic>? ?? [];
+    
+    if (badgesEarned.isNotEmpty && mounted) {
+      // Mostrar snackbar com badges conquistados
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.emoji_events, color: Colors.yellow),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '🏆 ${badgesEarned.length} badge(s) conquistado(s)!',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green[700],
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Ver',
+            textColor: Colors.white,
+            onPressed: () {
+              // Navegar para tela de recompensas
+              Navigator.pushNamed(context, '/rewards');
+            },
+          ),
+        ),
+      );
+    }
+  }
+
   void _showResultDialog(double percentage) {
     final missionNotifier =
         Provider.of<MissionNotifier>(context, listen: false);
@@ -255,15 +319,49 @@ class _QuizPageState extends State<QuizPage> {
                 children: [
                   Text('Você acertou ${percentage.toStringAsFixed(0)}%'),
                   if (percentage >= 70 && result != null) ...[
-                    const SizedBox(
-                      height: 8,
-                    ),
+                    const SizedBox(height: 8),
                     Text('Ganhou ${result['points']} pontos de XP!'),
                     Text('Nivel: ${result['level']} pontos!'),
+                  ],
+                  // 🎯 NOVA SEÇÃO: Mostrar badges conquistados
+                  if (percentage >= 70) ...[
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Badges processados!',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Verifique sua coleção de badges',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ],
                 ],
               ),
               actions: [
+                if (percentage >= 70)
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.pushNamed(context, '/rewards');
+                    },
+                    child: const Text("Ver Badges"),
+                  ),
                 TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
