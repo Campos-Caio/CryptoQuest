@@ -44,7 +44,7 @@ class TestDataManager:
         user = UserProfile(**user_data)
         self.test_users.append(user_id)
         return user
-    
+ 
     async def cleanup_test_user(self, db, user_id: str):
         """Limpa dados de teste de um usuário"""
         try:
@@ -77,7 +77,7 @@ class EventTestHelper:
         default_data = {
             'user_id': user_id,
             'mission_id': f'test_mission_{user_id}',
-            'score': 85.0,
+            'score': 100.0,
             'mission_type': 'daily',
             'points_earned': 100,
             'xp_earned': 50
@@ -93,8 +93,8 @@ class EventTestHelper:
             'user_id': user_id,
             'old_level': 1,
             'new_level': 2,
-            'points_required': 500,
-            'points_earned': 200
+            'points_required': 100,
+            'points_earned': 100
         }
         
         event_data = {**default_data, **kwargs}
@@ -105,11 +105,11 @@ class EventTestHelper:
         """Cria evento de pontos ganhos para teste"""
         default_data = {
             'user_id': user_id,
-            'points_amount': 1000,
-            'xp_amount': 500,
+            'points_amount': 100,
+            'xp_amount': 50,
             'source': 'mission',
-            'points_earned': 1000,
-            'total_points': 1000
+            'points_earned': 100,
+            'total_points': 100
         }
         
         event_data = {**default_data, **kwargs}
@@ -153,11 +153,11 @@ class TestConfig:
     """Configurações para testes"""
     
     # URLs de teste
-    BASE_URL = "http://localhost:8001"
+    BASE_URL = "http://localhost:8000"
     
     # Timeouts
     DEFAULT_TIMEOUT = 30
-    EVENT_PROCESSING_DELAY = 1
+    EVENT_PROCESSING_DELAY = 0.1
     
     # Dados de teste
     TEST_USER_PREFIX = "test_user_"
@@ -166,7 +166,7 @@ class TestConfig:
     
     # Configurações do Firebase
     FIREBASE_PROJECT_ID = "cryptoquest-test"
-    
+ 
     @classmethod
     def get_test_user_id(cls, suffix: str = "") -> str:
         """Gera ID de usuário de teste"""

@@ -6,7 +6,6 @@ import pytest
 from app.models.user import UserProfile, FirebaseUser
 from datetime import datetime, timezone
 
-
 @pytest.fixture
 def mock_user_profile():
     """Mock de perfil de usuário para testes"""
@@ -20,7 +19,6 @@ def mock_user_profile():
         xp=0,
         has_completed_questionnaire=False
     )
-
 
 @pytest.fixture
 def mock_user_profile_new():
@@ -36,7 +34,6 @@ def mock_user_profile_new():
         has_completed_questionnaire=False
     )
 
-
 @pytest.fixture
 def mock_updated_user_profile():
     """Mock de perfil de usuário atualizado para testes"""
@@ -45,12 +42,11 @@ def mock_updated_user_profile():
         name="Novo nome",
         email="test@example.com",
         register_date=datetime.now(timezone.utc),
-        level=1,
-        points=0,
-        xp=0,
+        level=2,
+        points=100,
+        xp=50,
         has_completed_questionnaire=True
     )
-
 
 @pytest.fixture
 def mock_firebase_user():

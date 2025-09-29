@@ -22,32 +22,37 @@ class QuestionnaireService:
                         total_score += option.score 
                         break 
         
-        # Logica para definir o perfil e a trilha com base na pontuacao 
+        # Logica para definir o perfil, trilha e nível inicial baseado na pontuacao 
         if total_score <= 3: 
             profile_name = 'Explorador Curioso'
-            learning_path_ids = ['modulo_introducao', "modulo_introducao_crypto"]
+            learning_path_ids = ['fundamentos_dinheiro_bitcoin']
+            initial_level = 1  # Nível inicial para iniciantes
         elif total_score <= 6: 
             profile_name = 'Iniciante Promissor'
-            learning_path_ids = ['modulo_blockchain-101', "modulo_wallets"]
+            learning_path_ids = ['aprofundando_bitcoin_tecnologia']
+            initial_level = 2  # Nível inicial para intermediários
         else: 
             profile_name = 'Entusiasta Preparado'
-            learning_path_ids = ['modulo_defi', "modulo_nfts"]
+            learning_path_ids = ['bitcoin_ecossistema_financeiro']
+            initial_level = 3  # Nível inicial para avançados
 
         knowledge_profile = KnowledgeProfile(
             profile_name=profile_name, 
             score = total_score, 
-            learning_path_ids = learning_path_ids 
+            learning_path_ids = learning_path_ids,
+            initial_level = initial_level
         )
 
         # Dados a serem salvos no Firestore 
         update_data = {
             'knowledge_profile':  knowledge_profile.model_dump(), 
             'initial_answers':submission.model_dump(), 
-            'has_completed_questionnaire':True, 
+            'has_completed_questionnaire':True,
+            'level': initial_level  # Definir nível inicial baseado no questionário
         }
 
         # Atualiza o doc do User 
-        await self.user_repo.update_user_Profile(uid, update_data)
+        self.user_repo.update_user_Profile(uid, update_data)
 
         return knowledge_profile 
 

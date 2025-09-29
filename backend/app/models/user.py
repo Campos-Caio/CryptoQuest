@@ -37,6 +37,7 @@ class UserProfile(BaseModel):
     completed_missions: Dict[str, datetime] = Field(default_factory=dict)
     daily_missions: List[str] = Field(default_factory=list)
     daily_assigned_at: Optional[datetime] = None
+    current_streak: int = 0
     knowledge_profile: Optional[dict] = None 
     initial_answers: Optional[dict] = None
 

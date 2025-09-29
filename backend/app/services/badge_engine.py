@@ -40,6 +40,7 @@ class BadgeEngine:
         await event_bus.subscribe(EventType.POINTS_EARNED, self._handle_points_earned)
         await event_bus.subscribe(EventType.LEARNING_PATH_COMPLETED, self._handle_learning_path_completed)
         await event_bus.subscribe(EventType.QUIZ_COMPLETED, self._handle_quiz_completed)
+        await event_bus.subscribe(EventType.MODULE_COMPLETED, self._handle_module_completed)
         
         logger.info("🎯 Handlers de eventos registrados no BadgeEngine")
 
@@ -83,6 +84,14 @@ class BadgeEngine:
         except Exception as e:
             logger.error(f"Erro ao processar quiz completado: {e}")
 
+    async def _handle_module_completed(self, event: BaseEvent):
+        """Handler para eventos de módulo completado"""
+        try:
+            logger.info(f"🎯 Processando módulo completado para usuário {event.user_id}")
+            await self._process_event_for_badges(event)
+        except Exception as e:
+            logger.error(f"Erro ao processar módulo completado: {e}")
+
     async def _process_event_for_badges(self, event: BaseEvent):
         """
         Processa um evento e verifica badges elegíveis.
@@ -108,7 +117,7 @@ class BadgeEngine:
             # Conceder badges elegíveis
             awarded_badges = []
             for badge_id in eligible_badges:
-                success = await self._award_badge_if_eligible(
+                success = self._award_badge_if_eligible(
                     event.user_id, 
                     badge_id, 
                     event.context
@@ -124,7 +133,7 @@ class BadgeEngine:
         except Exception as e:
             logger.error(f"Erro ao processar evento para badges: {e}")
 
-    async def _award_badge_if_eligible(self, user_id: str, badge_id: str, context: Dict[str, Any]) -> bool:
+    def _award_badge_if_eligible(self, user_id: str, badge_id: str, context: Dict[str, Any]) -> bool:
         """
         Concede um badge se o usuário for elegível.
         
@@ -138,13 +147,13 @@ class BadgeEngine:
         """
         try:
             # Verificar se já possui o badge
-            has_badge = await self.badge_repo.has_badge(user_id, badge_id)
+            has_badge = self.badge_repo.has_badge(user_id, badge_id)
             if has_badge:
                 logger.debug(f"Usuário {user_id} já possui badge {badge_id}")
                 return False
             
             # Verificar elegibilidade
-            is_eligible = await self.validation_service.validate_badge_eligibility(
+            is_eligible = self.validation_service.validate_badge_eligibility(
                 user_id, badge_id
             )
             
@@ -153,7 +162,7 @@ class BadgeEngine:
                 return False
             
             # Conceder badge
-            success = await self.badge_repo.award_badge(user_id, badge_id, context)
+            success = self.badge_repo.award_badge(user_id, badge_id, context)
             
             if success:
                 logger.info(f"✅ Badge {badge_id} concedido para usuário {user_id}")
@@ -314,7 +323,7 @@ class BadgeEngine:
                 
                 if is_eligible:
                     # Conceder badge
-                    success = await self.badge_repo.award_badge(
+                    success = self.badge_repo.award_badge(
                         user_id, 
                         badge.id, 
                         {'source': 'force_check', 'timestamp': 'now'}

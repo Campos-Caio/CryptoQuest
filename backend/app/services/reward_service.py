@@ -1,11 +1,12 @@
 from typing import Dict, Any, List
+from datetime import datetime, timedelta
 from app.models.reward import UserReward, UserBadge, RewardType
 from app.repositories.user_repository import UserRepository, get_user_repository
 from app.repositories.reward_repository import RewardRepository, get_reward_repository
 from app.repositories.badge_repository import BadgeRepository, get_badge_repository
 from app.services.badge_engine import get_badge_engine
 from app.services.event_bus import get_event_bus
-from app.core.firebase import get_firestore_db_async
+from app.core.firebase import get_firestore_db
 from fastapi import Depends
 import logging
 
@@ -52,12 +53,12 @@ class RewardService:
                 if score >= 100: 
                     points += self.REWARD_CONFIG[RewardType.PERFECT_SCORE]['points']
                     xp += self.REWARD_CONFIG[RewardType.PERFECT_SCORE]['xp'] 
-                    await self.award_badge(user_id, "perfectionist", {'mission_id': mission_id, 'score': score})
+                    self.award_badge(user_id, "perfectionist", {'mission_id': mission_id, 'score': score})
                 
                 if len(user.daily_missions) == 0:
                     points += self.REWARD_CONFIG[RewardType.FIRST_COMPLETION]['points']
                     xp += self.REWARD_CONFIG[RewardType.FIRST_COMPLETION]['xp'] 
-                    await self.award_badge(user_id, "first_steps", {'mission_id': mission_id})
+                    self.award_badge(user_id, "first_steps", {'mission_id': mission_id})
 
                 # Aplicar recompensas  
                 await self.apply_rewards(user_id, reward_type, points, xp, {
@@ -108,7 +109,7 @@ class RewardService:
     async def apply_rewards(self, user_id: str, reward_type: RewardType, points: int, xp: int, context: Dict[str, Any]):
         """Aplica recompensas ao usuário"""
         # Atualiza perfil de usuário 
-        await self.user_repo.update_user_Profile(user_id, {
+        self.user_repo.update_user_Profile(user_id, {
             'points': points,
             'xp': xp
         })
@@ -124,7 +125,7 @@ class RewardService:
 
         self.reward_repo.save_user_reward(user_reward)
     
-    async def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]): 
+    def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]): 
         """Concede badge ao usuário usando o novo sistema"""
         try:
             # Usar BadgeRepository para conceder badge com validação de duplicatas
@@ -141,24 +142,156 @@ class RewardService:
 
     async def _check_streak_rewards(self, user_id: str):
         """Verifica e concede recompensas de streak"""
-        # Implementar lógica de streak
-        pass
+        try:
+            user = self.user_repo.get_user_profile(user_id)
+            if not user:
+                return
+            
+            # Calcular streak baseado em daily_missions
+            current_streak = user.current_streak or 0
+            
+            # Verificar se completou missão hoje
+            today = datetime.now().date()
+            completed_today = False
+            
+            for mission_id in user.daily_missions:
+                # Verificar se a missão foi completada hoje
+                # Por simplicidade, assumimos que se está na lista, foi completada recentemente
+                completed_today = True
+                break
+            
+            if completed_today:
+                new_streak = current_streak + 1
+                
+                # Atualizar streak do usuário
+                self.user_repo.update_user_profile(user_id, {'current_streak': new_streak})
+                
+                # Verificar recompensas de streak
+                if new_streak == 7:
+                    await self.apply_rewards(user_id, RewardType.STREAK_7_DAYS, 300, 150, {
+                        'streak_days': 7,
+                        'achieved_at': datetime.now().isoformat()
+                    })
+                    self.award_badge(user_id, "streak_7", {'streak_days': 7})
+                    
+                elif new_streak == 30:
+                    await self.apply_rewards(user_id, RewardType.STREAK_30_DAYS, 1000, 500, {
+                        'streak_days': 30,
+                        'achieved_at': datetime.now().isoformat()
+                    })
+                    self.award_badge(user_id, "streak_30", {'streak_days': 30})
+            else:
+                # Reset streak se não completou missão hoje
+                if current_streak > 0:
+                    self.user_repo.update_user_profile(user_id, {'current_streak': 0})
+                    
+        except Exception as e:
+            logger.error(f'Erro ao verificar streak rewards: {e}')
 
     async def _check_level_up(self, user_id: str, xp_earned: int) -> bool:
         """Verifica se o usuário subiu de nível"""
-        # Implementar lógica de level up
-        pass
+        try:
+            user = self.user_repo.get_user_profile(user_id)
+            if not user:
+                return False
+            
+            # Calcular novo nível baseado no XP total
+            total_xp = user.xp + xp_earned
+            new_level = self._calculate_level_from_xp(total_xp)
+            
+            if new_level > user.level:
+                # Usuário subiu de nível
+                old_level = user.level
+                
+                # Atualizar nível do usuário
+                self.user_repo.update_user_profile(user_id, {
+                    'level': new_level,
+                    'xp': total_xp
+                })
+                
+                # Conceder badge de level up
+                self.award_badge(user_id, "level_up", {
+                    'old_level': old_level,
+                    'new_level': new_level,
+                    'achieved_at': datetime.now().isoformat()
+                })
+                
+                # Emitir evento de level up
+                from app.services.event_bus import get_event_bus
+                from app.models.events import LevelUpEvent
+                event_bus = get_event_bus()
+                await event_bus.emit(LevelUpEvent(
+                    user_id=user_id,
+                    old_level=old_level,
+                    new_level=new_level,
+                    points_required=total_xp,
+                    points_earned=xp_earned
+                ))
+                
+                logger.info(f'Usuário {user_id} subiu do nível {old_level} para {new_level}')
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f'Erro ao verificar level up: {e}')
+            return False
+    
+    def _calculate_level_from_xp(self, xp: int) -> int:
+        """Calcula o nível baseado no XP total"""
+        # Fórmula simples: cada nível requer 100 XP a mais que o anterior
+        # Nível 1: 0-99 XP
+        # Nível 2: 100-299 XP  
+        # Nível 3: 300-599 XP
+        # Nível 4: 600-999 XP
+        # etc.
+        
+        if xp < 100:
+            return 1
+        elif xp < 300:
+            return 2
+        elif xp < 600:
+            return 3
+        elif xp < 1000:
+            return 4
+        elif xp < 1500:
+            return 5
+        elif xp < 2100:
+            return 6
+        elif xp < 2800:
+            return 7
+        elif xp < 3600:
+            return 8
+        elif xp < 4500:
+            return 9
+        else:
+            return 10  # Nível máximo
 
     async def _get_recent_badges(self, user_id: str) -> List[str]:
         """Retorna badges recentemente conquistados"""
-        # Implementar busca de badges recentes
-        pass
+        try:
+            # Buscar badges do usuário
+            user_badges = self.badge_repo.get_user_badges(user_id)
+            
+            # Filtrar badges conquistados nas últimas 24 horas
+            recent_badges = []
+            cutoff_time = datetime.now() - timedelta(hours=24)
+            
+            for badge in user_badges:
+                if badge.earned_at >= cutoff_time:
+                    recent_badges.append(badge.badge_id)
+            
+            return recent_badges
+            
+        except Exception as e:
+            logger.error(f'Erro ao buscar badges recentes: {e}')
+            return []
 
 def get_reward_service(
     user_repo = Depends(get_user_repository),
     reward_repo = Depends(get_reward_repository),
     badge_repo = Depends(get_badge_repository),
-    db_client = Depends(get_firestore_db_async)
+    db_client = Depends(get_firestore_db)
 ) -> RewardService:
     return RewardService(user_repo, reward_repo, badge_repo, db_client)
 
