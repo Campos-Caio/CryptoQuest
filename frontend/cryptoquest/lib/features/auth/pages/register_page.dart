@@ -1,8 +1,5 @@
-import 'dart:convert';
-import 'package:cryptoquest/core/config/app_config.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
 import 'package:cryptoquest/shared/widgets/my_button.dart';
 import 'package:cryptoquest/shared/widgets/my_text_field.dart';
 import 'package:flutter/material.dart';

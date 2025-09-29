@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr 
-from typing import Dict, Optional 
+from pydantic import BaseModel, EmailStr, Field 
+from typing import Dict, Optional, List 
 from datetime import datetime 
 
 # Modelo para o corpo da requisicao 
@@ -32,7 +32,9 @@ class UserProfile(BaseModel):
     level: Optional[int] = 1 
     has_completed_questionnaire: bool = False
     points: int = 0 
-    completed_missions: Dict[str, datetime] = {}
+    completed_missions: Dict[str, datetime] = Field(default_factory=dict)
+    daily_missions: List[str] = Field(default_factory=list)
+    daily_assigned_at: Optional[datetime] = None
     knowledge_profile: Optional[dict] = None 
     initial_answers: Optional[dict] = None
 

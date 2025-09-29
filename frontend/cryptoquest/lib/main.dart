@@ -7,11 +7,12 @@ import 'package:cryptoquest/features/home/pages/home_page.dart';
 import 'package:cryptoquest/features/auth/pages/login_page.dart';
 import 'package:cryptoquest/features/auth/pages/register_page.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
+import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,28 +20,21 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(
-    (MultiProvider(
+    MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthNotifier()),
         ChangeNotifierProxyProvider<AuthNotifier, QuestionnaireProvider>(
-          // O 'create' é chamado uma vez para criar a instância inicial.
           create: (context) => QuestionnaireProvider(
             authNotifier: Provider.of<AuthNotifier>(context, listen: false),
           ),
-          // O 'update' é chamado sempre que o AuthNotifier muda.
           update: (context, authNotifier, previousQuestionnaireProvider) =>
               QuestionnaireProvider(authNotifier: authNotifier),
         ),
-        ChangeNotifierProxyProvider<AuthNotifier, MissionNotifier>(
-          create: (context) => MissionNotifier(
-            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
-          ),
-          update: (context, authNotifier, previousMissionNotifier) =>
-              MissionNotifier(authNotifier: authNotifier),
-        ),
+        ChangeNotifierProvider(create: (_) => MissionNotifier()),
+        ChangeNotifierProvider(create: (_) => LearningPathProvider()),
       ],
       child: const MyApp(),
-    )),
+    ),
   );
 }
 
@@ -50,16 +44,32 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-        title: "CryptoQuest",
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.appTheme,
-        initialRoute: '/login',
-        routes: {
-          '/register': (context) => const RegisterPage(),
-          '/login': (context) => LoginPage(),
-          '/home': (context) => HomePage(),
-          '/questionnaire': (context) => const QuestionnairePage(),
-          '/profile':(context) => const ProfilePage(), 
-        });
+      title: "CryptoQuest",
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.appTheme,
+      initialRoute: '/login',
+      routes: {
+        '/register': (context) => const RegisterPage(),
+        '/login': (context) => LoginPage(),
+        '/home': (context) => HomePage(),
+        '/questionnaire': (context) => const QuestionnairePage(),
+        '/profile': (context) => const ProfilePage(),
+        '/missions': (context) => const MissionsPages(),
+        '/learning-paths': (context) => const LearningPathsPage(),
+        '/learning-path-details': (context) {
+          final pathId = ModalRoute.of(context)!.settings.arguments as String;
+          return LearningPathDetailsPage(pathId: pathId);
+        },
+        '/module-details': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          return ModulePage(
+            pathId: args['pathId'],
+            module: args['module'],
+            progress: args['progress'],
+          );
+        },
+      },
+    );
   }
 }

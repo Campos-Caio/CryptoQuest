@@ -1,7 +1,6 @@
 import logging
 from typing import Annotated, List
-from fastapi import APIRouter, Depends, HTTPException
-from grpc import Status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies.auth import get_current_user
 from app.models.mission import Mission, QuizSubmision
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 @router.get(
     "/daily",
     response_model=List[Mission],
-    summary="Busca as missoes diarias para o usuario autenticado!",
+    summary="Busca as missões elegíveis para o usuário autenticado!",
 )
 async def get_daily_missions_endpoint(
     current_user: Annotated[FirebaseUser, Depends(get_current_user)],
@@ -25,23 +24,22 @@ async def get_daily_missions_endpoint(
     mission_service: Annotated[MissionService, Depends(get_mission_service)],
 ):
     """
-    Recupera uma lista de missoes diarias personalizadas para o usuario atualmente logado
-
-    A selecao de missoes eh baseada no nivel do usuario e nas missoes que ja completou no dia
+    Recupera uma lista de missões elegíveis para o usuário atualmente logado.
+    As missões são filtradas por nível e não incluem missões já completadas.
 
     Args:
         Current_user: O usuario autenticado, injetado pela dependencia get_current_user
         user_repo: A instancia do repositorio de usuario para buscar perfil completo
-        missio_service: A instancia do servico de missoes que contem a logica de negocio
+        mission_service: A instancia do servico de missoes que contem a logica de negocio
 
     Raises:
         httpException(404): Se o perfil do usuario nao for encontrado
 
     Returns:
-        List[Mission]: Uma lista de objetos de missoes recomendados para o dia
+        List[Mission]: Uma lista de objetos de missoes elegíveis para o usuário
     """
 
-    logger.info(f"Buscando missoes diarias para o usuario {current_user.uid}")
+    logger.info(f"Buscando missões elegíveis para o usuario {current_user.uid}")
 
     user_profile = await user_repo.get_user_profile(current_user.uid)
     if not user_profile:
@@ -50,8 +48,11 @@ async def get_daily_missions_endpoint(
             detail="Perfil do usuario nao encontrado!",
         )
 
-    dayli_missions = await mission_service.get_daily_missions_for_user(user_profile)
-    return dayli_missions
+    eligible_missions = await mission_service.get_daily_missions_for_user(user_profile)
+    return eligible_missions
+
+
+
 
 
 @router.post(
@@ -61,7 +62,7 @@ async def get_daily_missions_endpoint(
 )
 async def complete_mission_endpoint(
     mission_id: str,
-    submision: QuizSubmision,
+    submission: QuizSubmision,
     current_user: Annotated[FirebaseUser, Depends(get_current_user)],
     mission_service: Annotated[MissionService, Depends(get_mission_service)],
 ):
@@ -90,17 +91,33 @@ async def complete_mission_endpoint(
 
     try:
         updated_user_profile = await mission_service.complete_mission(
-            user_uid=current_user, mission_id=mission_id, submision=submision
+            user_id=current_user.uid, mission_id=mission_id, submission=submission
         )
         return updated_user_profile
 
     except ValueError as error:
-        raise HTTPException(status_code=status.HTTP_404_BAD_REQUEST, detail=str(error))
+        # Tratar especificamente o erro de missão já concluída
+        if "já foi concluída anteriormente" in str(error):  # ALTERADO
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Esta missão já foi concluída anteriormente."  # ALTERADO
+            )
+        elif "Nível insuficiente" in str(error):  # NOVO
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=str(error)
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=str(error)
+            )
     except Exception as error:
         logger.error(
-            f"Erro inesperado ao completao missaso para {current_user.uid}: {error}", exec_info=True
+            f"Erro inesperado ao completar missão para {current_user.uid}: {error}", 
+            exc_info=True
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ocorreu um erro ao processar a conclusao da missao",
-        )
+            detail="Ocorreu um erro ao processar a conclusão da missão"
+    )

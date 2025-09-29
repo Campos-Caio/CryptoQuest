@@ -2,24 +2,30 @@ class Mission {
   final String id;
   final String title;
   final String description;
-  final int rewardPoints;
   final String type;
+  final int rewardPoints;
+  final int requiredLevel;
+  final String contentId;
 
-  Mission(
-      {required this.id,
-      required this.title,
-      required this.description,
-      required this.rewardPoints,
-      required this.type});
-      
-  /// Factory constructor para criar uma Mission a partir de um JSON.
-  factory Mission.fromJson(Map<String, dynamic> json){
+  Mission({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.type,
+    required this.rewardPoints,
+    required this.requiredLevel,
+    required this.contentId,
+  });
+
+  factory Mission.fromJson(Map<String, dynamic> json) {
     return Mission(
-      id: json['id'],
-      title: json['title'], 
-      description: json['description'], 
-      rewardPoints: json['rewardPoints'], 
-      type: json['type']
-    ); 
+      id: json['_id'] ?? json['id'] ?? '',
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      type: json['type'] ?? '',
+      rewardPoints: json['reward_points'] ?? 0,
+      requiredLevel: json['required_level'] ?? 1,
+      contentId: json['content_id'] ?? '',
+    );
   }
 }

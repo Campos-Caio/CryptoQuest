@@ -1,66 +1,85 @@
 import 'dart:convert';
-
-import 'package:cryptoquest/core/config/app_config.dart';
-import 'package:cryptoquest/features/auth/user_profile_model.dart';
 import 'package:cryptoquest/features/missions/models/mission_model.dart';
 import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
 import 'package:http/http.dart' as http;
+import '../../../core/config/app_config.dart';
 
 class MissionApiService {
-  /// Busca a lista de missoes diarias para o usuário autenticado
+  static String baseUrl = AppConfig.baseUrl;
+
+  // Buscar missões elegíveis filtradas por nível e status de conclusão
   Future<List<Mission>> getDailyMissions(String token) async {
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/missions/daily'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/missions/daily'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      // Decodifica a resposta, que eh uma lista de objetos JSON
-      final List<dynamic> responseBody = jsonDecode(response.body);
-      // Converte cada objeto Json em um Objeto mission e retorna a lista
-      return responseBody.map((json) => Mission.fromJson(json)).toList();
-    } else {
-      throw Exception('Falha ao carregar as missões diárias.');
+      if (response.statusCode == 200) {
+        final List<dynamic> missionsJson = json.decode(response.body);
+        return missionsJson.map((json) => Mission.fromJson(json)).toList();
+      } else {
+        throw Exception('Falha ao carregar missões: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro de conexão: $e');
     }
   }
 
-  Future<Quiz> getQuizById(String token, String quizId) async {
-    final response = await http.get(
-      Uri.parse('${AppConfig.baseUrl}/quizzes/$quizId'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
-    );
+  // Buscar quiz específico
+  Future<Quiz> getQuiz(String quizId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/quizzes/$quizId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      // Decodifica a resposta, que eh uma lista de objetos JSON
-      return Quiz.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Falha ao carregar o conteúdo do quiz.');
+      if (response.statusCode == 200) {
+        final quizJson = json.decode(response.body);
+        return Quiz.fromJson(quizJson);
+      } else {
+        throw Exception('Falha ao carregar quiz: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro de conexão: $e');
     }
   }
 
-  Future<UserProfile> completeQuizMissions(
-    String token, String missionId, List<int> answers) async {
-    final response = await http.post(
-      Uri.parse('${AppConfig.baseUrl}/missions/$missionId/complete'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
-      body: jsonEncode({"answers" : answers}),  
-    );
+  // Completar missão
+  Future<Map<String, dynamic>> completeMission(
+      String missionId, List<int> answers, String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/missions/$missionId/complete'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'answers': answers,
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      // Decodifica a resposta, que eh uma lista de objetos JSON
-      return UserProfile.fromJson(jsonDecode(response.body));
-    } else {
-      final errorData = jsonDecode(response.body);
-      throw Exception('Falha ao completar a missão: ${errorData['detail']}');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        // Capturar o corpo da resposta para obter a mensagem de erro
+        final errorBody = json.decode(response.body);
+        final errorMessage = errorBody['detail'] ?? 'Erro desconhecido';
+        throw Exception('$errorMessage (${response.statusCode})');
+      }
+    } catch (e) {
+      // Se já é uma Exception com mensagem de erro, re-throw
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Erro de conexão: $e');
     }
   }
 }

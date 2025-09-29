@@ -1,7 +1,8 @@
-import 'package:cryptoquest/features/home/widgets/crypto_card.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/home/widgets/feature_card.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
-import 'package:cryptoquest/features/missions/widgets/mission_card.dart';
+import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
+import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,14 +19,22 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     // Pede ao MissionNotifier para buscar as missões assim que a tela é carregada
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MissionNotifier>(context, listen: false).fetchDailyMissions();
+      final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+      final missionNotifier =
+          Provider.of<MissionNotifier>(context, listen: false);
+      final learningPathProvider =
+          Provider.of<LearningPathProvider>(context, listen: false);
+
+      if (authNotifier.token != null) {
+        missionNotifier.fetchDailyMissions(authNotifier.token!);
+        learningPathProvider.loadLearningPaths();
+        learningPathProvider.loadUserProgress(authNotifier.token!);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final authNotifier = Provider.of<AuthNotifier>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text("CryptoQuest"),
@@ -39,8 +48,6 @@ class _HomePageState extends State<HomePage> {
       ),
       drawer: Consumer<AuthNotifier>(
         builder: (context, authNotifier, child) {
-          final authNotifier =
-              Provider.of<AuthNotifier>(context, listen: false);
           return Drawer(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -57,7 +64,6 @@ class _HomePageState extends State<HomePage> {
                   leading: const Icon(Icons.person),
                   title: const Text("Meu perfil"),
                   onTap: () {
-                    // Fecha o drawer e navega para a pagina de perfil
                     Navigator.pop(context);
                     Navigator.pushNamed(context, '/profile');
                   },
@@ -78,69 +84,90 @@ class _HomePageState extends State<HomePage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Consumer<MissionNotifier>(
-          builder: (context, missionNotifier, child) {
-            if (missionNotifier.isLoading) {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+        child: ListView(
+          children: [
+            Consumer<LearningPathProvider>(
+              builder: (context, learningPathProvider, child) {
+                // Busca a primeira trilha ativa ou em progresso
+                String title = "Trilhas de Aprendizado";
+                String subtitle = "Explore novas trilhas";
+                double progressValue = 0.0;
+                String progressText = "0 / 0";
 
-            if (missionNotifier.errorMessage != null) {
-              return Center(
-                child: Text(missionNotifier.errorMessage!),
-              );
-            }
+                if (learningPathProvider.learningPaths.isNotEmpty) {
+                  final firstPath = learningPathProvider.learningPaths.first;
+                  final pathProgress =
+                      learningPathProvider.getPathProgress(firstPath.id);
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Missoes Diarias',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(
-                  height: 16.0,
-                ),
-                Expanded(child: ListView.builder(itemBuilder: (context, index) {
-                  final mission = missionNotifier.dailyMissions[index];
-                  return MissionCard(mission: mission);
-                }))
-              ],
-            );
-          },
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 25.0),
-              child: Column(
-                children: [
-                  // Missão Diária
-                  CryptoCard(
-                    title: "Trilha Ativa",
-                    subtitle: "BlockChain Basico",
-                    icon: Icon(Icons.query_builder,
-                        color: Color(0xFF00FFC8), size: 32),
-                  ),
+                  if (pathProgress != null) {
+                    title = firstPath.name;
+                    subtitle = "Continue sua jornada";
+                    progressValue = pathProgress.progressPercentage / 100;
+                    progressText =
+                        "${pathProgress.completedMissions.length} / ${firstPath.modules.fold(0, (sum, module) => sum + module.missions.length)}";
+                  } else {
+                    title = firstPath.name;
+                    subtitle = "Inicie sua jornada";
+                  }
+                }
 
-                  // Missão Diária
-                  CryptoCard(
-                    title: "Missao Diaria",
-                    subtitle: "Complete um Quizz sobre BTC",
-                    icon: Icon(Icons.check_circle,
-                        color: Color(0xFF00FFC8), size: 32),
-                  ),
-
-                  // Ranking
-                  CryptoCard(
-                    title: "Ranking",
-                    subtitle: "Ver Classificacao",
-                    icon: Icon(Icons.emoji_events,
-                        color: Color(0xFF00FFC8), size: 32),
-                  ),
-                ],
-              ),
+                return FeatureCard(
+                  title: title,
+                  subtitle: subtitle,
+                  icon: Icons.rocket_launch_rounded,
+                  iconColor: const Color(0xFF00FFC8),
+                  trailing: learningPathProvider.learningPaths.isNotEmpty
+                      ? SizedBox(
+                          width: 120,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              LinearProgressIndicator(
+                                value: progressValue,
+                                color: const Color(0xFF00FFC8),
+                                backgroundColor: Colors.white24,
+                                minHeight: 6,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              const SizedBox(height: 6),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(progressText,
+                                    style: const TextStyle(
+                                        color: Colors.white70, fontSize: 12)),
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
+                  onTap: () {
+                    Navigator.pushNamed(context, '/learning-paths');
+                  },
+                );
+              },
             ),
-          ),
+            FeatureCard(
+              title: "Missão Diária",
+              subtitle: "Complete um Quizz sobre BTC",
+              icon: Icons.check_circle,
+              iconColor: const Color(0xFF00FFC8),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MissionsPages()),
+                );
+              },
+            ),
+            FeatureCard(
+              title: "Ranking",
+              subtitle: "Ver Classificação",
+              icon: Icons.emoji_events,
+              iconColor: const Color(0xFF00FFC8),
+              onTap: () {
+                // navegação futura para ranking
+              },
+            ),
+          ],
         ),
       ),
     );
