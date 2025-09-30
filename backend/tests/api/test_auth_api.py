@@ -68,7 +68,7 @@ async def test_get_me_sucess(mock_user_profile):
     from app.repositories.user_repository import get_user_repository
 
     class MockUserRepository:
-        async def get_user_profile(self, uid: str):
+        def get_user_profile(self, uid: str):
             return mock_user_profile
 
     app.dependency_overrides[get_user_repository] = lambda: MockUserRepository()

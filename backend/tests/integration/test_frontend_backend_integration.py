@@ -3,6 +3,7 @@ Testes de integração Frontend-Backend para sistema de badges.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timezone
 
@@ -12,13 +13,48 @@ from app.services.badge_engine import get_badge_engine
 from app.repositories.badge_repository import BadgeRepository
 from app.repositories.user_repository import UserRepository
 from app.models.events import MissionCompletedEvent, LevelUpEvent
-from tests.utils.test_helpers import TestDataManager, EventTestHelper, TestConfig, wait_for_event_processing
+from tests.utils.test_helpers import DataManager, EventTestHelper, TestConfig, wait_for_event_processing
+
+@pytest_asyncio.fixture
+async def setup_system():
+    """Configura o sistema para testes de integração"""
+    from unittest.mock import MagicMock
+    
+    # Mock do banco de dados
+    mock_db = MagicMock()
+    
+    # Inicializar componentes
+    event_bus = EventBus()
+    badge_engine = get_badge_engine()
+    badge_repo = BadgeRepository(mock_db)
+    user_repo = UserRepository(mock_db)
+    
+    # Registrar handlers
+    await badge_engine._register_event_handlers()
+    
+    return {
+        'db': mock_db,
+        'event_bus': event_bus,
+        'badge_engine': badge_engine,
+        'badge_repo': badge_repo,
+        'user_repo': user_repo
+    }
+
+@pytest.fixture
+def test_data_manager():
+    """Gerenciador de dados de teste"""
+    return DataManager()
+
+@pytest.fixture
+def event_helper():
+    """Helper para eventos"""
+    return EventTestHelper()
 
 
 @pytest.mark.asyncio
 async def test_quiz_completion_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo completo de completar quiz (simulando frontend)"""
-    system = await setup_system
+    system = setup_system
     user_id = TestConfig.get_test_user_id("quiz_flow")
     
     try:
@@ -65,7 +101,7 @@ async def test_quiz_completion_flow(setup_system, test_data_manager, event_helpe
 @pytest.mark.asyncio
 async def test_perfect_score_badge_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo de badge por score perfeito"""
-    system = await setup_system
+    system = setup_system
     user_id = TestConfig.get_test_user_id("perfect_score")
     
     try:
@@ -105,7 +141,7 @@ async def test_perfect_score_badge_flow(setup_system, test_data_manager, event_h
 @pytest.mark.asyncio
 async def test_level_up_badge_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo de badge por level up"""
-    system = await setup_system
+    system = setup_system
     user_id = TestConfig.get_test_user_id("level_up")
     
     try:
@@ -144,7 +180,7 @@ async def test_level_up_badge_flow(setup_system, test_data_manager, event_helper
 @pytest.mark.asyncio
 async def test_multiple_events_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo com múltiplos eventos (simulando sessão de usuário)"""
-    system = await setup_system
+    system = setup_system
     user_id = TestConfig.get_test_user_id("multiple_events")
     
     try:
@@ -221,7 +257,7 @@ async def test_multiple_events_flow(setup_system, test_data_manager, event_helpe
 @pytest.mark.asyncio
 async def test_error_handling_flow(setup_system, test_data_manager, event_helper):
     """Testa tratamento de erros no fluxo"""
-    system = await setup_system
+    system = setup_system
     user_id = TestConfig.get_test_user_id("error_handling")
     
     try:
@@ -261,7 +297,7 @@ async def test_error_handling_flow(setup_system, test_data_manager, event_helper
 @pytest.mark.asyncio
 async def test_performance_flow(setup_system, test_data_manager, event_helper):
     """Testa performance com múltiplos eventos simultâneos"""
-    system = await setup_system
+    system = setup_system
     user_id = TestConfig.get_test_user_id("performance")
     
     try:

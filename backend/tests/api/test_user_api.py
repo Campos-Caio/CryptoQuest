@@ -48,12 +48,12 @@ async def test_update_user_profile_sucess():
  """
 
  class MockUserRepository:
-     async def update_user_Profile(self, uid: str, new_data:dict):
+     def update_user_Profile(self, uid: str, new_data:dict):
          assert uid == 'test_uid_'
          assert new_data.get("name") == 'Novo Nome'
          pass
 
-     async def get_user_profile(self,uid:str):
+     def get_user_profile(self,uid:str):
          return mock_updated_user_profile
 
  app.dependency_overrides[get_current_user] = override_get_current_user

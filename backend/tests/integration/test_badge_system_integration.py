@@ -3,6 +3,7 @@ Testes de integração para o sistema de badges.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timezone
 
@@ -12,9 +13,9 @@ from app.services.badge_engine import get_badge_engine
 from app.repositories.badge_repository import BadgeRepository
 from app.repositories.user_repository import UserRepository
 from app.models.events import MissionCompletedEvent, LevelUpEvent, PointsEarnedEvent
-from tests.utils.test_helpers import TestDataManager, EventTestHelper, TestConfig, wait_for_event_processing
+from tests.utils.test_helpers import DataManager, EventTestHelper, TestConfig, wait_for_event_processing
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def setup_system():
     """Configura o sistema para testes de integração"""
     from unittest.mock import MagicMock
@@ -42,7 +43,7 @@ async def setup_system():
 @pytest.fixture
 def test_data_manager():
     """Gerenciador de dados de teste"""
-    return TestDataManager()
+    return DataManager()
 
 @pytest.fixture
 def event_helper():
@@ -55,7 +56,7 @@ class TestBadgeSystemIntegration:
     @pytest.mark.asyncio
     async def test_complete_mission_flow(self, setup_system, test_data_manager, event_helper):
         """Testa fluxo completo de completar missão"""
-        system = await setup_system
+        system = setup_system
         user_id = TestConfig.get_test_user_id("mission_flow")
         
         try:
@@ -87,12 +88,12 @@ class TestBadgeSystemIntegration:
             
         finally:
             # Limpar dados de teste
-            test_data_manager.cleanup_test_user(system['db'], user_id)
+            await test_data_manager.cleanup_test_user(system['db'], user_id)
 
     @pytest.mark.asyncio
     async def test_level_up_flow(self, setup_system, test_data_manager, event_helper):
         """Testa fluxo de level up"""
-        system = await setup_system
+        system = setup_system
         user_id = TestConfig.get_test_user_id("level_up")
         
         try:
@@ -122,12 +123,12 @@ class TestBadgeSystemIntegration:
             
         finally:
             # Limpar dados de teste
-            test_data_manager.cleanup_test_user(system['db'], user_id)
+            await test_data_manager.cleanup_test_user(system['db'], user_id)
 
     @pytest.mark.asyncio
     async def test_duplicate_prevention(self, setup_system, test_data_manager, event_helper):
         """Testa prevenção de badges duplicados"""
-        system = await setup_system
+        system = setup_system
         user_id = TestConfig.get_test_user_id("duplicate")
         
         try:
@@ -164,12 +165,12 @@ class TestBadgeSystemIntegration:
             
         finally:
             # Limpar dados de teste
-            test_data_manager.cleanup_test_user(system['db'], user_id)
+            await test_data_manager.cleanup_test_user(system['db'], user_id)
 
     @pytest.mark.asyncio
     async def test_perfect_score_badge(self, setup_system, test_data_manager, event_helper):
         """Testa concessão de badge por score perfeito"""
-        system = await setup_system
+        system = setup_system
         user_id = TestConfig.get_test_user_id("perfect")
         
         try:
@@ -201,12 +202,12 @@ class TestBadgeSystemIntegration:
             
         finally:
             # Limpar dados de teste
-            test_data_manager.cleanup_test_user(system['db'], user_id)
+            await test_data_manager.cleanup_test_user(system['db'], user_id)
 
     @pytest.mark.asyncio
     async def test_event_statistics(self, setup_system, test_data_manager, event_helper):
         """Testa estatísticas de eventos"""
-        system = await setup_system
+        system = setup_system
         user_id = TestConfig.get_test_user_id("stats")
         
         try:
@@ -238,12 +239,12 @@ class TestBadgeSystemIntegration:
             
         finally:
             # Limpar dados de teste
-            test_data_manager.cleanup_test_user(system['db'], user_id)
+            await test_data_manager.cleanup_test_user(system['db'], user_id)
 
     @pytest.mark.asyncio
     async def test_badge_requirements_validation(self, setup_system, test_data_manager, event_helper):
         """Testa validação de requisitos de badges"""
-        system = await setup_system
+        system = setup_system
         user_id = TestConfig.get_test_user_id("requirements")
         
         try:
@@ -279,4 +280,4 @@ class TestBadgeSystemIntegration:
             
         finally:
             # Limpar dados de teste
-            test_data_manager.cleanup_test_user(system['db'], user_id)
+            await test_data_manager.cleanup_test_user(system['db'], user_id)

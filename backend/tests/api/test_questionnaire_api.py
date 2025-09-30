@@ -27,9 +27,9 @@ pytestmark = pytest.mark.asyncio
 async def test_submit_questionnaire_success_for_new_user(mock_user_profile_new):
     # Arrange
     class MockUserRepository:
-        async def get_user_profile(self, uid: str):
+        def get_user_profile(self, uid: str):
             return mock_user_profile_new
-        async def update_user_Profile(self, uid: str, new_data: dict):
+        def update_user_Profile(self, uid: str, new_data: dict):
             pass
 
     app.dependency_overrides[get_current_user] = override_get_current_user_new
@@ -51,7 +51,7 @@ async def test_submit_questionnaire_success_for_new_user(mock_user_profile_new):
 async def test_submit_questionnaire_fails_if_already_completed():
     # Arrange
     class MockUserRepository:
-        async def get_user_profile(self, uid: str):
+        def get_user_profile(self, uid: str):
             return mock_user_profile_existing
 
     app.dependency_overrides[get_current_user] = override_get_current_user_existing
