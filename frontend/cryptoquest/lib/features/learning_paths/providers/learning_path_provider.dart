@@ -22,6 +22,9 @@ class LearningPathProvider with ChangeNotifier {
   String? _errorMessage;
   String? _detailsErrorMessage;
 
+  // Flag para verificar se o provider foi disposed
+  bool _disposed = false;
+
   // ==================== GETTERS ====================
 
   List<LearningPath> get learningPaths => _learningPaths;
@@ -49,12 +52,12 @@ class LearningPathProvider with ChangeNotifier {
       _errorMessage = null;
     } catch (e) {
       _errorMessage = 'Erro ao carregar trilhas: $e';
-      if (kDebugMode) {
-        print('❌ [Provider] Erro ao carregar trilhas: $e');
-      }
+      if (kDebugMode) {}
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
   }
 
@@ -71,9 +74,7 @@ class LearningPathProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kDebugMode) {
-        print('🔍 [Provider] Buscando detalhes da trilha: $pathId');
-      }
+      if (kDebugMode) {}
 
       final details = await _service.getUserPathDetails(pathId, token);
 
@@ -81,9 +82,7 @@ class LearningPathProvider with ChangeNotifier {
         _pathDetails[pathId] = details;
         _userProgress[pathId] = details.progress;
 
-        if (kDebugMode) {
-          print('✅ [Provider] Detalhes carregados com sucesso');
-        }
+        if (kDebugMode) {}
       } else {
         _detailsErrorMessage = 'Trilha não encontrada';
       }
@@ -91,13 +90,13 @@ class LearningPathProvider with ChangeNotifier {
       return details;
     } catch (e) {
       _detailsErrorMessage = 'Erro ao carregar detalhes: $e';
-      if (kDebugMode) {
-        print('❌ [Provider] Erro ao carregar detalhes: $e');
-      }
+      if (kDebugMode) {}
       return null;
     } finally {
       _isLoadingDetails = false;
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
   }
 
@@ -113,9 +112,7 @@ class LearningPathProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kDebugMode) {
-        print('🚀 [Provider] Iniciando trilha: $pathId');
-      }
+      if (kDebugMode) {}
 
       final progress = await _service.startLearningPath(pathId, token);
       _userProgress[pathId] = progress;
@@ -130,20 +127,18 @@ class LearningPathProvider with ChangeNotifier {
         );
       }
 
-      if (kDebugMode) {
-        print('✅ [Provider] Trilha iniciada com sucesso');
-      }
+      if (kDebugMode) {}
 
       return true;
     } catch (e) {
       _errorMessage = 'Erro ao iniciar trilha: $e';
-      if (kDebugMode) {
-        print('❌ [Provider] Erro ao iniciar trilha: $e');
-      }
+      if (kDebugMode) {}
       return false;
     } finally {
       _isStartingPath = false;
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
   }
 
@@ -160,9 +155,7 @@ class LearningPathProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kDebugMode) {
-        print('🎯 [Provider] Concluindo missão: $missionId');
-      }
+      if (kDebugMode) {}
 
       final result =
           await _service.completeMission(pathId, missionId, answers, token);
@@ -183,20 +176,21 @@ class LearningPathProvider with ChangeNotifier {
         }
       }
 
-      if (kDebugMode) {
-        print('✅ [Provider] Missão concluída com sucesso');
-      }
+      // Recarrega os detalhes da trilha para atualizar a interface
+      await refreshPathDetails(pathId, token);
+
+      if (kDebugMode) {}
 
       return true;
     } catch (e) {
       _errorMessage = 'Erro ao concluir missão: $e';
-      if (kDebugMode) {
-        print('❌ [Provider] Erro ao concluir missão: $e');
-      }
+      if (kDebugMode) {}
       return false;
     } finally {
       _isCompletingMission = false;
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
   }
 
@@ -212,9 +206,7 @@ class LearningPathProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      if (kDebugMode) {
-        print('📊 [Provider] Carregando progresso do usuário');
-      }
+      if (kDebugMode) {}
 
       final progressList = await _service.getUserProgress(token);
 
@@ -223,18 +215,15 @@ class LearningPathProvider with ChangeNotifier {
         _userProgress[progress.pathId] = progress;
       }
 
-      if (kDebugMode) {
-        print(
-            '✅ [Provider] Progresso carregado: ${progressList.length} trilhas');
-      }
+      if (kDebugMode) {}
     } catch (e) {
       _errorMessage = 'Erro ao carregar progresso: $e';
-      if (kDebugMode) {
-        print('❌ [Provider] Erro ao carregar progresso: $e');
-      }
+      if (kDebugMode) {}
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) {
+        notifyListeners();
+      }
     }
   }
 
@@ -244,7 +233,9 @@ class LearningPathProvider with ChangeNotifier {
   void clearErrors() {
     _errorMessage = null;
     _detailsErrorMessage = null;
-    notifyListeners();
+    if (!_disposed) {
+      notifyListeners();
+    }
   }
 
   /// Verifica se o usuário já iniciou uma trilha
@@ -266,5 +257,26 @@ class LearningPathProvider with ChangeNotifier {
   /// Obtém os detalhes de uma trilha específica
   LearningPathResponse? getPathDetails(String pathId) {
     return _pathDetails[pathId];
+  }
+
+  /// Recarrega os detalhes de uma trilha específica
+  Future<void> refreshPathDetails(String pathId, String? token) async {
+    if (token == null) return;
+
+    try {
+      final details = await _service.getUserPathDetails(pathId, token);
+      if (details != null && !_disposed) {
+        _pathDetails[pathId] = details;
+        notifyListeners();
+      }
+    } catch (e) {
+      if (kDebugMode) {}
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }

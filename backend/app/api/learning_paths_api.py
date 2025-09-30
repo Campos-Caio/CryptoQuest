@@ -4,17 +4,21 @@ from app.models.learning_path import LearningPath, UserPathProgress, LearningPat
 from app.models.user import FirebaseUser
 from app.models.mission import QuizSubmision
 from app.services.learning_path_service import LearningPathService
+from app.services.reward_service import RewardService, get_reward_service
 from app.dependencies.auth import get_current_user
 
 router = APIRouter(prefix="/learning-paths", tags=["Learning Paths"])
 
-# Instância do service
-learning_path_service = LearningPathService()
+# Função de dependência para criar o service com RewardService
+def get_service(reward_service: RewardService = Depends(get_reward_service)) -> LearningPathService:
+    return LearningPathService(reward_service=reward_service)
 
 # ==================== ENDPOINTS PÚBLICOS ====================
 
 @router.get("/", response_model=List[LearningPath])
-async def get_all_learning_paths():
+async def get_all_learning_paths(
+    service: LearningPathService = Depends(get_service)
+):
     """
     Busca todas as trilhas de aprendizado ativas
     
@@ -22,7 +26,7 @@ async def get_all_learning_paths():
         List[LearningPath]: Lista de trilhas ativas
     """
     try:
-        paths = await learning_path_service.get_all_learning_paths()
+        paths = await service.get_all_learning_paths()
         return paths
     except Exception as e:
         raise HTTPException(
@@ -31,7 +35,10 @@ async def get_all_learning_paths():
         )
 
 @router.get("/{path_id}", response_model=LearningPath)
-async def get_learning_path_by_id(path_id: str):
+async def get_learning_path_by_id(
+    path_id: str,
+    service: LearningPathService = Depends(get_service)
+):
     """
     Busca uma trilha específica por ID
     
@@ -42,7 +49,7 @@ async def get_learning_path_by_id(path_id: str):
         LearningPath: Trilha encontrada
     """
     try:
-        path = await learning_path_service.get_learning_path_by_id(path_id)
+        path = await service.get_learning_path_by_id(path_id)
         if not path:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -62,7 +69,8 @@ async def get_learning_path_by_id(path_id: str):
 @router.get("/{path_id}/details", response_model=LearningPathResponse)
 async def get_user_path_details(
     path_id: str,
-    current_user: FirebaseUser = Depends(get_current_user)
+    current_user: FirebaseUser = Depends(get_current_user),
+    service: LearningPathService = Depends(get_service)
 ):
     """
     Busca detalhes completos de uma trilha com progresso do usuário
@@ -76,7 +84,7 @@ async def get_user_path_details(
     """
     try:
         user_id = current_user.uid
-        details = await learning_path_service.get_user_path_details(user_id, path_id)
+        details = await service.get_user_path_details(user_id, path_id)
         
         if not details:
             raise HTTPException(
@@ -96,7 +104,8 @@ async def get_user_path_details(
 @router.post("/{path_id}/start", response_model=UserPathProgress)
 async def start_learning_path(
     path_id: str,
-    current_user: FirebaseUser = Depends(get_current_user)
+    current_user: FirebaseUser = Depends(get_current_user),
+    service: LearningPathService = Depends(get_service)
 ):
     """
     Inicia uma trilha para o usuário
@@ -110,7 +119,7 @@ async def start_learning_path(
     """
     try:
         user_id = current_user.uid
-        progress = await learning_path_service.start_learning_path(user_id, path_id)
+        progress = await service.start_learning_path(user_id, path_id)
         return progress
     except ValueError as e:
         raise HTTPException(
@@ -126,7 +135,8 @@ async def start_learning_path(
 
 @router.get("/user/progress", response_model=List[UserPathProgress])
 async def get_user_progress(
-    current_user: FirebaseUser = Depends(get_current_user)
+    current_user: FirebaseUser = Depends(get_current_user),
+    service: LearningPathService = Depends(get_service)
 ):
     """
     Busca o progresso do usuário em todas as trilhas
@@ -139,7 +149,7 @@ async def get_user_progress(
     """
     try:
         user_id = current_user.uid
-        progress_list = await learning_path_service.repository.get_all_user_progress(user_id)
+        progress_list = service.repository.get_all_user_progress(user_id)
         return progress_list
     except Exception as e:
         raise HTTPException(
@@ -166,7 +176,7 @@ async def get_path_stats(
     """
     try:
         user_id = current_user.uid
-        details = await learning_path_service.get_user_path_details(user_id, path_id)
+        details = await service.get_user_path_details(user_id, path_id)
         
         if not details:
             raise HTTPException(
@@ -192,7 +202,8 @@ async def complete_learning_path_mission(
     path_id: str,
     mission_id: str,
     submission: QuizSubmision,
-    current_user: FirebaseUser = Depends(get_current_user)
+    current_user: FirebaseUser = Depends(get_current_user),
+    service: LearningPathService = Depends(get_service)
 ):
     """
     Completa uma missão específica de uma trilha de aprendizado.
@@ -207,7 +218,7 @@ async def complete_learning_path_mission(
         Dict com resultado da missão (score, success, etc.)
     """
     try:
-        result = await learning_path_service.complete_mission(
+        result = await service.complete_mission(
             user_id=current_user.uid,
             path_id=path_id,
             mission_id=mission_id,

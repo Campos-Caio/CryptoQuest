@@ -32,3 +32,4 @@ class KnowledgeProfile(BaseModel):
     profile_name: str = Field(..., description="Ex: Iniciante, Entusiasta, MasterOfCrypto etc")
     score: int 
     learning_path_ids: List[str] = Field(..., description="Lista de IDs dos modulos da trilha inicial")
+    initial_level: int = Field(default=1, description="Nível inicial baseado no questionário")

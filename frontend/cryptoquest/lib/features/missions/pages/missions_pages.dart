@@ -3,6 +3,8 @@ import 'package:cryptoquest/features/missions/models/mission_model.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
 import 'package:cryptoquest/features/missions/widgets/mission_card.dart';
 import 'package:cryptoquest/features/quiz/pages/quiz_page.dart';
+import 'package:cryptoquest/core/config/theme/app_colors.dart';
+import 'package:cryptoquest/shared/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -54,36 +56,31 @@ class _MissionsPagesState extends State<MissionsPages> {
       appBar: AppBar(
         title: const Text('Missões Diárias'),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        elevation: 0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: missionNotifier.isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const SkeletonLoading(itemCount: 3, itemHeight: 100)
             : missionNotifier.errorMessage != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(missionNotifier.errorMessage!),
-                        const SizedBox(
-                          height: 12,
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            final auth = Provider.of<AuthNotifier>(context,
-                                listen: false);
-                            if (auth.token != null) {
-                              missionNotifier.fetchDailyMissions(auth.token!);
-                            }
-                          },
-                          child: const Text("Tentar novamente"),
-                        )
-                      ],
-                    ),
+                ? ErrorStateWidget(
+                    message: missionNotifier.errorMessage!,
+                    onRetry: () {
+                      final auth =
+                          Provider.of<AuthNotifier>(context, listen: false);
+                      if (auth.token != null) {
+                        missionNotifier.fetchDailyMissions(auth.token!);
+                      }
+                    },
                   )
                 : missionNotifier.dailyMissions.isEmpty
-                    ? const Center(
-                        child: Text("Nenhuma missão disponível hoje"),
+                    ? const EmptyStateWidget(
+                        title: 'Nenhuma missão disponível',
+                        subtitle: 'Volte amanhã para novas missões diárias!',
+                        icon: Icons.assignment_outlined,
+                        iconColor: AppColors.accent,
                       )
                     : ListView.builder(
                         itemCount: missionNotifier.dailyMissions.length,

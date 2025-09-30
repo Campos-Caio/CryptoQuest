@@ -3,6 +3,7 @@ import 'package:cryptoquest/features/home/widgets/feature_card.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
 import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
 import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
+import 'package:cryptoquest/core/config/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -37,12 +38,18 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("CryptoQuest"),
+        title: const Text("CryptoQuest"),
         centerTitle: true,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        elevation: 0,
         actions: [
-          Image.asset(
-            'assets/images/btc_purple.png',
-            height: 40,
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Image.asset(
+              'assets/images/btc_purple.png',
+              height: 40,
+            ),
           )
         ],
       ),
@@ -56,8 +63,8 @@ class _HomePageState extends State<HomePage> {
                   accountName:
                       Text(authNotifier.userProfile?.name ?? 'Usuario'),
                   accountEmail: Text(authNotifier.userProfile?.email ?? ""),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple[700],
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.primaryGradient,
                   ),
                 ),
                 ListTile(
@@ -115,7 +122,7 @@ class _HomePageState extends State<HomePage> {
                   title: title,
                   subtitle: subtitle,
                   icon: Icons.rocket_launch_rounded,
-                  iconColor: const Color(0xFF00FFC8),
+                  iconColor: AppColors.accent,
                   trailing: learningPathProvider.learningPaths.isNotEmpty
                       ? SizedBox(
                           width: 120,
@@ -124,8 +131,8 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               LinearProgressIndicator(
                                 value: progressValue,
-                                color: const Color(0xFF00FFC8),
-                                backgroundColor: Colors.white24,
+                                color: AppColors.accent,
+                                backgroundColor: AppColors.surfaceVariant,
                                 minHeight: 6,
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -133,8 +140,9 @@ class _HomePageState extends State<HomePage> {
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: Text(progressText,
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 12)),
+                                    style: TextStyle(
+                                        color: AppColors.onSurfaceVariant,
+                                        fontSize: 12)),
                               ),
                             ],
                           ),
@@ -150,7 +158,7 @@ class _HomePageState extends State<HomePage> {
               title: "Missão Diária",
               subtitle: "Complete um Quizz sobre BTC",
               icon: Icons.check_circle,
-              iconColor: const Color(0xFF00FFC8),
+              iconColor: AppColors.accent,
               onTap: () {
                 Navigator.push(
                   context,
@@ -164,7 +172,16 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.emoji_events,
               iconColor: const Color(0xFF00FFC8),
               onTap: () {
-                // navegação futura para ranking
+                Navigator.pushNamed(context, '/ranking');
+              },
+            ),
+            FeatureCard(
+              title: "Recompensas",
+              subtitle: "Ver Badges e Conquistas",
+              icon: Icons.card_giftcard,
+              iconColor: const Color(0xFF00FFC8),
+              onTap: () {
+                Navigator.pushNamed(context, '/rewards');
               },
             ),
           ],

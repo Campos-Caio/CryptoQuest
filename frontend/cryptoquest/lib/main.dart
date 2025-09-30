@@ -9,6 +9,10 @@ import 'package:cryptoquest/features/auth/pages/register_page.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
 import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
+import 'package:cryptoquest/features/rewards/providers/reward_provider.dart';
+import 'package:cryptoquest/features/ranking/providers/ranking_provider.dart';
+import 'package:cryptoquest/features/rewards/pages/rewards_page.dart';
+import 'package:cryptoquest/features/ranking/pages/ranking_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -32,6 +36,20 @@ void main() async {
         ),
         ChangeNotifierProvider(create: (_) => MissionNotifier()),
         ChangeNotifierProvider(create: (_) => LearningPathProvider()),
+        ChangeNotifierProxyProvider<AuthNotifier, RewardProvider>(
+          create: (context) => RewardProvider(
+            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
+          ),
+          update: (context, authNotifier, previousRewardProvider) =>
+              RewardProvider(authNotifier: authNotifier),
+        ),
+        ChangeNotifierProxyProvider<AuthNotifier, RankingProvider>(
+          create: (context) => RankingProvider(
+            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
+          ),
+          update: (context, authNotifier, previousRankingProvider) =>
+              RankingProvider(authNotifier: authNotifier),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -69,6 +87,8 @@ class MyApp extends StatelessWidget {
             progress: args['progress'],
           );
         },
+        '/rewards': (context) => const RewardsPage(),
+        '/ranking': (context) => const RankingPage(),
       },
     );
   }

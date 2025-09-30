@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 from app.main import app
 import pytest
 
-
 def test_register_user_api(monkeypatch):
     class MockFirebaseUser:
         def __init__(self, uid, email, name):
@@ -30,7 +29,7 @@ def test_register_user_api(monkeypatch):
     response = client.post("/auth/register", json={
         "name": "Teste API",
         "email": "api@test.com",
-        "password": "12345678"
+        "password": ""
     })
 
     print("STATUS:", response.status_code)

@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../../core/config/app_config.dart';
 import '../models/learning_path_model.dart';
 import '../models/user_path_progress_model.dart';
 import '../models/learning_path_response_model.dart';
 
 class LearningPathService {
-  static const String baseUrl = 'http://localhost:8000';
+  static const String baseUrl = AppConfig.baseUrl;
 
   // Headers padrão
   Map<String, String> _getHeaders(String? token) {
@@ -63,30 +64,21 @@ class LearningPathService {
   Future<LearningPathResponse?> getUserPathDetails(
       String pathId, String token) async {
     try {
-      print('🔍 [Service] Buscando detalhes da trilha: $pathId');
       final response = await http.get(
         Uri.parse('$baseUrl/learning-paths/$pathId/details'),
         headers: _getHeaders(token),
       );
 
-      print('📡 [Service] Status da resposta: ${response.statusCode}');
-      print('📡 [Service] Corpo da resposta: ${response.body}');
-
       if (response.statusCode == 200) {
         final Map<String, dynamic> json = jsonDecode(response.body);
-        print('✅ [Service] JSON decodificado com sucesso');
         return LearningPathResponse.fromJson(json);
       } else if (response.statusCode == 404) {
-        print('❌ [Service] Trilha não encontrada');
         return null;
       } else {
-        print('❌ [Service] Erro HTTP: ${response.statusCode}');
-        print('❌ [Service] Resposta: ${response.body}');
         throw Exception(
             'Erro ao buscar detalhes: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      print('❌ [Service] Erro na requisição: $e');
       throw Exception('Erro na requisição: $e');
     }
   }
@@ -117,8 +109,6 @@ class LearningPathService {
   Future<Map<String, dynamic>> completeMission(
       String pathId, String missionId, List<int> answers, String token) async {
     try {
-      print('🔍 [Service] Completando missão: $missionId da trilha: $pathId');
-
       final response = await http.post(
         Uri.parse(
             '$baseUrl/learning-paths/$pathId/missions/$missionId/complete'),
@@ -128,9 +118,6 @@ class LearningPathService {
         }),
       );
 
-      print('📊 [Service] Status da resposta: ${response.statusCode}');
-      print('📄 [Service] Corpo da resposta: ${response.body}');
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
@@ -139,7 +126,6 @@ class LearningPathService {
         throw Exception('$errorMessage (${response.statusCode})');
       }
     } catch (e) {
-      print('❌ [Service] Erro ao completar missão: $e');
       rethrow;
     }
   }

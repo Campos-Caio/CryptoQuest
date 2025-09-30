@@ -4,6 +4,8 @@ import '../../../features/auth/state/auth_notifier.dart';
 import '../providers/learning_path_provider.dart';
 import '../widgets/module_card.dart';
 import '../models/learning_path_response_model.dart';
+import '../models/learning_path_model.dart';
+import '../models/user_path_progress_model.dart';
 import '../theme/learning_path_colors.dart';
 import '../widgets/glassmorphism_card.dart';
 import '../widgets/animated_progress_ring.dart';
@@ -45,7 +47,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
 
     final details =
         await learningPathProvider.loadPathDetails(widget.pathId, token);
-    if (details != null) {
+    if (details != null && mounted) {
       setState(() {
         _pathDetails = details;
       });
@@ -542,6 +544,10 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
         ..._pathDetails!.path.modules.map((module) {
           final isCurrentModule =
               _pathDetails!.progress?.currentModuleId == module.id;
+          final isCompleted =
+              _pathDetails!.progress?.completedModules.contains(module.id) ??
+                  false;
+          final isUnlocked = _isModuleUnlocked(module, _pathDetails!.progress);
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -549,7 +555,11 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
               module: module,
               progress: _pathDetails!.progress,
               isCurrentModule: isCurrentModule,
-              onTap: () => _navigateToModule(module),
+              isCompleted: isCompleted, // Passar o status de concluído
+              allModules: _pathDetails!.path.modules,
+              onTap: (isUnlocked || isCompleted || isCurrentModule)
+                  ? () => _navigateToModule(module)
+                  : null,
             ),
           );
         }).toList(),
@@ -573,17 +583,26 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
       // Iniciar trilha
       final success =
           await learningPathProvider.startLearningPath(widget.pathId, token);
-      if (success) {
+      if (success && mounted) {
         _loadPathDetails(); // Recarrega os detalhes
         _showSuccessDialog('Trilha iniciada com sucesso!');
-      } else {
+      } else if (!success && mounted) {
         _showErrorDialog(
             learningPathProvider.errorMessage ?? 'Erro ao iniciar trilha');
       }
     } else {
-      // Continuar trilha - navegar para o primeiro módulo disponível
-      final firstModule = _pathDetails!.path.modules.first;
-      _navigateToModule(firstModule);
+      // Continuar trilha - navegar para o módulo atual do usuário
+      final currentModuleId = _pathDetails!.progress?.currentModuleId;
+      if (currentModuleId != null) {
+        // Encontra o módulo atual
+        final currentModule = _pathDetails!.path.modules
+            .firstWhere((module) => module.id == currentModuleId);
+        _navigateToModule(currentModule);
+      } else {
+        // Se não há módulo atual, vai para o primeiro
+        final firstModule = _pathDetails!.path.modules.first;
+        _navigateToModule(firstModule);
+      }
     }
   }
 
@@ -596,7 +615,12 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
         'module': module,
         'progress': _pathDetails!.progress,
       },
-    );
+    ).then((result) {
+      // Recarrega os detalhes quando retorna da página do módulo
+      if (result != null && result is Map<String, dynamic>) {
+        _loadPathDetails();
+      }
+    });
   }
 
   void _showErrorDialog(String message) {
@@ -629,5 +653,27 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
         ],
       ),
     );
+  }
+
+  bool _isModuleUnlocked(Module module, UserPathProgress? progress) {
+    if (progress == null) return false;
+
+    // Primeiro módulo sempre desbloqueado
+    if (module.order == 1) return true;
+
+    // Se o módulo já foi concluído, está desbloqueado
+    if (progress.completedModules.contains(module.id)) {
+      return true;
+    }
+
+    // Busca módulo anterior
+    final previousModule = _pathDetails!.path.modules
+        .where((m) => m.order == module.order - 1)
+        .firstOrNull;
+
+    if (previousModule == null) return false;
+
+    // Verifica se módulo anterior foi concluído
+    return progress.completedModules.contains(previousModule.id);
   }
 }

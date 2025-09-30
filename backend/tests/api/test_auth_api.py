@@ -8,7 +8,6 @@ from datetime import datetime
 from app.services.auth_service import get_auth_service
 
 # UserProfile falso que sera usado nos Mocks
-
 mock_user_profile = UserProfile(
     uid="test_uid_123",
     name="Test User",
@@ -18,14 +17,13 @@ mock_user_profile = UserProfile(
     has_completed_questionnaire=False,
 )
 
-
 # Mock para dependencia get_current_user
 async def override_get_current_user():
     return FirebaseUser(uid="test_uid_123", name="Test User", email="test@exemple.com")
 
-
 # -- Testes --
-async def test_register_user_sucess(mocker):
+@pytest.mark.asyncio
+async def test_register_user_sucess(mock_user_profile):
     """
     Testa o endpoint de registro de usuario com sucesso (201 Created)
     Passado o usuario de teste
@@ -37,7 +35,7 @@ async def test_register_user_sucess(mocker):
                 mock_user_profile
             )
 
-    app.dependency_overrides[get_auth_service] = lambda:  MockAuthService()
+    app.dependency_overrides[get_auth_service] = lambda: MockAuthService()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Act: Fazemos a chamada de API
@@ -46,25 +44,25 @@ async def test_register_user_sucess(mocker):
             json={
                 "name": "Test User",
                 "email": "test@example.com",
-                "password": "password123",
+                "password": "password",
             },
         )
 
-    assert response.status_code == 201
-    data = response.json()
-    assert data["message"] == "Usuario registrado com sucesso!"
-    assert data["uid"] == "test_uid_123"
-    assert data["user_profile"]["name"] == "Test User"
+        assert response.status_code == 201
+        data = response.json()
+        assert data["message"] == "Usuario registrado com sucesso!"
+        assert data["uid"] == "test_uid_123"
+        assert data["user_profile"]["name"] == "Test User"
 
     app.dependency_overrides = {}
 
-
-async def test_get_me_sucess(mocker):
+@pytest.mark.asyncio
+async def test_get_me_sucess(mock_user_profile):
     """
     Testa o endpoint /me com um usuario autenticado
     """
 
-    mock_get_profile = mocker.AsyncMock(return_value=mock_user_profile)
+    # Mock não necessário pois já está configurado via dependency override
     app.dependency_overrides[get_current_user] = override_get_current_user
 
     from app.repositories.user_repository import get_user_repository
@@ -80,9 +78,9 @@ async def test_get_me_sucess(mocker):
             "/auth/me", headers={"Authorization": "Bearer fake-token"}
         )
 
-    assert response.status_code == 200
-    data = response.json()
-    assert data["uid"] == "test_uid_123"
-    assert data["name"] == "Test User"
+        assert response.status_code == 200
+        data = response.json()
+        assert data["uid"] == "test_uid_123"
+        assert data["name"] == "Test User"
 
     app.dependency_overrides = {}

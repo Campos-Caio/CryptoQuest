@@ -13,16 +13,18 @@ mock_user_profile_new = UserProfile(
 )
 mock_user_profile_existing = UserProfile(
     uid="existing_user_uid", name="Existing User", email="existing@test.com",
-    register_date=datetime.now(), level=2, has_completed_questionnaire=True
+    register_date=datetime.now(), level=1, has_completed_questionnaire=True
 )
+
 async def override_get_current_user_new():
     return FirebaseUser(uid="new_user_uid", name="New User", email="new@test.com")
+
 async def override_get_current_user_existing():
     return FirebaseUser(uid="existing_user_uid", name="Existing User", email="existing@test.com")
 
 pytestmark = pytest.mark.asyncio
 
-async def test_submit_questionnaire_success_for_new_user(mocker):
+async def test_submit_questionnaire_success_for_new_user(mock_user_profile_new):
     # Arrange
     class MockUserRepository:
         async def get_user_profile(self, uid: str):
@@ -38,14 +40,13 @@ async def test_submit_questionnaire_success_for_new_user(mocker):
         response = await client.post(
             "/questionnaire/initial/submit",
             headers={"Authorization": "Bearer fake-token"},
-            json={"answers": [{"question_id": "q1", "selected_option_id": "q1a"}]}
+            json={"answers": [{"question_id": "q", "selected_option_id": "qa"}]}
         )
 
-    # Assert
-    assert response.status_code == 201
-    assert response.json()["profile_name"] == "Explorador Curioso"
+        # Assert
+        assert response.status_code == 201
+        assert response.json()["profile_name"] == "Explorador Curioso"
     app.dependency_overrides = {}
-
 
 async def test_submit_questionnaire_fails_if_already_completed():
     # Arrange
@@ -64,7 +65,7 @@ async def test_submit_questionnaire_fails_if_already_completed():
             json={"answers": []}
         )
 
-    # Assert
-    assert response.status_code == 400
-    assert response.json()["detail"] == "O usuario ja respondeu o questionario inicial!"
+        # Assert
+        assert response.status_code == 400
+        assert response.json()["detail"] == "O usuario ja respondeu o questionario inicial!"
     app.dependency_overrides = {}
