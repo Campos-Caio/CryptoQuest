@@ -111,26 +111,26 @@ def mock_firebase_user():
 
 @pytest.fixture
 def override_get_current_user():
- """Override para get_current_user em testes"""
- from app.models.user import FirebaseUser
- 
-async def _override():
-    return FirebaseUser(
-        uid="test_uid_",
-        email="test@example.com",
-        name="Test User"
-    )
-return _override
+    """Override para get_current_user em testes"""
+    from app.models.user import FirebaseUser
+    
+    async def _override():
+        return FirebaseUser(
+            uid="test_uid_",
+            email="test@example.com",
+            name="Test User"
+        )
+    return _override
 
 @pytest.fixture
 def override_get_current_user_new():
- """Override para get_current_user novo em testes"""
- from app.models.user import FirebaseUser
- 
- async def _override():
- return FirebaseUser(
- uid="test_uid_",
- email="new@example.com",
- name="New User"
- )
- return _override
+    """Override para get_current_user novo em testes"""
+    from app.models.user import FirebaseUser
+    
+    async def _override():
+        return FirebaseUser(
+            uid="test_uid_",
+            email="new@example.com",
+            name="New User"
+        )
+    return _override

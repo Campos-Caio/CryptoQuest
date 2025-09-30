@@ -22,7 +22,7 @@ mock_initial_user_profile = UserProfile(
 # Simula como o perfil deve ficar DEPOIS da atualizacao 
 mock_updated_user_profile = UserProfile(
  uid="test_uid_",
- name = 'Novo nome', 
+ name = 'Novo Nome', 
  email = "test@exemple.com", 
  register_date= mock_initial_user_profile.register_date, 
  level=1,
@@ -39,7 +39,7 @@ async def override_get_current_user():
 
 pytestmark = pytest.mark.asyncio 
 
-async def test_update_user_profile_sucess(mocker, mock_updated_user_profile): 
+async def test_update_user_profile_sucess(): 
  """
  Teste se o usuario autenticado consegue atualizar seu perfil com sucesso
 
@@ -68,7 +68,7 @@ async def test_update_user_profile_sucess(mocker, mock_updated_user_profile):
      
      assert response.status_code == 200 
      response_data = response.json() 
-     assert response_data['name'] == 'Novo nome'
+     assert response_data['name'] == 'Novo Nome'
  
  app.dependency_overrides = {}
 

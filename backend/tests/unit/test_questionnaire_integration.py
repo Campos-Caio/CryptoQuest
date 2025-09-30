@@ -17,7 +17,11 @@ class TestQuestionnaireIntegration:
     @pytest.fixture
     def mock_user_repo(self):
         """Mock do UserRepository"""
-        return MagicMock()
+        mock = MagicMock()
+        # Configurar métodos async corretamente
+        mock.get_user_profile = AsyncMock()
+        mock.update_user_Profile = AsyncMock()
+        return mock
     
     @pytest.fixture
     def questionnaire_service(self, mock_user_repo):
