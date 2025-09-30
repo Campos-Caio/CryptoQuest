@@ -20,14 +20,20 @@
 # -----------------------------
 # Python (backend)
 # -----------------------------
-backend/__pycache__/
-backend/*.py[cod]
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/*.pyd
+**/.Python
+**/.coverage
+**/htmlcov/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.coverage.*
 backend/.env
 backend/env/
 backend/venv/
 backend/.venv/
-backend/.mypy_cache/
-backend/.pytest_cache/
 backend/*.sqlite3
 
 # Ignorar a chave privada do Firebase

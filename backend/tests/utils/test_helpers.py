@@ -18,7 +18,7 @@ from app.models.user import UserProfile
 from app.models.events import MissionCompletedEvent, LevelUpEvent, PointsEarnedEvent
 
 
-class TestDataManager:
+class DataManager:
     """Gerenciador de dados de teste"""
     
     def __init__(self):

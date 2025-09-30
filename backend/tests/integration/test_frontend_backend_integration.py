@@ -3,6 +3,7 @@ Testes de integração Frontend-Backend para sistema de badges.
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timezone
 
@@ -12,50 +13,53 @@ from app.services.badge_engine import get_badge_engine
 from app.repositories.badge_repository import BadgeRepository
 from app.repositories.user_repository import UserRepository
 from app.models.events import MissionCompletedEvent, LevelUpEvent
-from tests.utils.test_helpers import TestDataManager, EventTestHelper, wait_for_event_processing
+from tests.utils.test_helpers import DataManager, EventTestHelper, TestConfig, wait_for_event_processing
 
-class TestFrontendBackendIntegration:
-    """Testes de integração entre frontend e backend"""
+@pytest_asyncio.fixture
+async def setup_system():
+    """Configura o sistema para testes de integração"""
+    from unittest.mock import MagicMock
     
-    @pytest.fixture
-    async def setup_system(self, firestore_db):
-        """Configura o sistema para testes de integração"""
-        # Inicializar componentes
-        event_bus = EventBus()
-        badge_engine = get_badge_engine()
-        badge_repo = BadgeRepository(firestore_db)
-        user_repo = UserRepository(firestore_db)
-        
-        # Registrar handlers
-        await badge_engine._register_event_handlers()
-        
-        return {
-            'db': firestore_db,
-            'event_bus': event_bus,
-            'badge_engine': badge_engine,
-            'badge_repo': badge_repo,
-            'user_repo': user_repo
-        }
+    # Mock do banco de dados
+    mock_db = MagicMock()
+    
+    # Inicializar componentes
+    event_bus = EventBus()
+    badge_engine = get_badge_engine()
+    badge_repo = BadgeRepository(mock_db)
+    user_repo = UserRepository(mock_db)
+    
+    # Registrar handlers
+    await badge_engine._register_event_handlers()
+    
+    return {
+        'db': mock_db,
+        'event_bus': event_bus,
+        'badge_engine': badge_engine,
+        'badge_repo': badge_repo,
+        'user_repo': user_repo
+    }
 
 @pytest.fixture
 def test_data_manager():
     """Gerenciador de dados de teste"""
-    return TestDataManager()
+    return DataManager()
 
 @pytest.fixture
 def event_helper():
     """Helper para eventos"""
     return EventTestHelper()
 
+
 @pytest.mark.asyncio
 async def test_quiz_completion_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo completo de completar quiz (simulando frontend)"""
-    system = await setup_system
-    user_id = test_data_manager.test_config.get_test_user_id("quiz_flow")
+    system = setup_system
+    user_id = TestConfig.get_test_user_id("quiz_flow")
     
     try:
         # 1. Criar usuário de teste
-        await system['user_repo'].create_user_profile(
+        system['user_repo'].create_user_profile(
             user_id, 
             f"Test User {user_id}", 
             f"{user_id}@test.com"
@@ -76,7 +80,7 @@ async def test_quiz_completion_flow(setup_system, test_data_manager, event_helpe
         await wait_for_event_processing()
         
         # 4. Verificar se badges foram concedidos
-        badges = await system['badge_repo'].get_user_badges(user_id)
+        badges = system['badge_repo'].get_user_badges(user_id)
         
         # 5. Verificar se recompensas foram registradas
         stats = await system['badge_repo'].get_user_badge_stats(user_id)
@@ -97,12 +101,12 @@ async def test_quiz_completion_flow(setup_system, test_data_manager, event_helpe
 @pytest.mark.asyncio
 async def test_perfect_score_badge_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo de badge por score perfeito"""
-    system = await setup_system
-    user_id = test_data_manager.test_config.get_test_user_id("perfect_score")
+    system = setup_system
+    user_id = TestConfig.get_test_user_id("perfect_score")
     
     try:
         # Criar usuário de teste
-        await system['user_repo'].create_user_profile(
+        system['user_repo'].create_user_profile(
             user_id, 
             f"Test User {user_id}", 
             f"{user_id}@test.com"
@@ -123,7 +127,7 @@ async def test_perfect_score_badge_flow(setup_system, test_data_manager, event_h
         await wait_for_event_processing()
         
         # Verificar badges
-        badges = await system['badge_repo'].get_user_badges(user_id)
+        badges = system['badge_repo'].get_user_badges(user_id)
         stats = await system['badge_repo'].get_user_badge_stats(user_id)
         
         # Deve ter processado o evento
@@ -137,12 +141,12 @@ async def test_perfect_score_badge_flow(setup_system, test_data_manager, event_h
 @pytest.mark.asyncio
 async def test_level_up_badge_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo de badge por level up"""
-    system = await setup_system
-    user_id = test_data_manager.test_config.get_test_user_id("level_up")
+    system = setup_system
+    user_id = TestConfig.get_test_user_id("level_up")
     
     try:
         # Criar usuário de teste
-        await system['user_repo'].create_user_profile(
+        system['user_repo'].create_user_profile(
             user_id, 
             f"Test User {user_id}", 
             f"{user_id}@test.com"
@@ -162,7 +166,7 @@ async def test_level_up_badge_flow(setup_system, test_data_manager, event_helper
         await wait_for_event_processing()
         
         # Verificar badges
-        badges = await system['badge_repo'].get_user_badges(user_id)
+        badges = system['badge_repo'].get_user_badges(user_id)
         stats = await system['badge_repo'].get_user_badge_stats(user_id)
         
         # Deve ter processado o evento
@@ -176,12 +180,12 @@ async def test_level_up_badge_flow(setup_system, test_data_manager, event_helper
 @pytest.mark.asyncio
 async def test_multiple_events_flow(setup_system, test_data_manager, event_helper):
     """Testa fluxo com múltiplos eventos (simulando sessão de usuário)"""
-    system = await setup_system
-    user_id = test_data_manager.test_config.get_test_user_id("multiple_events")
+    system = setup_system
+    user_id = TestConfig.get_test_user_id("multiple_events")
     
     try:
         # Criar usuário de teste
-        await system['user_repo'].create_user_profile(
+        system['user_repo'].create_user_profile(
             user_id, 
             f"Test User {user_id}", 
             f"{user_id}@test.com"
@@ -232,7 +236,7 @@ async def test_multiple_events_flow(setup_system, test_data_manager, event_helpe
             await wait_for_event_processing()
         
         # Verificar resultados finais
-        badges = await system['badge_repo'].get_user_badges(user_id)
+        badges = system['badge_repo'].get_user_badges(user_id)
         stats = await system['badge_repo'].get_user_badge_stats(user_id)
         event_log = system['event_bus'].get_event_log(user_id=user_id)
         
@@ -253,12 +257,12 @@ async def test_multiple_events_flow(setup_system, test_data_manager, event_helpe
 @pytest.mark.asyncio
 async def test_error_handling_flow(setup_system, test_data_manager, event_helper):
     """Testa tratamento de erros no fluxo"""
-    system = await setup_system
-    user_id = test_data_manager.test_config.get_test_user_id("error_handling")
+    system = setup_system
+    user_id = TestConfig.get_test_user_id("error_handling")
     
     try:
         # Criar usuário de teste
-        await system['user_repo'].create_user_profile(
+        system['user_repo'].create_user_profile(
             user_id, 
             f"Test User {user_id}", 
             f"{user_id}@test.com"
@@ -279,7 +283,7 @@ async def test_error_handling_flow(setup_system, test_data_manager, event_helper
         await wait_for_event_processing()
         
         # Verificar que o sistema não falhou
-        badges = await system['badge_repo'].get_user_badges(user_id)
+        badges = system['badge_repo'].get_user_badges(user_id)
         stats = await system['badge_repo'].get_user_badge_stats(user_id)
         
         # Deve ter processado o evento mesmo com dados inválidos
@@ -293,12 +297,12 @@ async def test_error_handling_flow(setup_system, test_data_manager, event_helper
 @pytest.mark.asyncio
 async def test_performance_flow(setup_system, test_data_manager, event_helper):
     """Testa performance com múltiplos eventos simultâneos"""
-    system = await setup_system
-    user_id = test_data_manager.test_config.get_test_user_id("performance")
+    system = setup_system
+    user_id = TestConfig.get_test_user_id("performance")
     
     try:
         # Criar usuário de teste
-        await system['user_repo'].create_user_profile(
+        system['user_repo'].create_user_profile(
             user_id, 
             f"Test User {user_id}", 
             f"{user_id}@test.com"
@@ -325,7 +329,7 @@ async def test_performance_flow(setup_system, test_data_manager, event_helper):
         
         # Verificar que todos foram processados
         event_log = system['event_bus'].get_event_log(user_id=user_id)
-        badges = await system['badge_repo'].get_user_badges(user_id)
+        badges = system['badge_repo'].get_user_badges(user_id)
         
         # Deve ter processado todos os eventos
         assert len(event_log) == 10
