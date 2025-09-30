@@ -1,0 +1,4 @@
+"""
+Testes de integração.
+"""
+

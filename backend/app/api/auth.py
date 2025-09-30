@@ -54,7 +54,7 @@ async def read_current_user_profile(
     Endpoint para obter o perfil do usuário atualmente autenticado.
     Requer um token de ID do Firebase no cabeçalho Authorization.
     """
-    user_profile = await user_repo.get_user_profile(current_user.uid)
+    user_profile = user_repo.get_user_profile(current_user.uid)
     if not user_profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

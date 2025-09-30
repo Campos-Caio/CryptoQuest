@@ -42,7 +42,7 @@ async def submit_initial_questionnaire_endpoint(
     """
 
     # Verifica se o usuario ja respondeu o questionario
-    user_profile = await user_repo.get_user_profile(current_user.uid)
+    user_profile = user_repo.get_user_profile(current_user.uid)
     if user_profile and user_profile.has_completed_questionnaire: 
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST, 

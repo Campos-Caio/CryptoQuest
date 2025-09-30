@@ -28,11 +28,11 @@ class AuthService:
             firebase_user_info = FirebaseUser(uid=uid, email=email, name=name)
 
             logger.debug(f"Buscando perfil no Firestore para UID: {uid}")
-            user_profile = await self.user_repo.get_user_profile(uid)
+            user_profile = self.user_repo.get_user_profile(uid)
 
             if not user_profile:
                 logger.warning(f"Perfil do usuário {uid} não encontrado. Criando novo perfil.")
-                user_profile = await self.user_repo.create_user_profile(uid=uid, email=email, name=name)
+                user_profile = self.user_repo.create_user_profile(uid=uid, email=email, name=name)
                 logger.info(f"Perfil criado com sucesso para UID: {uid}")
                 logger.info(f"🔍 [AuthService] Novo perfil criado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
             else:
@@ -59,7 +59,7 @@ class AuthService:
                 display_name=user_data.name
             )
 
-            user_profile = await self.user_repo.create_user_profile(
+            user_profile = self.user_repo.create_user_profile(
                 uid=user.uid,
                 name=user_data.name,
                 email=user_data.email

@@ -5,14 +5,19 @@ from app.models.learning_path import LearningPath, UserPathProgress, LearningPat
 from app.models.mission import QuizSubmision
 from app.repositories.learning_path_repository import LearningPathRepository
 from app.core.firebase import get_firestore_db_async
+from app.services.reward_service import RewardService
+from app.services.event_bus import get_event_bus
+from app.models.events import LearningPathCompletedEvent, QuizCompletedEvent, EventType
 
 logger = logging.getLogger(__name__)
 
 class LearningPathService:
     """Service para lógica de negócio das trilhas de aprendizado"""
     
-    def __init__(self):
+    def __init__(self, reward_service: RewardService = None):
         self.repository = LearningPathRepository()
+        self.reward_service = reward_service
+        self.event_bus = get_event_bus()
     
     # ==================== OPERAÇÕES DE TRILHAS ====================
     
@@ -181,6 +186,24 @@ class LearningPathService:
             
             if modules_completed:
                 logger.info(f"Módulos concluídos: {modules_completed}")
+                
+                # Emitir eventos de módulo completado
+                for module_id in modules_completed:
+                    try:
+                        # Encontrar o módulo para obter o nome
+                        module = next((m for m in learning_path.modules if m.id == module_id), None)
+                        if module:
+                            from app.models.events import ModuleCompletedEvent
+                            module_event = ModuleCompletedEvent(
+                                user_id=progress.user_id,
+                                learning_path_id=progress.path_id,
+                                module_id=module_id,
+                                module_name=module.name
+                            )
+                            await self.event_bus.emit(module_event)
+                            logger.info(f"Evento de módulo completado emitido: {module_id}")
+                    except Exception as e:
+                        logger.error(f"Erro ao emitir evento de módulo {module_id}: {e}")
                 
         except Exception as e:
             logger.error(f"Erro ao verificar conclusão de módulos: {e}")
@@ -361,10 +384,41 @@ class LearningPathService:
             
             # Calcular pontos baseados na pontuação
             points_earned = 0
+            xp_earned = 0
             if success:
                 points_earned = int(score / 10) * 10  # 10 pontos por 10% de acerto
+                xp_earned = int(score / 5) * 5  # 5 XP por 5% de acerto
             
-            logger.info(f"Missão completada: score={score:.1f}%, success={success}, points={points_earned}")
+            logger.info(f"Missão completada: score={score:.1f}%, success={success}, points={points_earned}, xp={xp_earned}")
+            
+            # Integrar com sistema de recompensas se disponível
+            reward_result = {}
+            if self.reward_service and success:
+                try:
+                    reward_result = await self.reward_service.award_mission_completion(
+                        user_id=user_id,
+                        mission_id=mission_id,
+                        score=score,
+                        mission_type='learning_path'
+                    )
+                    logger.info(f"Recompensas concedidas: {reward_result}")
+                except Exception as e:
+                    logger.error(f"Erro ao conceder recompensas: {e}")
+            
+            # Emitir evento de quiz completado
+            if success:
+                try:
+                    quiz_event = QuizCompletedEvent(
+                        user_id=user_id,
+                        quiz_id=mission.mission_id,
+                        score=score,
+                        learning_path_id=path_id,
+                        mission_id=mission_id
+                    )
+                    await self.event_bus.emit(quiz_event)
+                    logger.info(f"Evento de quiz completado emitido: {mission_id}")
+                except Exception as e:
+                    logger.error(f"Erro ao emitir evento de quiz: {e}")
             
             # Buscar progresso atualizado após as mudanças
             updated_progress = self.repository.get_user_progress(user_id, path_id)
@@ -373,11 +427,13 @@ class LearningPathService:
                 "score": int(score),
                 "success": success,
                 "points": points_earned,
+                "xp": xp_earned,
                 "correct_answers": correct_answers,
                 "total_questions": total_questions,
                 "required_score": mission.required_score,
                 "progress": updated_progress.model_dump() if updated_progress else None,
-                "next_module_unlocked": await self._get_next_unlocked_module(path_id, user_id)
+                "next_module_unlocked": await self._get_next_unlocked_module(path_id, user_id),
+                "rewards": reward_result
             }
             
         except Exception as e:
@@ -431,8 +487,23 @@ class LearningPathService:
                 
                 # Verificar se a trilha foi completada
                 total_missions = sum(len(module.missions) for module in learning_path.modules)
-                if len(progress.completed_missions) >= total_missions:
+                if len(progress.completed_missions) >= total_missions and not progress.completed_at:
                     progress.completed_at = datetime.utcnow()
+                    progress.progress_percentage = 100.0
+                    
+                    # Emitir evento de trilha completada
+                    try:
+                        learning_path_event = LearningPathCompletedEvent(
+                            user_id=progress.user_id,
+                            learning_path_id=progress.path_id,
+                            learning_path_name=learning_path.name,
+                            total_missions=total_missions,
+                            completed_missions=len(progress.completed_missions)
+                        )
+                        await self.event_bus.emit(learning_path_event)
+                        logger.info(f"Evento de trilha completada emitido: {progress.path_id}")
+                    except Exception as e:
+                        logger.error(f"Erro ao emitir evento de trilha completada: {e}")
             
             # Verificar e persistir conclusão de módulos
             if learning_path:
