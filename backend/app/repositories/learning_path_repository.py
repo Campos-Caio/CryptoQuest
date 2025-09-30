@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional, Union
-from datetime import datetime
+from datetime import datetime, UTC
 from firebase_admin import firestore
 from app.models.learning_path import LearningPath, UserPathProgress
 
@@ -128,7 +128,7 @@ class LearningPathRepository:
             progress = UserPathProgress(
                 user_id=user_id,
                 path_id=path_id,
-                started_at=datetime.utcnow()
+                started_at=datetime.now(UTC)
             )
             
             doc_id = f"{user_id}_{path_id}"
@@ -153,6 +153,24 @@ class LearningPathRepository:
         except Exception as e:
             logger.error(f"Erro ao atualizar progresso: {e}")
             raise
+
+    def get_user_progress_list(self, user_id: str) -> List[UserPathProgress]:
+        """Busca todos os progressos de um usuário"""
+        try:
+            query = self.progress_collection.where("user_id", "==", user_id)
+            docs = query.stream()
+            
+            progress_list = []
+            for doc in docs:
+                data = doc.to_dict()
+                if data:
+                    progress = UserPathProgress(**data)
+                    progress_list.append(progress)
+            
+            return progress_list
+        except Exception as e:
+            logger.error(f"Erro ao buscar progressos do usuário {user_id}: {e}")
+            return []
     
     def complete_mission(self, user_id: str, path_id: str, mission_id: str, score: int) -> UserPathProgress:
         """Marca uma missão como concluída"""

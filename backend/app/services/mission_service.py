@@ -7,6 +7,7 @@ from app.models.mission import QuizSubmision
 from app.core.firebase import get_firestore_db_async
 from app.services.reward_service import RewardService, get_reward_service
 from app.services.event_bus import get_event_bus
+from app.services.cache_service import get_cache_service
 from app.models.events import MissionCompletedEvent, LevelUpEvent, EventType
 import random
 from datetime import datetime, timezone
@@ -30,15 +31,82 @@ class MissionService:
         self.db = dbclient
         self.reward_service = reward_service
         self.event_bus = get_event_bus()
+        self.cache = get_cache_service()
 
     async def get_daily_missions_for_user(self, user: UserProfile) -> list:
         """
-        Retorna as missões elegíveis para o usuário em tempo real.
-        Não usa mais cache diário - sempre busca missões disponíveis.
+        Retorna as missões elegíveis para o usuário com cache otimizado.
+        Cache de 15 minutos para missões disponíveis.
         """
-        print(f"DEBUG: Buscando missões elegíveis para usuário {user.uid} (nível: {user.level})")
+        cache_key = f"daily_missions_user_{user.uid}"
         
-        # Buscar todas as missões disponíveis
+        # Tentar buscar do cache primeiro
+        cached_missions = await self.cache.get(cache_key)
+        if cached_missions is not None:
+            logger.debug(f"Cache hit para missões do usuário {user.uid}")
+            return cached_missions
+        
+        logger.debug(f"Buscando missões elegíveis para usuário {user.uid} (nível: {user.level})")
+        
+        # Buscar todas as missões disponíveis (com cache de 1 hora)
+        all_missions = await self._get_all_missions_cached()
+        logger.debug(f"Total de missões encontradas: {len(all_missions)}")
+
+        # Filtra missões elegíveis
+        eligible_missions = []
+        for mission in all_missions:
+            mission_id = mission.get("id") or mission.get("_id")
+            logger.debug(f"Verificando missão {mission_id} - Nível requerido: {mission.get('required_level', 1)}")
+            
+            # Filtro 1: Usuário tem o nível necessário?
+            if user.level < mission.get("required_level", 1):
+                logger.debug(f"Missão {mission_id} - Nível insuficiente (usuário: {user.level}, requerido: {mission.get('required_level', 1)})")
+                continue
+
+            # Filtro 2: Usuário já completou essa missão alguma vez?
+            if mission_id in user.completed_missions:
+                logger.debug(f"Missão {mission_id} - Já foi completada pelo usuário, pulando")
+                continue
+
+            logger.debug(f"Missão {mission_id} - Elegível para seleção")
+            eligible_missions.append(mission)
+
+        logger.debug(f"Missões elegíveis encontradas: {len(eligible_missions)}")
+
+        # Seleciona até 3 missões aleatoriamente
+        num_missions = min(len(eligible_missions), 3)
+        if num_missions == 0:
+            logger.debug("Nenhuma missão disponível para o usuário")
+            selected_missions = []
+        else:
+            selected_missions = random.sample(eligible_missions, num_missions)
+            selected_ids = [m.get("id") or m.get("_id") for m in selected_missions]
+            logger.debug(f"Missões selecionadas: {selected_ids}")
+        
+        # Cache por 15 minutos (900 segundos)
+        await self.cache.set(cache_key, selected_missions, ttl_seconds=900)
+        
+        return selected_missions
+
+    async def _invalidate_user_cache(self, user_id: str) -> None:
+        """Invalida cache do usuário quando missões são completadas"""
+        cache_key = f"daily_missions_user_{user_id}"
+        await self.cache.delete(cache_key)
+        logger.debug(f"Cache invalidado para usuário {user_id}")
+
+    async def _get_all_missions_cached(self) -> list:
+        """Busca todas as missões com cache de 1 hora"""
+        cache_key = "all_missions"
+        
+        # Tentar buscar do cache
+        cached_missions = await self.cache.get(cache_key)
+        if cached_missions is not None:
+            logger.debug("Cache hit para todas as missões")
+            return cached_missions
+        
+        logger.debug("Buscando todas as missões do Firestore")
+        
+        # Buscar do Firestore
         mission_ref = self.db.collection("missions")
         all_missions_docs = mission_ref.stream()
         all_missions = []
@@ -48,44 +116,10 @@ class MissionService:
             mission_data["_id"] = doc.id
             all_missions.append(mission_data)
 
-        print(f"DEBUG: Total de missões encontradas: {len(all_missions)}")
-
-        # Filtra missões elegíveis
-        eligible_missions = []
-        for mission in all_missions:
-            mission_id = mission.get("id") or mission.get("_id")
-            print(f"DEBUG: Verificando missão {mission_id} - Nível requerido: {mission.get('required_level', 1)}")
-            
-            # Filtro 1: Usuário tem o nível necessário?
-            if user.level < mission.get("required_level", 1):
-                print(f"DEBUG: Missão {mission_id} - Nível insuficiente (usuário: {user.level}, requerido: {mission.get('required_level', 1)})")
-                continue
-
-            # Filtro 2: Usuário já completou essa missão alguma vez?
-            if mission_id in user.completed_missions:
-                print(f"DEBUG: Missão {mission_id} - Já foi completada pelo usuário, pulando")
-                continue
-
-            print(f"DEBUG: Missão {mission_id} - Elegível para seleção")
-            eligible_missions.append(mission)
-
-        print(f"DEBUG: Missões elegíveis encontradas: {len(eligible_missions)}")
-
-        # Seleciona até 3 missões aleatoriamente
-        num_missions = min(len(eligible_missions), 3)
-        if num_missions == 0:
-            print("DEBUG: Nenhuma missão disponível para o usuário")
-            return []  # Nenhuma missão disponível
-            
-        selected_missions = random.sample(eligible_missions, num_missions)
-        selected_ids = [m.get("id") or m.get("_id") for m in selected_missions]
+        # Cache por 1 hora (3600 segundos)
+        await self.cache.set(cache_key, all_missions, ttl_seconds=3600)
         
-        print(f"DEBUG: Missões selecionadas: {selected_ids}")
-        print("DEBUG: Títulos das missões selecionadas:")
-        for mission in selected_missions:
-            print(f"  - {mission.get('title', 'Sem título')} (ID: {mission.get('_id')})")
-        
-        return selected_missions
+        return all_missions
     
     async def _get_missions_by_ids(self, mission_ids: list[str]) -> list:
         """Busca missões específicas por seus IDs"""
@@ -247,6 +281,10 @@ class MissionService:
         if not user_data.get("completed_missions"):
             user_data["completed_missions"] = {}
         user_data["completed_missions"][mission_id] = update_data[completion_field]
+        
+        # Invalidar cache do usuário quando missão é completada
+        await self._invalidate_user_cache(user_id)
+        
         return UserProfile(**{**user_data, "uid": user_id})
 
 

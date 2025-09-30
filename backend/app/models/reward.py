@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 
 
@@ -25,13 +25,13 @@ class Reward(BaseModel):
     badge_id: Optional[str] = None 
     requirements: Dict[str, Any] = Field(default_factory=dict)
     is_active: bool = True
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 class UserReward(BaseModel): 
     user_id: str 
     reward_id: Optional[str] = None  # Tornar opcional
     reward_type: Optional[str] = None  # Tornar opcional para evitar erro de null
-    earned_at: datetime = Field(default_factory=datetime.utcnow)
+    earned_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     points_earned: int = 0  # Tornar opcional com valor padrão
     xp_earned: int = 0 
     context: Dict[str, Any] = Field(default_factory=dict) # Missao, trilha, etc
@@ -50,5 +50,5 @@ class Badge(BaseModel):
 class UserBadge(BaseModel): 
     user_id: str 
     badge_id: Optional[str] = None  # Tornar opcional para evitar erro de null
-    earned_at: datetime = Field(default_factory=datetime.utcnow)
+    earned_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     context: Dict[str, Any] = Field(default_factory=dict) # Missao, trilha, etc

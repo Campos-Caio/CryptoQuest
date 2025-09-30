@@ -1,9 +1,10 @@
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from app.models.ranking import Ranking, RankingEntry, RankingType, UserRankingStats
 from app.models.user import UserProfile
 from app.repositories.user_repository import UserRepository, get_user_repository
 from app.repositories.ranking_repository import RankingRepository, get_ranking_repository
+from app.services.advanced_cache_service import get_advanced_cache
 from fastapi import Depends
 import logging
 
@@ -13,11 +14,34 @@ class RankingService:
     def __init__(self, user_repo: UserRepository, ranking_repo: RankingRepository):
         self.user_repo = user_repo
         self.ranking_repo = ranking_repo
+        self.cache = get_advanced_cache()
 
-    async def generate_global_ranking(self, limit: int = 100) -> Ranking:
-        """Gera ranking global de usuários"""
+    async def generate_global_ranking(self, limit: int = 100, offset: int = 0) -> Ranking:
+        """Gera ranking global de usuários com cache e paginação otimizada"""
         try:
-            users = self.user_repo.get_all_users()
+            cache_key = f"global_ranking_{limit}_{offset}"
+            
+            # Tentar buscar do cache primeiro
+            cached_ranking = await self.cache.get(cache_key)
+            if cached_ranking is not None:
+                logger.debug(f"Cache hit para ranking global (limit: {limit}, offset: {offset})")
+                return cached_ranking
+            
+            # Buscar usuários com paginação otimizada
+            users = self.user_repo.get_users_paginated(limit=limit * 2, offset=offset)
+            
+            if not users:
+                empty_ranking = Ranking(
+                    type=RankingType.GLOBAL,
+                    period="all_time",
+                    entries=[],
+                    total_users=0,
+                    generated_at=datetime.now(UTC),
+                    context={"offset": offset, "limit": limit}
+                )
+                # Cache resultado vazio por 5 minutos
+                await self.cache.set(cache_key, empty_ranking, ttl_seconds=300, tags=["ranking", "global"])
+                return empty_ranking
             
             # Calcular score de ranking para cada usuário
             ranking_entries = []
@@ -32,25 +56,37 @@ class RankingService:
                     level=user.level,
                     rank=0,  # Será definido após ordenação
                     badges=user.badges,
-                    last_activity=user.register_date  # Usar campo apropriado
+                    last_activity=user.register_date
                 )
                 ranking_entries.append(entry)
 
             # Ordenar por score de ranking
             ranking_entries.sort(key=lambda x: x.xp + x.points, reverse=True)
             
-            # Definir ranks
-            for i, entry in enumerate(ranking_entries):
-                entry.rank = i + 1
+            # Definir ranks baseados no offset
+            for i, entry in enumerate(ranking_entries[:limit]):
+                entry.rank = offset + i + 1
+
+            # Obter total de usuários para contexto
+            total_users = await self._get_total_users_count()
 
             ranking = Ranking(
                 type=RankingType.GLOBAL,
                 period="all_time",
                 entries=ranking_entries[:limit],
-                total_users=len(users)
+                total_users=total_users,
+                generated_at=datetime.now(UTC),
+                context={"offset": offset, "limit": limit, "has_more": len(ranking_entries) > limit}
             )
 
-            self.ranking_repo.save_ranking(ranking)
+            # Salvar ranking apenas se for a primeira página (offset=0)
+            if offset == 0:
+                self.ranking_repo.save_ranking(ranking)
+            
+            # Cache por 10 minutos
+            await self.cache.set(cache_key, ranking, ttl_seconds=600, tags=["ranking", "global"])
+            
+            logger.info(f"Ranking global gerado: {len(ranking_entries[:limit])} usuários (offset: {offset})")
             return ranking
 
         except Exception as e:
@@ -146,6 +182,14 @@ class RankingService:
         # Implementar lógica específica para score semanal
         return user.points  # Placeholder
 
+    async def _get_total_users_count(self) -> int:
+        """Obtém o total de usuários no sistema"""
+        try:
+            return self.user_repo.get_users_count()
+        except Exception as e:
+            logger.error(f"Erro ao obter contagem de usuários: {e}")
+            return 0
+
     def _find_user_rank(self, ranking: Ranking, user_id: str) -> int:
         """Encontra a posição do usuário no ranking"""
         if not ranking:
@@ -155,6 +199,22 @@ class RankingService:
             if entry.user_id == user_id:
                 return entry.rank
         return 0
+
+    async def invalidate_ranking_cache(self) -> None:
+        """Invalida todo o cache de rankings"""
+        try:
+            await self.cache.delete_by_tags(["ranking"])
+            logger.info("Cache de rankings invalidado")
+        except Exception as e:
+            logger.error(f"Erro ao invalidar cache de rankings: {e}")
+
+    async def get_cache_stats(self) -> Dict[str, Any]:
+        """Retorna estatísticas do cache de rankings"""
+        try:
+            return await self.cache.get_stats()
+        except Exception as e:
+            logger.error(f"Erro ao obter estatísticas do cache: {e}")
+            return {}
 
 def get_ranking_service(
     user_repo = Depends(get_user_repository),

@@ -3,7 +3,7 @@ from app.models.reward import UserReward, UserBadge, Badge
 from app.core.firebase import get_firestore_db_async
 from fastapi import Depends
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class RewardRepository:
     def _safe_get_datetime(self, data: Dict[str, Any], key: str, default: datetime = None) -> datetime:
         """Safely get datetime value from dict, handling null values and string conversion"""
         if default is None:
-            default = datetime.utcnow()
+            default = datetime.now(UTC)
             
         value = data.get(key)
         if value is None:

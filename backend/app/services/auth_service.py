@@ -17,7 +17,7 @@ class AuthService:
         logger.info("--- [AUTH SERVICE] Iniciando verificação do token ---")
 
         try:
-            logger.debug(f"Verificando token com Firebase: {id_token[:30]}...")
+            logger.debug("Verificando token com Firebase")
             decoded_token = self.auth.verify_id_token(id_token, clock_skew_seconds=30)
 
             uid = decoded_token['uid']

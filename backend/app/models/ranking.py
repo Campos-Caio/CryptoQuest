@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 
 
@@ -29,7 +29,7 @@ class Ranking(BaseModel):
     period: str 
     entries: List["RankingEntry"] = Field(default_factory=list)
     total_users: int 
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     context: Dict[str, Any] = Field(default_factory=dict)
 
 class UserRankingStats(BaseModel): 
@@ -40,5 +40,5 @@ class UserRankingStats(BaseModel):
     level_rank: int
     total_users: int 
     percentile: float 
-    last_update: datetime = Field(default_factory=datetime.utcnow)
+    last_update: datetime = Field(default_factory=lambda: datetime.now(UTC))
     

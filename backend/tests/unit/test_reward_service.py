@@ -202,18 +202,16 @@ class TestRewardService:
     async def test_apply_rewards_user_not_found(self, reward_service, mock_user_repo):
         """Testa aplicação de recompensas para usuário inexistente"""
         mock_user_repo.get_user_profile.return_value = None
-        
-        # Testar
-        result = await reward_service.apply_rewards(
-            user_id="nonexistent",
-            reward_type=RewardType.DAILY_MISSION,
-            points=50,
-            xp=25,
-            context={"mission_id": "mission1"}
-        )
-        
-        # O método apply_rewards não retorna nada (None)
-        assert result is None
+
+        # Testar - deve levantar ValueError
+        with pytest.raises(ValueError, match="Usuário nonexistent não encontrado"):
+            await reward_service.apply_rewards(
+                user_id="nonexistent",
+                reward_type=RewardType.DAILY_MISSION,
+                points=50,
+                xp=25,
+                context={"mission_id": "mission1"}
+            )
 
     def test_calculate_mission_rewards(self, reward_service):
         """Testa cálculo de recompensas de missão"""

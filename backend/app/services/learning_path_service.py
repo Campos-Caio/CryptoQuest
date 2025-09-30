@@ -1,6 +1,6 @@
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 from app.models.learning_path import LearningPath, UserPathProgress, LearningPathResponse
 from app.models.mission import QuizSubmision
 from app.repositories.learning_path_repository import LearningPathRepository
@@ -255,7 +255,7 @@ class LearningPathService:
             total_missions = sum(len(module.missions) for module in path.modules)
             if len(progress.completed_missions) >= total_missions:
                 # Trilha concluída
-                progress.completed_at = datetime.utcnow()
+                progress.completed_at = datetime.now(UTC)
                 progress.progress_percentage = 100.0
                 self.repository.update_progress(progress)
                 return True
@@ -458,7 +458,7 @@ class LearningPathService:
                 progress = UserPathProgress(
                     user_id=user_id,
                     path_id=path_id,
-                    started_at=datetime.utcnow(),
+                    started_at=datetime.now(UTC),
                     completed_at=None,
                     current_module_id=None,
                     completed_missions=[],
@@ -488,7 +488,7 @@ class LearningPathService:
                 # Verificar se a trilha foi completada
                 total_missions = sum(len(module.missions) for module in learning_path.modules)
                 if len(progress.completed_missions) >= total_missions and not progress.completed_at:
-                    progress.completed_at = datetime.utcnow()
+                    progress.completed_at = datetime.now(UTC)
                     progress.progress_percentage = 100.0
                     
                     # Emitir evento de trilha completada
