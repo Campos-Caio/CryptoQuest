@@ -7,11 +7,13 @@ from app.repositories.badge_repository import BadgeRepository, get_badge_reposit
 from app.services.badge_engine import get_badge_engine
 from app.services.event_bus import get_event_bus
 from app.core.firebase import get_firestore_db
+from app.core.logging_config import get_cryptoquest_logger, LogCategory
 from fastapi import Depends
 import logging
 
 
 logger = logging.getLogger(__name__)
+cryptoquest_logger = get_cryptoquest_logger()
 
 class RewardService:
     def __init__(self, user_repo: UserRepository, reward_repo: RewardRepository, badge_repo: BadgeRepository, db_client):
@@ -69,6 +71,33 @@ class RewardService:
 
                 await self._check_streak_rewards(user_id)
 
+                # Log de evento de negócio
+                cryptoquest_logger.log_business_event(
+                    "mission_completion_rewarded",
+                    {
+                        "mission_id": mission_id,
+                        "user_id": user_id,
+                        "score": score,
+                        "mission_type": mission_type,
+                        "points_earned": points,
+                        "xp_earned": xp,
+                        "reward_type": reward_type.value
+                    }
+                )
+                
+                # Log de ação do usuário
+                cryptoquest_logger.log_user_action(
+                    user_id,
+                    "mission_completed",
+                    {
+                        "mission_id": mission_id,
+                        "score": score,
+                        "mission_type": mission_type,
+                        "points_earned": points,
+                        "xp_earned": xp
+                    }
+                )
+
                 return {
                     'points_earned': points,
                     'xp_earned': xp,
@@ -96,6 +125,31 @@ class RewardService:
                     'path_id': path_id,
                     'total_score': total_score
                 })
+
+                # Log de evento de negócio
+                cryptoquest_logger.log_business_event(
+                    "learning_path_completion_rewarded",
+                    {
+                        "path_id": path_id,
+                        "user_id": user_id,
+                        "total_score": total_score,
+                        "points_earned": points,
+                        "xp_earned": xp,
+                        "high_score_bonus": total_score >= 90
+                    }
+                )
+                
+                # Log de ação do usuário
+                cryptoquest_logger.log_user_action(
+                    user_id,
+                    "learning_path_completed",
+                    {
+                        "path_id": path_id,
+                        "total_score": total_score,
+                        "points_earned": points,
+                        "xp_earned": xp
+                    }
+                )
 
                 return {
                     'points_earned': points,
@@ -140,6 +194,27 @@ class RewardService:
             success = self.badge_repo.award_badge(user_id, badge_id, context)
             if success:
                 logger.info(f"✅ Badge {badge_id} concedido para usuário {user_id}")
+                
+                # Log de evento de negócio
+                cryptoquest_logger.log_business_event(
+                    "badge_awarded",
+                    {
+                        "badge_id": badge_id,
+                        "user_id": user_id,
+                        "context": context
+                    }
+                )
+                
+                # Log de ação do usuário
+                cryptoquest_logger.log_user_action(
+                    user_id,
+                    "badge_earned",
+                    {
+                        "badge_id": badge_id,
+                        "context": context
+                    }
+                )
+                
                 return True
             else:
                 logger.warning(f"⚠️ Badge {badge_id} já existe para usuário {user_id}")

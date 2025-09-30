@@ -5,8 +5,10 @@ from app.repositories.user_repository import UserRepository, get_user_repository
 from app.models.user import UserProfile, FirebaseUser, UserRegister
 from firebase_admin.auth import UserNotFoundError, InvalidIdTokenError, EmailAlreadyExistsError
 from firebase_admin.exceptions import FirebaseError
+from app.core.logging_config import get_cryptoquest_logger, LogCategory
 
 logger = logging.getLogger(__name__)
+cryptoquest_logger = get_cryptoquest_logger()
 
 class AuthService:
     def __init__(self, user_repo: UserRepository):
@@ -29,6 +31,13 @@ class AuthService:
 
             logger.debug(f"Buscando perfil no Firestore para UID: {uid}")
             user_profile = self.user_repo.get_user_profile(uid)
+            
+            # Log de autenticação bem-sucedida
+            cryptoquest_logger.log_security_event(
+                "login_successful",
+                "INFO",
+                {"user_id": uid, "email": email}
+            )
 
             if not user_profile:
                 logger.warning(f"Perfil do usuário {uid} não encontrado. Criando novo perfil.")

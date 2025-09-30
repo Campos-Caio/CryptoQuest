@@ -8,8 +8,10 @@ from app.core.firebase import get_firestore_db_async
 from app.services.reward_service import RewardService
 from app.services.event_bus import get_event_bus
 from app.models.events import LearningPathCompletedEvent, QuizCompletedEvent, EventType
+from app.core.logging_config import get_cryptoquest_logger, LogCategory
 
 logger = logging.getLogger(__name__)
+cryptoquest_logger = get_cryptoquest_logger()
 
 class LearningPathService:
     """Service para lógica de negócio das trilhas de aprendizado"""
@@ -258,6 +260,30 @@ class LearningPathService:
                 progress.completed_at = datetime.now(UTC)
                 progress.progress_percentage = 100.0
                 self.repository.update_progress(progress)
+                
+                # Log de evento de negócio - trilha completada
+                cryptoquest_logger.log_business_event(
+                    "learning_path_completed",
+                    {
+                        "user_id": progress.user_id,
+                        "path_id": progress.path_id,
+                        "total_missions": total_missions,
+                        "completed_missions": len(progress.completed_missions),
+                        "completion_time": progress.completed_at.isoformat()
+                    }
+                )
+                
+                # Log de ação do usuário
+                cryptoquest_logger.log_user_action(
+                    progress.user_id,
+                    "learning_path_completed",
+                    {
+                        "path_id": progress.path_id,
+                        "total_missions": total_missions,
+                        "completion_percentage": 100.0
+                    }
+                )
+                
                 return True
             
             return False
@@ -390,6 +416,34 @@ class LearningPathService:
                 xp_earned = int(score / 5) * 5  # 5 XP por 5% de acerto
             
             logger.info(f"Missão completada: score={score:.1f}%, success={success}, points={points_earned}, xp={xp_earned}")
+            
+            # Log de evento de negócio
+            cryptoquest_logger.log_business_event(
+                "learning_path_mission_completed",
+                {
+                    "user_id": user_id,
+                    "path_id": path_id,
+                    "mission_id": mission_id,
+                    "score": score,
+                    "success": success,
+                    "correct_answers": correct_answers,
+                    "total_questions": total_questions,
+                    "required_score": mission.required_score
+                }
+            )
+            
+            # Log de ação do usuário
+            cryptoquest_logger.log_user_action(
+                user_id,
+                "learning_path_mission_attempted",
+                {
+                    "path_id": path_id,
+                    "mission_id": mission_id,
+                    "score": score,
+                    "success": success,
+                    "time_taken": submission.time_taken if hasattr(submission, 'time_taken') else None
+                }
+            )
             
             # Integrar com sistema de recompensas se disponível
             reward_result = {}

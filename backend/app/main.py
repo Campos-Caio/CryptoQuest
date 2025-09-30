@@ -13,7 +13,11 @@ from app.api import ranking_api
 from app.api import rewards_api
 from app.services.event_bus import get_event_bus
 from app.services.badge_engine import get_badge_engine
+from app.services.metrics_collector import get_metrics_collector
+from app.services.alert_manager import get_alert_manager
+from app.services.health_monitor import get_health_monitor
 from app.middleware.security import SecurityHeadersMiddleware, RateLimitMiddleware
+from app.middleware.logging_middleware import RequestLoggingMiddleware, ErrorLoggingMiddleware
 import logging
 
 # Configurar logging
@@ -34,6 +38,12 @@ async def lifespan(app: FastAPI):
     
     # Registrar handlers de eventos
     await badge_engine._register_event_handlers()
+    
+    # Inicializar sistema de monitoramento avançado
+    metrics_collector = get_metrics_collector()
+    alert_manager = get_alert_manager()
+    health_monitor = get_health_monitor()
+    logging.info("✅ Sistema de monitoramento avançado inicializado!")
     
     logging.info("✅ Sistema de eventos inicializado com sucesso!")
     
@@ -78,6 +88,10 @@ if os.getenv("ENVIRONMENT", "development") == "production":
         allowed_hosts=ALLOWED_HOSTS
     )
 
+# Middleware de logging (deve ser o primeiro)
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(ErrorLoggingMiddleware)
+
 # Middleware de headers de segurança
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -95,6 +109,10 @@ app.include_router(learning_paths_api.router)
 app.include_router(ranking_api.router)
 app.include_router(rewards_api.router)
 
+# Incluir API de monitoramento
+from app.api import monitoring_api
+app.include_router(monitoring_api.router)
+
 @app.get("/", tags=["Root"])
 async def read_root():
     return {"message": "Bem-vindo ao Backend CryptoQuest!"}
@@ -102,7 +120,29 @@ async def read_root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Endpoint para verificação de saúde do serviço (Docker healthcheck)"""
-    return {"status": "healthy", "service": "cryptoquest-backend"}
+    try:
+        # Verificação básica de saúde
+        health_monitor = get_health_monitor()
+        health_status = health_monitor.get_current_health()
+        
+        if health_status["overall_status"] in ["healthy", "warning"]:
+            return {
+                "status": "healthy", 
+                "service": "cryptoquest-backend",
+                "details": health_status
+            }
+        else:
+            return {
+                "status": "unhealthy",
+                "service": "cryptoquest-backend", 
+                "details": health_status
+            }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "service": "cryptoquest-backend",
+            "error": str(e)
+        }
 
 # Removido: @app.on_event("startup") - agora usando lifespan
 

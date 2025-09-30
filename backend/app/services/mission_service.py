@@ -9,6 +9,7 @@ from app.services.reward_service import RewardService, get_reward_service
 from app.services.event_bus import get_event_bus
 from app.services.cache_service import get_cache_service
 from app.models.events import MissionCompletedEvent, LevelUpEvent, EventType
+from app.core.logging_config import get_cryptoquest_logger, LogCategory
 import random
 from datetime import datetime, timezone
 import logging
@@ -32,6 +33,7 @@ class MissionService:
         self.reward_service = reward_service
         self.event_bus = get_event_bus()
         self.cache = get_cache_service()
+        self.cryptoquest_logger = get_cryptoquest_logger()
 
     async def get_daily_missions_for_user(self, user: UserProfile) -> list:
         """

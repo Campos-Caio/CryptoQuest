@@ -17,10 +17,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         
+        # Para rotas de documentação em desenvolvimento, usar CSP mais permissivo
+        is_docs_route = request.url.path.startswith(("/docs", "/redoc", "/openapi.json"))
+        
         # Headers de segurança
         security_headers = {
-            # Previne clickjacking
-            "X-Frame-Options": "DENY",
+            # Previne clickjacking (permitir para docs)
+            "X-Frame-Options": "SAMEORIGIN" if request.url.path.startswith("/docs") else "DENY",
             
             # Previne MIME type sniffing
             "X-Content-Type-Options": "nosniff",
@@ -33,13 +36,18 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             
             # Política de segurança de conteúdo
             "Content-Security-Policy": (
-                "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' https://apis.google.com; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-                "font-src 'self' https://fonts.gstatic.com; "
-                "img-src 'self' data: https:; "
-                "connect-src 'self' https://identitytoolkit.googleapis.com; "
-                "frame-ancestors 'none';"
+                # CSP muito permissivo para rotas de documentação
+                "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;" if is_docs_route else (
+                    "default-src 'self'; "
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://apis.google.com https://cdn.jsdelivr.net; "
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+                    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+                    "img-src 'self' data: https: blob:; "
+                    "connect-src 'self' https://identitytoolkit.googleapis.com; "
+                    "worker-src 'self' blob:; "
+                    "child-src 'self' blob:; "
+                    "frame-ancestors 'none';"
+                )
             ),
             
             # Força HTTPS em produção
