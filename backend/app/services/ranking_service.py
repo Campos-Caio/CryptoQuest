@@ -1,10 +1,17 @@
 from typing import List, Dict, Any, Optional
+<<<<<<< HEAD
 from datetime import datetime, timedelta, UTC
+=======
+from datetime import datetime, timedelta
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from app.models.ranking import Ranking, RankingEntry, RankingType, UserRankingStats
 from app.models.user import UserProfile
 from app.repositories.user_repository import UserRepository, get_user_repository
 from app.repositories.ranking_repository import RankingRepository, get_ranking_repository
+<<<<<<< HEAD
 from app.services.advanced_cache_service import get_advanced_cache
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from fastapi import Depends
 import logging
 
@@ -14,6 +21,7 @@ class RankingService:
     def __init__(self, user_repo: UserRepository, ranking_repo: RankingRepository):
         self.user_repo = user_repo
         self.ranking_repo = ranking_repo
+<<<<<<< HEAD
         self.cache = get_advanced_cache()
 
     async def generate_global_ranking(self, limit: int = 100, offset: int = 0) -> Ranking:
@@ -42,6 +50,13 @@ class RankingService:
                 # Cache resultado vazio por 5 minutos
                 await self.cache.set(cache_key, empty_ranking, ttl_seconds=300, tags=["ranking", "global"])
                 return empty_ranking
+=======
+
+    async def generate_global_ranking(self, limit: int = 100) -> Ranking:
+        """Gera ranking global de usuários"""
+        try:
+            users = self.user_repo.get_all_users()
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             
             # Calcular score de ranking para cada usuário
             ranking_entries = []
@@ -56,24 +71,35 @@ class RankingService:
                     level=user.level,
                     rank=0,  # Será definido após ordenação
                     badges=user.badges,
+<<<<<<< HEAD
                     last_activity=user.register_date
+=======
+                    last_activity=user.register_date  # Usar campo apropriado
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 )
                 ranking_entries.append(entry)
 
             # Ordenar por score de ranking
             ranking_entries.sort(key=lambda x: x.xp + x.points, reverse=True)
             
+<<<<<<< HEAD
             # Definir ranks baseados no offset
             for i, entry in enumerate(ranking_entries[:limit]):
                 entry.rank = offset + i + 1
 
             # Obter total de usuários para contexto
             total_users = await self._get_total_users_count()
+=======
+            # Definir ranks
+            for i, entry in enumerate(ranking_entries):
+                entry.rank = i + 1
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
             ranking = Ranking(
                 type=RankingType.GLOBAL,
                 period="all_time",
                 entries=ranking_entries[:limit],
+<<<<<<< HEAD
                 total_users=total_users,
                 generated_at=datetime.now(UTC),
                 context={"offset": offset, "limit": limit, "has_more": len(ranking_entries) > limit}
@@ -87,6 +113,12 @@ class RankingService:
             await self.cache.set(cache_key, ranking, ttl_seconds=600, tags=["ranking", "global"])
             
             logger.info(f"Ranking global gerado: {len(ranking_entries[:limit])} usuários (offset: {offset})")
+=======
+                total_users=len(users)
+            )
+
+            self.ranking_repo.save_ranking(ranking)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             return ranking
 
         except Exception as e:
@@ -182,6 +214,7 @@ class RankingService:
         # Implementar lógica específica para score semanal
         return user.points  # Placeholder
 
+<<<<<<< HEAD
     async def _get_total_users_count(self) -> int:
         """Obtém o total de usuários no sistema"""
         try:
@@ -190,6 +223,8 @@ class RankingService:
             logger.error(f"Erro ao obter contagem de usuários: {e}")
             return 0
 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     def _find_user_rank(self, ranking: Ranking, user_id: str) -> int:
         """Encontra a posição do usuário no ranking"""
         if not ranking:
@@ -200,6 +235,7 @@ class RankingService:
                 return entry.rank
         return 0
 
+<<<<<<< HEAD
     async def invalidate_ranking_cache(self) -> None:
         """Invalida todo o cache de rankings"""
         try:
@@ -216,6 +252,8 @@ class RankingService:
             logger.error(f"Erro ao obter estatísticas do cache: {e}")
             return {}
 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 def get_ranking_service(
     user_repo = Depends(get_user_repository),
     ranking_repo = Depends(get_ranking_repository)

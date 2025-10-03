@@ -39,14 +39,21 @@ async def override_get_current_user():
 
 pytestmark = pytest.mark.asyncio 
 
+<<<<<<< HEAD
 async def test_update_user_profile_sucess(): 
  """
  Teste se o usuario autenticado consegue atualizar seu perfil com sucesso
+=======
+async def test_update_user_profile_sucess(mocker, mock_updated_user_profile): 
+    """
+        Teste se o usuario autenticado consegue atualizar seu perfil com sucesso
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
  Returns: 
  (00 OK)
  """
 
+<<<<<<< HEAD
  class MockUserRepository:
      def update_user_Profile(self, uid: str, new_data:dict):
          assert uid == 'test_uid_'
@@ -55,6 +62,16 @@ async def test_update_user_profile_sucess():
 
      def get_user_profile(self,uid:str):
          return mock_updated_user_profile
+=======
+    class MockUserRepository:
+        async def update_user_Profile(self, uid: str, new_data:dict):
+            assert uid == 'test_uid_123'
+            assert new_data.get("name") == 'Novo Nome'
+            pass
+
+        async def get_user_profile(self,uid:str):
+            return mock_updated_user_profile
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
  app.dependency_overrides[get_current_user] = override_get_current_user
  app.dependency_overrides[get_user_repository] = lambda: MockUserRepository()

@@ -11,6 +11,7 @@ from app.api import quizzes_api
 from app.api import learning_paths_api
 from app.api import ranking_api
 from app.api import rewards_api
+<<<<<<< HEAD
 # from app.api import ai_api  # TEMPORARIAMENTE COMENTADO PARA TESTE
 from app.services.event_bus import get_event_bus
 from app.services.badge_engine import get_badge_engine
@@ -20,6 +21,10 @@ from app.services.health_monitor import get_health_monitor
 from app.middleware.security import SecurityHeadersMiddleware, RateLimitMiddleware
 from app.middleware.logging_middleware import RequestLoggingMiddleware, ErrorLoggingMiddleware
 import logging
+=======
+from app.services.event_bus import get_event_bus
+from app.services.badge_engine import get_badge_engine
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 # Configurar logging
 logging.basicConfig(
@@ -107,6 +112,7 @@ app.include_router(missions_api.router)
 app.include_router(user_api.router)
 app.include_router(quizzes_api.router)
 app.include_router(learning_paths_api.router)
+<<<<<<< HEAD
 # app.include_router(ai_api.router)  # 🆕 API de IA - TEMPORARIAMENTE COMENTADO PARA TESTE
 app.include_router(ranking_api.router)
 app.include_router(rewards_api.router)
@@ -114,6 +120,10 @@ app.include_router(rewards_api.router)
 # Incluir API de monitoramento
 from app.api import monitoring_api
 app.include_router(monitoring_api.router)
+=======
+app.include_router(ranking_api.router)
+app.include_router(rewards_api.router)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 @app.get("/", tags=["Root"])
 async def read_root():
@@ -122,6 +132,7 @@ async def read_root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Endpoint para verificação de saúde do serviço (Docker healthcheck)"""
+<<<<<<< HEAD
     try:
         # Verificação básica de saúde
         health_monitor = get_health_monitor()
@@ -147,6 +158,21 @@ async def health_check():
         }
 
 # Removido: @app.on_event("startup") - agora usando lifespan
+=======
+    return {"status": "healthy", "service": "cryptoquest-backend"}
+
+@app.on_event("startup")
+async def startup_event():
+    """Inicializa o sistema de eventos na startup"""
+    # Inicializar EventBus e BadgeEngine
+    event_bus = get_event_bus()
+    badge_engine = get_badge_engine()
+    
+    # Registrar handlers de eventos
+    await badge_engine._register_event_handlers()
+    
+    print("🚀 Sistema de eventos inicializado com sucesso!")
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 @app.get("/events/stats", tags=["Events"])
 async def get_event_stats():

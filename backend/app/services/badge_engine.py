@@ -40,7 +40,10 @@ class BadgeEngine:
         await event_bus.subscribe(EventType.POINTS_EARNED, self._handle_points_earned)
         await event_bus.subscribe(EventType.LEARNING_PATH_COMPLETED, self._handle_learning_path_completed)
         await event_bus.subscribe(EventType.QUIZ_COMPLETED, self._handle_quiz_completed)
+<<<<<<< HEAD
         await event_bus.subscribe(EventType.MODULE_COMPLETED, self._handle_module_completed)
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         logger.info("🎯 Handlers de eventos registrados no BadgeEngine")
 
@@ -84,6 +87,7 @@ class BadgeEngine:
         except Exception as e:
             logger.error(f"Erro ao processar quiz completado: {e}")
 
+<<<<<<< HEAD
     async def _handle_module_completed(self, event: BaseEvent):
         """Handler para eventos de módulo completado"""
         try:
@@ -92,6 +96,8 @@ class BadgeEngine:
         except Exception as e:
             logger.error(f"Erro ao processar módulo completado: {e}")
 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     async def _process_event_for_badges(self, event: BaseEvent):
         """
         Processa um evento e verifica badges elegíveis.
@@ -117,7 +123,11 @@ class BadgeEngine:
             # Conceder badges elegíveis
             awarded_badges = []
             for badge_id in eligible_badges:
+<<<<<<< HEAD
                 success = self._award_badge_if_eligible(
+=======
+                success = await self._award_badge_if_eligible(
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                     event.user_id, 
                     badge_id, 
                     event.context
@@ -133,7 +143,11 @@ class BadgeEngine:
         except Exception as e:
             logger.error(f"Erro ao processar evento para badges: {e}")
 
+<<<<<<< HEAD
     def _award_badge_if_eligible(self, user_id: str, badge_id: str, context: Dict[str, Any]) -> bool:
+=======
+    async def _award_badge_if_eligible(self, user_id: str, badge_id: str, context: Dict[str, Any]) -> bool:
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         """
         Concede um badge se o usuário for elegível.
         
@@ -147,13 +161,21 @@ class BadgeEngine:
         """
         try:
             # Verificar se já possui o badge
+<<<<<<< HEAD
             has_badge = self.badge_repo.has_badge(user_id, badge_id)
+=======
+            has_badge = await self.badge_repo.has_badge(user_id, badge_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             if has_badge:
                 logger.debug(f"Usuário {user_id} já possui badge {badge_id}")
                 return False
             
             # Verificar elegibilidade
+<<<<<<< HEAD
             is_eligible = self.validation_service.validate_badge_eligibility(
+=======
+            is_eligible = await self.validation_service.validate_badge_eligibility(
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 user_id, badge_id
             )
             
@@ -162,7 +184,11 @@ class BadgeEngine:
                 return False
             
             # Conceder badge
+<<<<<<< HEAD
             success = self.badge_repo.award_badge(user_id, badge_id, context)
+=======
+            success = await self.badge_repo.award_badge(user_id, badge_id, context)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             
             if success:
                 logger.info(f"✅ Badge {badge_id} concedido para usuário {user_id}")
@@ -323,7 +349,11 @@ class BadgeEngine:
                 
                 if is_eligible:
                     # Conceder badge
+<<<<<<< HEAD
                     success = self.badge_repo.award_badge(
+=======
+                    success = await self.badge_repo.award_badge(
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                         user_id, 
                         badge.id, 
                         {'source': 'force_check', 'timestamp': 'now'}

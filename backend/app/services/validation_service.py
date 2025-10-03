@@ -4,7 +4,11 @@ Implementa lógica de negócio para determinar quando badges devem ser concedido
 """
 
 from typing import List, Dict, Any, Optional
+<<<<<<< HEAD
 from app.models.events import BaseEvent, MissionCompletedEvent, LevelUpEvent, PointsEarnedEvent, LearningPathCompletedEvent, ModuleCompletedEvent, QuizCompletedEvent
+=======
+from app.models.events import BaseEvent, MissionCompletedEvent, LevelUpEvent, PointsEarnedEvent
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from app.models.user import UserProfile
 from app.repositories.user_repository import UserRepository
 from app.repositories.badge_repository import BadgeRepository
@@ -43,6 +47,7 @@ class ValidationService:
             
             # Verificar badges baseados no tipo de evento
             if isinstance(event, MissionCompletedEvent):
+<<<<<<< HEAD
                 eligible_badges.extend(self._check_mission_badges(user_id, event))
             elif isinstance(event, LevelUpEvent):
                 eligible_badges.extend(self._check_level_badges(user_id, event))
@@ -57,6 +62,16 @@ class ValidationService:
             
             # Verificar badges gerais
             eligible_badges.extend(self._check_general_badges(user_id, event))
+=======
+                eligible_badges.extend(await self._check_mission_badges(user_id, event))
+            elif isinstance(event, LevelUpEvent):
+                eligible_badges.extend(await self._check_level_badges(user_id, event))
+            elif isinstance(event, PointsEarnedEvent):
+                eligible_badges.extend(await self._check_points_badges(user_id, event))
+            
+            # Verificar badges gerais
+            eligible_badges.extend(await self._check_general_badges(user_id, event))
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             
             logger.info(f"Badges elegíveis para usuário {user_id}: {eligible_badges}")
             return eligible_badges
@@ -71,7 +86,11 @@ class ValidationService:
         
         try:
             # Badge de primeira missão
+<<<<<<< HEAD
             if self._is_first_mission(user_id):
+=======
+            if await self._is_first_mission(user_id):
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 eligible_badges.append("first_steps")
             
             # Badge de score perfeito
@@ -79,7 +98,11 @@ class ValidationService:
                 eligible_badges.append("perfectionist")
             
             # Badge de streak (implementar lógica de streak)
+<<<<<<< HEAD
             streak = self._get_current_streak(user_id)
+=======
+            streak = await self._get_current_streak(user_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             if streak >= 7:
                 eligible_badges.append("streak_7")
             if streak >= 30:
@@ -138,7 +161,11 @@ class ValidationService:
         
         try:
             # Badge de participação (usuário ativo)
+<<<<<<< HEAD
             if self._is_active_user(user_id):
+=======
+            if await self._is_active_user(user_id):
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 eligible_badges.append("active_participant")
                 
         except Exception as e:
@@ -190,7 +217,11 @@ class ValidationService:
             logger.error(f"Erro ao verificar usuário ativo: {e}")
             return False
 
+<<<<<<< HEAD
     def validate_badge_eligibility(self, user_id: str, badge_id: str) -> bool:
+=======
+    async def validate_badge_eligibility(self, user_id: str, badge_id: str) -> bool:
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         """
         Valida se um usuário é elegível para um badge específico.
         
@@ -203,11 +234,19 @@ class ValidationService:
         """
         try:
             # Verificar se já possui o badge
+<<<<<<< HEAD
             if self.badge_repo.has_badge(user_id, badge_id):
                 return False
             
             # Buscar informações do badge
             badge = self.badge_repo.get_badge_by_id(badge_id)
+=======
+            if await self.badge_repo.has_badge(user_id, badge_id):
+                return False
+            
+            # Buscar informações do badge
+            badge = await self.badge_repo.get_badge_by_id(badge_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             if not badge:
                 return False
             
@@ -216,10 +255,17 @@ class ValidationService:
             req_type = requirements.get('type')
             
             if req_type == 'first_completion':
+<<<<<<< HEAD
                 return self._is_first_mission(user_id)
             elif req_type == 'perfect_score':
                 # Verificar se tem score perfeito recente
                 return self._has_recent_perfect_score(user_id)
+=======
+                return await self._is_first_mission(user_id)
+            elif req_type == 'perfect_score':
+                # Verificar se tem score perfeito recente
+                return await self._has_recent_perfect_score(user_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             elif req_type == 'level':
                 user = self.user_repo.get_user_profile(user_id)
                 required_level = requirements.get('value', 0)
@@ -229,7 +275,11 @@ class ValidationService:
                 required_points = requirements.get('value', 0)
                 return user and user.points >= required_points
             elif req_type == 'streak':
+<<<<<<< HEAD
                 current_streak = self._get_current_streak(user_id)
+=======
+                current_streak = await self._get_current_streak(user_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 required_streak = requirements.get('value', 0)
                 return current_streak >= required_streak
             
@@ -261,7 +311,11 @@ class ValidationService:
             Dicionário com informações de progresso
         """
         try:
+<<<<<<< HEAD
             badge = self.badge_repo.get_badge_by_id(badge_id)
+=======
+            badge = await self.badge_repo.get_badge_by_id(badge_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             if not badge:
                 return {'progress': 0, 'completed': False, 'requirements': {}}
             
@@ -286,7 +340,11 @@ class ValidationService:
                     completed = user.points >= required_points
                     
             elif req_type == 'streak':
+<<<<<<< HEAD
                 current_streak = self._get_current_streak(user_id)
+=======
+                current_streak = await self._get_current_streak(user_id)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 required_streak = requirements.get('value', 0)
                 progress = min(current_streak / required_streak * 100, 100)
                 completed = current_streak >= required_streak
@@ -306,6 +364,7 @@ class ValidationService:
             logger.error(f"Erro ao calcular progresso do badge {badge_id}: {e}")
             return {'progress': 0, 'completed': False, 'requirements': {}}
 
+<<<<<<< HEAD
     async def _check_learning_path_badges(self, user_id: str, event: LearningPathCompletedEvent) -> List[str]:
         """Verifica badges relacionados a trilhas completadas"""
         eligible_badges = []
@@ -496,6 +555,8 @@ class ValidationService:
             logger.error(f"Erro ao contar quizzes excelentes para usuário {user_id}: {e}")
             return 0
 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 # Instância singleton do ValidationService
 _validation_service_instance: Optional[ValidationService] = None

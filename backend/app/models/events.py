@@ -17,7 +17,10 @@ class EventType(str, Enum):
     POINTS_EARNED = "points_earned"
     LEARNING_PATH_COMPLETED = "learning_path_completed"
     QUIZ_COMPLETED = "quiz_completed"
+<<<<<<< HEAD
     MODULE_COMPLETED = "module_completed"
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 
 class BaseEvent(BaseModel):
@@ -69,10 +72,17 @@ class PointsEarnedEvent(BaseEvent):
 class LearningPathCompletedEvent(BaseEvent):
     """Evento disparado quando trilha de aprendizado é completada"""
     event_type: EventType = EventType.LEARNING_PATH_COMPLETED
+<<<<<<< HEAD
     learning_path_id: str
     learning_path_name: str
     total_missions: int
     completed_missions: int
+=======
+    path_id: str
+    total_score: float
+    modules_completed: int
+    points_earned: int
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 
 class QuizCompletedEvent(BaseEvent):
@@ -80,6 +90,7 @@ class QuizCompletedEvent(BaseEvent):
     event_type: EventType = EventType.QUIZ_COMPLETED
     quiz_id: str
     score: float
+<<<<<<< HEAD
     learning_path_id: Optional[str] = None
     mission_id: Optional[str] = None
 
@@ -90,6 +101,11 @@ class ModuleCompletedEvent(BaseEvent):
     learning_path_id: str
     module_id: str
     module_name: str
+=======
+    correct_answers: int
+    total_questions: int
+    points_earned: int
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 
 # Union type para todos os eventos
@@ -101,6 +117,10 @@ Event = Union[
     StreakUpdatedEvent,
     PointsEarnedEvent,
     LearningPathCompletedEvent,
+<<<<<<< HEAD
     QuizCompletedEvent,
     ModuleCompletedEvent
+=======
+    QuizCompletedEvent
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 ]

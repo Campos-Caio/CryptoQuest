@@ -1,19 +1,29 @@
 from typing import Dict, Any, List
+<<<<<<< HEAD
 from datetime import datetime, timedelta
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from app.models.reward import UserReward, UserBadge, RewardType
 from app.repositories.user_repository import UserRepository, get_user_repository
 from app.repositories.reward_repository import RewardRepository, get_reward_repository
 from app.repositories.badge_repository import BadgeRepository, get_badge_repository
 from app.services.badge_engine import get_badge_engine
 from app.services.event_bus import get_event_bus
+<<<<<<< HEAD
 from app.core.firebase import get_firestore_db
 from app.core.logging_config import get_cryptoquest_logger, LogCategory
+=======
+from app.core.firebase import get_firestore_db_async
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from fastapi import Depends
 import logging
 
 
 logger = logging.getLogger(__name__)
+<<<<<<< HEAD
 cryptoquest_logger = get_cryptoquest_logger()
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 class RewardService:
     def __init__(self, user_repo: UserRepository, reward_repo: RewardRepository, badge_repo: BadgeRepository, db_client):
@@ -33,7 +43,11 @@ class RewardService:
             RewardType.STREAK_30_DAYS: {"points": 1000, "xp": 500, "badge": "streak_30"},
             RewardType.PERFECT_SCORE: {"points": 150, "xp": 75, "badge": "perfectionist"},
             RewardType.FIRST_COMPLETION: {"points": 100, "xp": 50, "badge": "first_steps"},
+<<<<<<< HEAD
             RewardType.LEVEL_UP: {"points": 0, "xp": 0, "badge": "level_up"}
+=======
+            RewardType.LEVEL_UP: {"points": 0, "xp": 0, "badge": "level_up"},
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         }
 
     async def award_mission_completion(self, user_id: str, mission_id: str, score: float, mission_type: str = 'daily') -> Dict[str, Any]:
@@ -55,12 +69,20 @@ class RewardService:
                 if score >= 100: 
                     points += self.REWARD_CONFIG[RewardType.PERFECT_SCORE]['points']
                     xp += self.REWARD_CONFIG[RewardType.PERFECT_SCORE]['xp'] 
+<<<<<<< HEAD
                     self.award_badge(user_id, "perfectionist", {'mission_id': mission_id, 'score': score})
+=======
+                    await self.award_badge(user_id, "perfectionist", {'mission_id': mission_id, 'score': score})
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 
                 if len(user.daily_missions) == 0:
                     points += self.REWARD_CONFIG[RewardType.FIRST_COMPLETION]['points']
                     xp += self.REWARD_CONFIG[RewardType.FIRST_COMPLETION]['xp'] 
+<<<<<<< HEAD
                     self.award_badge(user_id, "first_steps", {'mission_id': mission_id})
+=======
+                    await self.award_badge(user_id, "first_steps", {'mission_id': mission_id})
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
                 # Aplicar recompensas  
                 await self.apply_rewards(user_id, reward_type, points, xp, {
@@ -71,6 +93,7 @@ class RewardService:
 
                 await self._check_streak_rewards(user_id)
 
+<<<<<<< HEAD
                 # Log de evento de negócio
                 cryptoquest_logger.log_business_event(
                     "mission_completion_rewarded",
@@ -98,6 +121,8 @@ class RewardService:
                     }
                 )
 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 return {
                     'points_earned': points,
                     'xp_earned': xp,
@@ -126,6 +151,7 @@ class RewardService:
                     'total_score': total_score
                 })
 
+<<<<<<< HEAD
                 # Log de evento de negócio
                 cryptoquest_logger.log_business_event(
                     "learning_path_completion_rewarded",
@@ -151,6 +177,8 @@ class RewardService:
                     }
                 )
 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 return {
                     'points_earned': points,
                     'xp_earned': xp,
@@ -162,6 +190,7 @@ class RewardService:
         
     async def apply_rewards(self, user_id: str, reward_type: RewardType, points: int, xp: int, context: Dict[str, Any]):
         """Aplica recompensas ao usuário"""
+<<<<<<< HEAD
         # Buscar pontos atuais do usuário
         user = self.user_repo.get_user_profile(user_id)
         if not user:
@@ -174,6 +203,12 @@ class RewardService:
         self.user_repo.update_user_Profile(user_id, {
             'points': current_points + points,
             'xp': current_xp + xp
+=======
+        # Atualiza perfil de usuário 
+        await self.user_repo.update_user_Profile(user_id, {
+            'points': points,
+            'xp': xp
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         })
 
         # Registra recompensa 
@@ -187,13 +222,18 @@ class RewardService:
 
         self.reward_repo.save_user_reward(user_reward)
     
+<<<<<<< HEAD
     def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]): 
+=======
+    async def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]): 
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         """Concede badge ao usuário usando o novo sistema"""
         try:
             # Usar BadgeRepository para conceder badge com validação de duplicatas
             success = self.badge_repo.award_badge(user_id, badge_id, context)
             if success:
                 logger.info(f"✅ Badge {badge_id} concedido para usuário {user_id}")
+<<<<<<< HEAD
                 
                 # Log de evento de negócio
                 cryptoquest_logger.log_business_event(
@@ -215,6 +255,8 @@ class RewardService:
                     }
                 )
                 
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 return True
             else:
                 logger.warning(f"⚠️ Badge {badge_id} já existe para usuário {user_id}")
@@ -225,6 +267,7 @@ class RewardService:
 
     async def _check_streak_rewards(self, user_id: str):
         """Verifica e concede recompensas de streak"""
+<<<<<<< HEAD
         try:
             user = self.user_repo.get_user_profile(user_id)
             if not user:
@@ -368,12 +411,30 @@ class RewardService:
         except Exception as e:
             logger.error(f'Erro ao buscar badges recentes: {e}')
             return []
+=======
+        # Implementar lógica de streak
+        pass
+
+    async def _check_level_up(self, user_id: str, xp_earned: int) -> bool:
+        """Verifica se o usuário subiu de nível"""
+        # Implementar lógica de level up
+        pass
+
+    async def _get_recent_badges(self, user_id: str) -> List[str]:
+        """Retorna badges recentemente conquistados"""
+        # Implementar busca de badges recentes
+        pass
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 def get_reward_service(
     user_repo = Depends(get_user_repository),
     reward_repo = Depends(get_reward_repository),
     badge_repo = Depends(get_badge_repository),
+<<<<<<< HEAD
     db_client = Depends(get_firestore_db)
+=======
+    db_client = Depends(get_firestore_db_async)
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 ) -> RewardService:
     return RewardService(user_repo, reward_repo, badge_repo, db_client)
 

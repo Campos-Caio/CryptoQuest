@@ -7,9 +7,13 @@ from app.models.mission import QuizSubmision
 from app.core.firebase import get_firestore_db_async
 from app.services.reward_service import RewardService, get_reward_service
 from app.services.event_bus import get_event_bus
+<<<<<<< HEAD
 from app.services.cache_service import get_cache_service
 from app.models.events import MissionCompletedEvent, LevelUpEvent, EventType
 from app.core.logging_config import get_cryptoquest_logger, LogCategory
+=======
+from app.models.events import MissionCompletedEvent, LevelUpEvent, EventType
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 import random
 from datetime import datetime, timezone
 import logging
@@ -32,8 +36,11 @@ class MissionService:
         self.db = dbclient
         self.reward_service = reward_service
         self.event_bus = get_event_bus()
+<<<<<<< HEAD
         self.cache = get_cache_service()
         self.cryptoquest_logger = get_cryptoquest_logger()
+=======
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
     async def get_daily_missions_for_user(self, user: UserProfile) -> list:
         """
@@ -121,7 +128,16 @@ class MissionService:
         # Cache por 1 hora (3600 segundos)
         await self.cache.set(cache_key, all_missions, ttl_seconds=3600)
         
+<<<<<<< HEAD
         return all_missions
+=======
+        print(f"DEBUG: Missões selecionadas: {selected_ids}")
+        print("DEBUG: Títulos das missões selecionadas:")
+        for mission in selected_missions:
+            print(f"  - {mission.get('title', 'Sem título')} (ID: {mission.get('_id')})")
+        
+        return selected_missions
+>>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     
     async def _get_missions_by_ids(self, mission_ids: list[str]) -> list:
         """Busca missões específicas por seus IDs"""
