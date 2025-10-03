@@ -24,7 +24,6 @@ class UserRepository:
         }
 
         self.collection.document(uid).set(user_data)
-        print(f"🔍 [UserRepository] Perfil criado no Firestore com dados: {user_data}")
         
         # Retorna o UserProfile Completo
         user_profile = UserProfile(
@@ -35,7 +34,6 @@ class UserRepository:
             level=user_data["level"],
             has_completed_questionnaire=False,  # ✅ Garante que o campo seja incluído no retorno
         )
-        print(f"🔍 [UserRepository] UserProfile retornado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
         return user_profile
 
     def get_user_profile(self, uid: str) -> Union[UserProfile, None]:
@@ -58,14 +56,14 @@ class UserRepository:
         # Isso é importante para perfis criados antes da correção
         if "has_completed_questionnaire" not in data:
             data["has_completed_questionnaire"] = False
-            print(f"🔍 [UserRepository] Campo has_completed_questionnaire não encontrado, definindo como False")
         if "points" not in data:
             data["points"] = 0
+        if "xp" not in data:
+            data["xp"] = 0
         if "level" not in data:
             data["level"] = 1
 
         user_profile = UserProfile(uid=doc.id, **data)
-        print(f"🔍 [UserRepository] Perfil recuperado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
         return user_profile
 
     def update_user_Profile(self, uid:str, new_data: dict) -> bool: # Adicione tipo para new_data
@@ -122,7 +120,7 @@ class UserRepository:
                 users.append(user_profile)
             return users
         except Exception as e:
-            print(f"Erro ao buscar todos os usuários: {e}")
+            logging.error(f"Erro ao buscar todos os usuários: {e}")
             return []
 
     def get_users_by_activity_period(self, start_date: datetime, end_date: datetime) -> List[UserProfile]:
@@ -132,7 +130,101 @@ class UserRepository:
             # Em uma implementação mais robusta, filtraria por data de última atividade
             return self.get_all_users()
         except Exception as e:
-            print(f"Erro ao buscar usuários por período: {e}")
+            logging.error(f"Erro ao buscar usuários por período: {e}")
+            return []
+
+    def get_users_paginated(self, limit: int = 50, offset: int = 0) -> List[UserProfile]:
+        """Busca usuários com paginação otimizada"""
+        try:
+            # Usar query com limit e offset para otimizar performance
+            query = self.collection.limit(limit).offset(offset)
+            docs = query.stream()
+            
+            users = []
+            for doc in docs:
+                data = doc.to_dict()
+                if data:
+                    # Garantir campos obrigatórios
+                    if "points" not in data:
+                        data["points"] = 0
+                    if "xp" not in data:
+                        data["xp"] = 0
+                    if "level" not in data:
+                        data["level"] = 1
+                    if "has_completed_questionnaire" not in data:
+                        data["has_completed_questionnaire"] = False
+                    
+                    user_profile = UserProfile(uid=doc.id, **data)
+                    users.append(user_profile)
+            
+            return users
+        except Exception as e:
+            logging.error(f"Erro ao buscar usuários paginados: {e}")
+            return []
+
+    def get_users_count(self) -> int:
+        """Obtém o total de usuários no sistema com query otimizada"""
+        try:
+            # Usar query otimizada - apenas contar documentos sem buscar dados
+            query = self.collection.select([])  # Select vazio = apenas metadados
+            docs = query.stream()
+            return len(list(docs))
+        except Exception as e:
+            logging.error(f"Erro ao contar usuários: {e}")
+            return 0
+
+    def get_users_by_level(self, level: int, limit: int = 50) -> List[UserProfile]:
+        """Busca usuários por nível com query otimizada"""
+        try:
+            # Query otimizada com filtro por nível
+            query = self.collection.where("level", "==", level).limit(limit)
+            docs = query.stream()
+            
+            users = []
+            for doc in docs:
+                data = doc.to_dict()
+                if data:
+                    # Garantir campos obrigatórios
+                    if "points" not in data:
+                        data["points"] = 0
+                    if "xp" not in data:
+                        data["xp"] = 0
+                    if "has_completed_questionnaire" not in data:
+                        data["has_completed_questionnaire"] = False
+                    
+                    user_profile = UserProfile(uid=doc.id, **data)
+                    users.append(user_profile)
+            
+            return users
+        except Exception as e:
+            logging.error(f"Erro ao buscar usuários por nível: {e}")
+            return []
+
+    def get_top_users_by_points(self, limit: int = 10) -> List[UserProfile]:
+        """Busca usuários com mais pontos usando query otimizada"""
+        try:
+            # Query otimizada ordenada por pontos
+            query = self.collection.order_by("points", direction="DESCENDING").limit(limit)
+            docs = query.stream()
+            
+            users = []
+            for doc in docs:
+                data = doc.to_dict()
+                if data:
+                    # Garantir campos obrigatórios
+                    if "xp" not in data:
+                        data["xp"] = 0
+                    if "level" not in data:
+                        data["level"] = 1
+                    if "has_completed_questionnaire" not in data:
+                        data["has_completed_questionnaire"] = False
+                    
+                    user_profile = UserProfile(uid=doc.id, **data)
+                    users.append(user_profile)
+            
+            return users
+        except Exception as e:
+            logging.error(f"Erro ao buscar top usuários: {e}")
             return []
 
 def get_user_repository() -> UserRepository:

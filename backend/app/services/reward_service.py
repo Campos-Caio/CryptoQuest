@@ -31,7 +31,7 @@ class RewardService:
             RewardType.STREAK_30_DAYS: {"points": 1000, "xp": 500, "badge": "streak_30"},
             RewardType.PERFECT_SCORE: {"points": 150, "xp": 75, "badge": "perfectionist"},
             RewardType.FIRST_COMPLETION: {"points": 100, "xp": 50, "badge": "first_steps"},
-            RewardType.LEVEL_UP: {"points": 0, "xp": 0, "badge": "level_up"},
+            RewardType.LEVEL_UP: {"points": 0, "xp": 0, "badge": "level_up"}
         }
 
     async def award_mission_completion(self, user_id: str, mission_id: str, score: float, mission_type: str = 'daily') -> Dict[str, Any]:
@@ -108,10 +108,18 @@ class RewardService:
         
     async def apply_rewards(self, user_id: str, reward_type: RewardType, points: int, xp: int, context: Dict[str, Any]):
         """Aplica recompensas ao usuário"""
-        # Atualiza perfil de usuário 
+        # Buscar pontos atuais do usuário
+        user = self.user_repo.get_user_profile(user_id)
+        if not user:
+            raise ValueError(f"Usuário {user_id} não encontrado")
+        
+        current_points = user.points or 0
+        current_xp = user.xp or 0
+        
+        # Atualiza perfil de usuário com pontos incrementais
         self.user_repo.update_user_Profile(user_id, {
-            'points': points,
-            'xp': xp
+            'points': current_points + points,
+            'xp': current_xp + xp
         })
 
         # Registra recompensa 
@@ -203,10 +211,9 @@ class RewardService:
                 # Usuário subiu de nível
                 old_level = user.level
                 
-                # Atualizar nível do usuário
+                # Atualizar nível do usuário (XP já foi atualizado em apply_rewards)
                 self.user_repo.update_user_profile(user_id, {
-                    'level': new_level,
-                    'xp': total_xp
+                    'level': new_level
                 })
                 
                 # Conceder badge de level up

@@ -80,19 +80,11 @@ async def authenticate_user_endpoint(
         )
 
     id_token = authorization[len("Bearer "):].strip()
-    logger.debug(f"Token recebido com {len(id_token)} caracteres")
-    logger.debug(f"Token (início): {id_token[:30]}...")
+    logger.debug("Token de autenticação recebido")
 
     try:
         firebase_user, user_profile = await auth_service.authenticate_and_get_profile(id_token)
         logger.info(f"Usuário autenticado com sucesso: UID={firebase_user.uid}")
-        
-        # ✅ LOGS DETALHADOS para debug
-        logger.info(f"🔍 [AUTH API] UserProfile retornado:")
-        logger.info(f"🔍 [AUTH API] - UID: {user_profile.uid}")
-        logger.info(f"🔍 [AUTH API] - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
-        logger.info(f"🔍 [AUTH API] - Level: {user_profile.level}")
-        logger.info(f"🔍 [AUTH API] - Points: {user_profile.points}")
         
         return AuthSuccess(
             message="Usuário autenticado com sucesso!",

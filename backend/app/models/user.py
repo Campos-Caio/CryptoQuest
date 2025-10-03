@@ -41,13 +41,7 @@ class UserProfile(BaseModel):
     knowledge_profile: Optional[dict] = None 
     initial_answers: Optional[dict] = None
 
-    class Config: 
-        # Permite que o Pydantic mapeie o campo 'id' do Firestore para 'uid'
-        # e outros campos que possam ser retornados com nomes diferentes.
-        # Mas para Firestore, onde estamos usando uid como ID do documento,
-        # 'uid' será o campo principal.
-        # from_attributes = True # Pydantic v2+ (Antigo: orm_mode = True)
-        pass 
+    model_config = {"from_attributes": True} 
 
 
 class UserProfileUpdate(BaseModel):
