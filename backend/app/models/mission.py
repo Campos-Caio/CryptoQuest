@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field 
-from typing import List, Dict 
+from typing import List, Dict, Any, Optional 
 
 class QuizOption(BaseModel): 
     text: str 
@@ -32,4 +32,17 @@ class QuizSubmision(BaseModel):
                              índice da opção que o usuário selecionou para cada
                              pergunta, na ordem em que foram apresentadas.
     """
-    answers: List[int] 
+    answers: List[int]
+
+
+class EnhancedQuizSubmission(BaseModel):
+    """Submissão de quiz enriquecida com dados para IA"""
+    answers: List[int] = Field(..., description="Respostas selecionadas")
+    
+    # 🆕 Dados comportamentais para IA
+    time_per_question: List[float] = Field(default_factory=list, description="Tempo em segundos por pergunta")
+    confidence_levels: List[float] = Field(default_factory=list, description="Nível de confiança (0-1) por pergunta")
+    hints_used: List[int] = Field(default_factory=list, description="Dicas utilizadas por pergunta")
+    attempts_per_question: List[int] = Field(default_factory=list, description="Tentativas por pergunta")
+    session_metadata: Dict[str, Any] = Field(default_factory=dict, description="Metadados da sessão")
+    device_info: Optional[Dict[str, Any]] = Field(None, description="Informações do dispositivo") 

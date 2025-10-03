@@ -11,6 +11,7 @@ from app.api import quizzes_api
 from app.api import learning_paths_api
 from app.api import ranking_api
 from app.api import rewards_api
+# from app.api import ai_api  # TEMPORARIAMENTE COMENTADO PARA TESTE
 from app.services.event_bus import get_event_bus
 from app.services.badge_engine import get_badge_engine
 from app.services.metrics_collector import get_metrics_collector
@@ -106,6 +107,7 @@ app.include_router(missions_api.router)
 app.include_router(user_api.router)
 app.include_router(quizzes_api.router)
 app.include_router(learning_paths_api.router)
+# app.include_router(ai_api.router)  # 🆕 API de IA - TEMPORARIAMENTE COMENTADO PARA TESTE
 app.include_router(ranking_api.router)
 app.include_router(rewards_api.router)
 

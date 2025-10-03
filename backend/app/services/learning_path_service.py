@@ -2,13 +2,18 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime, UTC
 from app.models.learning_path import LearningPath, UserPathProgress, LearningPathResponse
-from app.models.mission import QuizSubmision
+from app.models.mission import QuizSubmision, EnhancedQuizSubmission
 from app.repositories.learning_path_repository import LearningPathRepository
 from app.core.firebase import get_firestore_db_async
 from app.services.reward_service import RewardService
 from app.services.event_bus import get_event_bus
 from app.models.events import LearningPathCompletedEvent, QuizCompletedEvent, EventType
 from app.core.logging_config import get_cryptoquest_logger, LogCategory
+
+# 🆕 Imports para IA - TEMPORARIAMENTE COMENTADOS PARA TESTE
+# from app.ai.services.ml_engine import get_ml_engine
+# from app.ai.services.recommendation_engine import get_recommendation_engine
+# from app.ai.data.behavioral_data_collector import get_behavioral_collector
 
 logger = logging.getLogger(__name__)
 cryptoquest_logger = get_cryptoquest_logger()
@@ -20,6 +25,11 @@ class LearningPathService:
         self.repository = LearningPathRepository()
         self.reward_service = reward_service
         self.event_bus = get_event_bus()
+        
+        # 🆕 Inicializar serviços de IA - TEMPORARIAMENTE COMENTADOS PARA TESTE
+        # self.ml_engine = get_ml_engine()
+        # self.recommendation_engine = get_recommendation_engine()
+        # self.behavioral_collector = get_behavioral_collector()
     
     # ==================== OPERAÇÕES DE TRILHAS ====================
     
@@ -335,6 +345,148 @@ class LearningPathService:
         except Exception as e:
             logger.error(f"Erro ao buscar próximo módulo: {e}")
             return None
+    
+   
+    async def complete_mission_with_ai(
+        self, 
+        user_id: str, 
+        path_id: str, 
+        mission_id: str, 
+        submission: EnhancedQuizSubmission
+    ) -> Dict[str, Any]:
+        """
+        Completa uma missão com dados comportamentais enriquecidos para análise de IA.
+        
+        Args:
+            user_id: ID do usuário
+            path_id: ID da trilha
+            mission_id: ID da missão
+            submission: Respostas enriquecidas do quiz
+            
+        Returns:
+            Dict com resultado da missão e insights de IA
+        """
+        try:
+            logger.info(f"Completando missão {mission_id} com IA para usuário {user_id}")
+            
+            # 1. 🆕 Coletar dados comportamentais - TEMPORARIAMENTE COMENTADO PARA TESTE
+            # behavioral_data = await self.behavioral_collector.collect_quiz_data(
+            #     user_id=user_id,
+            #     quiz_id=mission_id,
+            #     submission=submission
+            # )
+            
+            # 2. Executar lógica original de completar missão
+            result = await self.complete_mission(
+                user_id=user_id,
+                path_id=path_id,
+                mission_id=mission_id,
+                submission=QuizSubmision(answers=submission.answers)
+            )
+            
+            # 3. 🆕 Análise de IA
+            ai_insights = await self._generate_ai_insights(
+                user_id=user_id,
+                mission_id=mission_id,
+                behavioral_data=behavioral_data,
+                result=result
+            )
+            
+            # 4. 🆕 Adicionar insights de IA ao resultado
+            result.update({
+                "ai_insights": ai_insights,
+                "behavioral_data_collected": True,
+                "session_id": behavioral_data.session_id
+            })
+            
+            cryptoquest_logger.log_business_event(
+                "mission_completed_with_ai",
+                context={
+                    "user_id": user_id,
+                    "mission_id": mission_id,
+                    "ai_insights_generated": len(ai_insights),
+                    "behavioral_data_session": behavioral_data.session_id
+                }
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Erro ao completar missão com IA: {e}")
+            # Fallback para método original
+            return await self.complete_mission(
+                user_id=user_id,
+                path_id=path_id,
+                mission_id=mission_id,
+                submission=QuizSubmision(answers=submission.answers)
+            )
+    
+    async def _generate_ai_insights(
+        self, 
+        user_id: str, 
+        mission_id: str, 
+        behavioral_data, 
+        result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Gera insights de IA baseados nos dados comportamentais"""
+        try:
+            insights = {
+                "learning_pattern": None,
+                "recommendations": [],
+                "difficulty_suggestion": None,
+                "performance_summary": {}
+            }
+            
+            # 1. Análise de padrões de aprendizado - TEMPORARIAMENTE COMENTADO PARA TESTE
+            # quiz_history = await self.behavioral_collector.get_user_behavioral_history(user_id, limit=10)
+            # if quiz_history:
+            #     pattern = await self.ml_engine.analyze_user_patterns(user_id, quiz_history)
+            #     insights["learning_pattern"] = {
+            #         "type": pattern.pattern_type,
+            #         "strength": pattern.strength,
+            #         "context": pattern.context
+            #     }
+            
+            # 2. Gerar recomendações - TEMPORARIAMENTE COMENTADO PARA TESTE
+            # recommendations = await self.recommendation_engine.get_recommendations(user_id, limit=3)
+            # insights["recommendations"] = [
+            #     {
+            #         "content_id": rec.content_id,
+            #         "type": rec.content_type,
+            #         "relevance_score": rec.relevance_score,
+            #         "reasoning": rec.reasoning
+            #     }
+            #     for rec in recommendations
+            # ]
+            
+            # 3. Sugestão de dificuldade - TEMPORARIAMENTE COMENTADO PARA TESTE
+            # performance_metrics = behavioral_data.performance_metrics
+            # difficulty_prediction = self.ml_engine.difficulty_predictor.predict_optimal_difficulty({
+            #     "user_level": 2,  # Seria buscado do perfil do usuário
+            #     "domain_proficiency": performance_metrics.get("avg_confidence", 0.5),
+            #     "avg_response_time": performance_metrics.get("avg_response_time", 30),
+            #     "confidence_level": performance_metrics.get("avg_confidence", 0.5)
+            # })
+            # 
+            # insights["difficulty_suggestion"] = {
+            #     "optimal_difficulty": difficulty_prediction.value,
+            #     "confidence": difficulty_prediction.confidence,
+            #     "reasoning": difficulty_prediction.reasoning
+            # }
+            
+            # 4. Resumo de performance - TEMPORARIAMENTE COMENTADO PARA TESTE
+            # insights["performance_summary"] = {
+            #     "engagement_score": performance_metrics.get("engagement_score", 0.0),
+            #     "response_consistency": performance_metrics.get("response_time_consistency", 0.0),
+            #     "learning_efficiency": performance_metrics.get("avg_confidence", 0.0) * 
+            #                          (1.0 - performance_metrics.get("retry_rate", 0.0))
+            # }
+            
+            return insights
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar insights de IA: {e}")
+            return {"error": str(e)}
     
     # ==================== COMPLETAR MISSÃO ====================
     
