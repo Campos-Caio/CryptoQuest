@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any, Union
+import logging
 from app.models.learning_path import LearningPath, UserPathProgress, LearningPathResponse
 from app.models.user import FirebaseUser
-from app.models.mission import QuizSubmision
+from app.models.mission import QuizSubmision, EnhancedQuizSubmission
 from app.services.learning_path_service import LearningPathService
 from app.services.reward_service import RewardService, get_reward_service
 from app.dependencies.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/learning-paths", tags=["Learning Paths"])
 
@@ -162,7 +165,8 @@ async def get_user_progress(
 @router.get("/{path_id}/stats")
 async def get_path_stats(
     path_id: str,
-    current_user: FirebaseUser = Depends(get_current_user)
+    current_user: FirebaseUser = Depends(get_current_user),
+    service: LearningPathService = Depends(get_service)
 ):
     """
     Busca estatísticas de uma trilha para o usuário
@@ -201,7 +205,7 @@ async def get_path_stats(
 async def complete_learning_path_mission(
     path_id: str,
     mission_id: str,
-    submission: QuizSubmision,
+    submission: Union[QuizSubmision, EnhancedQuizSubmission],
     current_user: FirebaseUser = Depends(get_current_user),
     service: LearningPathService = Depends(get_service)
 ):
@@ -218,12 +222,31 @@ async def complete_learning_path_mission(
         Dict com resultado da missão (score, success, etc.)
     """
     try:
-        result = await service.complete_mission(
-            user_id=current_user.uid,
-            path_id=path_id,
-            mission_id=mission_id,
-            submission=submission
-        )
+        # 🆕 DEBUG: Log do tipo de submission recebido
+        logger.info(f"🔍 [DEBUG] Tipo de submission recebido: {type(submission).__name__}")
+        logger.info(f"🔍 [DEBUG] Submission data: {submission}")
+        logger.info(f"🔍 [DEBUG] Tem time_per_question: {hasattr(submission, 'time_per_question')}")
+        logger.info(f"🔍 [DEBUG] Tem confidence_levels: {hasattr(submission, 'confidence_levels')}")
+        
+        # 🆕 Usar método com IA se submission for EnhancedQuizSubmission
+        if hasattr(submission, 'time_per_question') and hasattr(submission, 'confidence_levels'):
+            # É EnhancedQuizSubmission - usar IA
+            logger.info(f"🤖 [DEBUG] Usando complete_mission_with_ai para usuário {current_user.uid}")
+            result = await service.complete_mission_with_ai(
+                user_id=current_user.uid,
+                path_id=path_id,
+                mission_id=mission_id,
+                submission=submission
+            )
+        else:
+            # É QuizSubmision normal - usar método tradicional
+            logger.info(f"📝 [DEBUG] Usando complete_mission tradicional para usuário {current_user.uid}")
+            result = await service.complete_mission(
+                user_id=current_user.uid,
+                path_id=path_id,
+                mission_id=mission_id,
+                submission=submission
+            )
         return result
     except ValueError as e:
         raise HTTPException(
@@ -233,5 +256,5 @@ async def complete_learning_path_mission(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro interno ao completar missão"
+            detail=f"Erro interno ao completar missão: {str(e)}"
         )

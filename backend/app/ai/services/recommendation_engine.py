@@ -150,7 +150,7 @@ class BasicRecommendationEngine:
                             relevance_score=relevance_score,
                             difficulty_level=self._map_difficulty(content_item['difficulty']),
                             estimated_time=content_item['estimated_time'],
-                            reasoning=f"Identificado gap em {gap['domain']} (severidade: {gap['severity']:.2f})",
+                            reasoning=f"Identificado gap em {gap.domain} (severidade: {gap.gap_severity:.2f})",
                             learning_objectives=content_item['learning_objectives']
                         )
                         recommendations.append(recommendation)
@@ -166,7 +166,7 @@ class BasicRecommendationEngine:
             
             cryptoquest_logger.log_business_event(
                 "recommendations_generated",
-                context={
+                {
                     "user_id": user_id,
                     "recommendations_count": len(recommendations),
                     "top_score": recommendations[0].relevance_score if recommendations else 0

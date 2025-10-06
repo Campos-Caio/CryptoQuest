@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 import logging
 
 from app.models.user import FirebaseUser
-from app.services.auth_service import get_current_user
+from app.dependencies.auth import get_current_user
 from app.ai.models.ai_models import (
     UserKnowledgeProfile, ContentRecommendation, AIPrediction,
     LearningPattern, KnowledgeGap

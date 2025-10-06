@@ -165,11 +165,25 @@ class _QuizPageState extends State<QuizPage> {
         if (widget.isLearningPathMission && widget.pathId != null) {
           // Usar serviço de trilhas de aprendizado
           final learningPathService = LearningPathService();
+          // 🆕 Simular dados comportamentais para IA
+          List<double> timePerQuestion =
+              List.generate(selectedAnswers.length, (i) => 10.0 + (i * 2.5));
+          List<double> confidenceLevels =
+              List.generate(selectedAnswers.length, (i) => 0.7 + (i * 0.1));
+          List<int> hintsUsed =
+              List.generate(selectedAnswers.length, (i) => i % 3 == 0 ? 1 : 0);
+          List<int> attemptsPerQuestion =
+              List.generate(selectedAnswers.length, (i) => 1);
+
           result = await learningPathService.completeMission(
             widget.pathId!,
             widget.missionId,
             selectedAnswers,
             authNotifier.token!,
+            timePerQuestion: timePerQuestion,
+            confidenceLevels: confidenceLevels,
+            hintsUsed: hintsUsed,
+            attemptsPerQuestion: attemptsPerQuestion,
           );
           success = result['success'] == true;
         } else {
@@ -247,9 +261,10 @@ class _QuizPageState extends State<QuizPage> {
   // 🎯 NOVO MÉTODO: Processar recompensas e badges
   Future<void> _processRewardsAndBadges(double percentage) async {
     try {
-      final rewardProvider = Provider.of<RewardProvider>(context, listen: false);
+      final rewardProvider =
+          Provider.of<RewardProvider>(context, listen: false);
       final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-      
+
       if (authNotifier.token != null) {
         // Chamar API de recompensas para processar badges
         final rewardResult = await rewardProvider.awardMissionCompletion(
@@ -272,7 +287,7 @@ class _QuizPageState extends State<QuizPage> {
   // 🎯 NOVO MÉTODO: Mostrar notificação de badges
   void _showBadgeNotification(Map<String, dynamic> rewardResult) {
     final badgesEarned = rewardResult['badges_earned'] as List<dynamic>? ?? [];
-    
+
     if (badgesEarned.isNotEmpty && mounted) {
       // Mostrar snackbar com badges conquistados
       ScaffoldMessenger.of(context).showSnackBar(
@@ -331,7 +346,8 @@ class _QuizPageState extends State<QuizPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.emoji_events, color: Colors.amber, size: 20),
+                        const Icon(Icons.emoji_events,
+                            color: Colors.amber, size: 20),
                         const SizedBox(width: 8),
                         const Text(
                           'Badges processados!',

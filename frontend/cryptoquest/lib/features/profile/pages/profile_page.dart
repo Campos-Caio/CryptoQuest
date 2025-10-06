@@ -1,4 +1,3 @@
-
 import 'package:cryptoquest/features/profile/models/user_profile_update.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/auth/services/auth_service.dart';
@@ -22,7 +21,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-    _nameController = TextEditingController(text: authNotifier.userProfile?.name ?? '');
+    _nameController =
+        TextEditingController(text: authNotifier.userProfile?.name ?? '');
   }
 
   @override
@@ -81,34 +81,40 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
     final updateModel = UserProfileUpdate(
       name: _nameController.text,
-
     );
 
     final success = await authNotifier.updateUserProfile(updateModel);
     if (success) {
       _showMessage("Perfil atualizado com sucesso!");
     } else {
-      _showMessage(authNotifier.errorMessage ?? 'Ocorreu um erro desconhecido.', isError: true);
+      _showMessage(authNotifier.errorMessage ?? 'Ocorreu um erro desconhecido.',
+          isError: true);
     }
   }
 
   Future<void> _updateEmail() async {
-    final newEmail = await _showInputDialog(title: "Alterar E-mail", hint: "Digite o novo e-mail");
+    final newEmail = await _showInputDialog(
+        title: "Alterar E-mail", hint: "Digite o novo e-mail");
     if (newEmail == null || newEmail.isEmpty) return;
 
     final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
     try {
       await _authService.updateEmail(newEmail);
-      _showMessage("Link de confirmação enviado para $newEmail. Por favor, verifique sua caixa de entrada.");
+      _showMessage(
+          "Link de confirmação enviado para $newEmail. Por favor, verifique sua caixa de entrada.");
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login' && mounted) {
         _showMessage("Por segurança, confirme sua senha atual.", isError: true);
-        final password = await _showInputDialog(title: "Confirme sua Identidade", hint: "Digite sua senha atual", isPassword: true);
+        final password = await _showInputDialog(
+            title: "Confirme sua Identidade",
+            hint: "Digite sua senha atual",
+            isPassword: true);
         if (password == null || password.isEmpty) return;
         try {
           await _authService.reauthenticateWithPassword(password);
           await _authService.updateEmail(newEmail);
-          _showMessage("Link de confirmação enviado para $newEmail. Por favor, verifique sua caixa de entrada.");
+          _showMessage(
+              "Link de confirmação enviado para $newEmail. Por favor, verifique sua caixa de entrada.");
         } catch (error) {
           _showMessage("Erro: $error", isError: true);
         }
@@ -121,7 +127,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
   }
 
   Future<void> _updatePassword() async {
-    final newPassword = await _showInputDialog(title: "Alterar Senha", hint: "Digite a nova senha", isPassword: true);
+    final newPassword = await _showInputDialog(
+        title: "Alterar Senha", hint: "Digite a nova senha", isPassword: true);
     if (newPassword == null || newPassword.isEmpty) return;
 
     try {
@@ -130,7 +137,10 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login' && mounted) {
         _showMessage("Por segurança, confirme sua senha atual.", isError: true);
-        final password = await _showInputDialog(title: "Confirme sua Identidade", hint: "Digite sua senha atual", isPassword: true);
+        final password = await _showInputDialog(
+            title: "Confirme sua Identidade",
+            hint: "Digite sua senha atual",
+            isPassword: true);
         if (password == null || password.isEmpty) return;
         try {
           await _authService.reauthenticateWithPassword(password);
@@ -168,7 +178,8 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
                 icon: const Icon(Icons.logout),
                 onPressed: () {
                   authNotifier.logout();
-                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  Navigator.of(context)
+                      .pushNamedAndRemoveUntil('/login', (route) => false);
                 },
               ),
             ],
@@ -178,18 +189,38 @@ class _ProfilePageState extends State<ProfilePage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("Nome de Exibição", style: Theme.of(context).textTheme.titleMedium),
+                Text("Nome de Exibição",
+                    style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 TextField(controller: _nameController),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: authNotifier.isLoading ? null : _saveProfileChanges,
-                  child: authNotifier.isLoading 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  onPressed:
+                      authNotifier.isLoading ? null : _saveProfileChanges,
+                  child: authNotifier.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Text("Salvar Alterações"),
                 ),
                 const Divider(height: 48),
-                Text("Segurança", style: Theme.of(context).textTheme.headlineSmall),
+                Text("Inteligência Artificial",
+                    style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.psychology, color: Colors.green),
+                  title: const Text("Meu Perfil de IA"),
+                  subtitle:
+                      const Text("Veja como a IA analisa seu aprendizado"),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.pushNamed(context, '/ai-profile');
+                  },
+                ),
+                const Divider(height: 48),
+                Text("Segurança",
+                    style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 16),
                 ListTile(
                   leading: const Icon(Icons.email),

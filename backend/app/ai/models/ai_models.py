@@ -141,7 +141,7 @@ class UserBehavioralData(BaseModel):
     user_id: str = Field(..., description="ID do usuário")
     session_id: str = Field(..., description="ID da sessão")
     quiz_id: str = Field(..., description="ID do quiz")
-    submission_data: EnhancedQuizSubmission = Field(..., description="Dados da submissão")
+    submission_data: Dict[str, Any] = Field(..., description="Dados da submissão")
     performance_metrics: Dict[str, Any] = Field(default_factory=dict, description="Métricas de performance")
     collected_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

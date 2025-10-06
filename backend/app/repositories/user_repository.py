@@ -24,10 +24,7 @@ class UserRepository:
         }
 
         self.collection.document(uid).set(user_data)
-<<<<<<< HEAD
-=======
         print(f"🔍 [UserRepository] Perfil criado no Firestore com dados: {user_data}")
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         # Retorna o UserProfile Completo
         user_profile = UserProfile(
@@ -117,21 +114,14 @@ class UserRepository:
                     data["current_streak"] = 0
                 if "average_score" not in data:
                     data["average_score"] = 0
-<<<<<<< HEAD
                 if "current_streak" not in data:
                     data["current_streak"] = 0
-=======
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
                 
                 user_profile = UserProfile(uid=doc.id, **data)
                 users.append(user_profile)
             return users
         except Exception as e:
-<<<<<<< HEAD
             logging.error(f"Erro ao buscar todos os usuários: {e}")
-=======
-            print(f"Erro ao buscar todos os usuários: {e}")
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             return []
 
     def get_users_by_activity_period(self, start_date: datetime, end_date: datetime) -> List[UserProfile]:
@@ -141,7 +131,6 @@ class UserRepository:
             # Em uma implementação mais robusta, filtraria por data de última atividade
             return self.get_all_users()
         except Exception as e:
-<<<<<<< HEAD
             logging.error(f"Erro ao buscar usuários por período: {e}")
             return []
 
@@ -237,9 +226,6 @@ class UserRepository:
             return users
         except Exception as e:
             logging.error(f"Erro ao buscar top usuários: {e}")
-=======
-            print(f"Erro ao buscar usuários por período: {e}")
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             return []
 
 def get_user_repository() -> UserRepository:

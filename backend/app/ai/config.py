@@ -3,7 +3,7 @@ Configurações do sistema de IA do CryptoQuest.
 """
 import os
 from typing import Dict, Any, List
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class AIConfig(BaseSettings):

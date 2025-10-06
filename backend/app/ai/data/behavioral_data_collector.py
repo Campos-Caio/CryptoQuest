@@ -13,6 +13,7 @@ from app.ai.models.ai_models import (
 )
 from app.ai.config import ai_config
 from app.core.logging_config import get_cryptoquest_logger, LogCategory
+from app.core.firebase import get_firestore_db_async
 
 logger = logging.getLogger(__name__)
 cryptoquest_logger = get_cryptoquest_logger()
@@ -22,10 +23,17 @@ class BehavioralDataCollector:
     """Coletor de dados comportamentais dos usuários"""
     
     def __init__(self):
-        self.data_storage = {}  # Em produção, seria um banco de dados
+        self.data_storage = {}  # Cache local para performance
         self.session_tracking = {}
+        self.db = None  # Será inicializado quando necessário
         
         cryptoquest_logger.log_system_event("behavioral_data_collector_initialized")
+    
+    async def _get_db(self):
+        """Inicializa conexão com Firestore se necessário"""
+        if self.db is None:
+            self.db = await get_firestore_db_async()
+        return self.db
     
     async def collect_quiz_data(self, user_id: str, quiz_id: str, 
                                submission: EnhancedQuizSubmission) -> UserBehavioralData:
@@ -42,7 +50,7 @@ class BehavioralDataCollector:
                 user_id=user_id,
                 session_id=session_id,
                 quiz_id=quiz_id,
-                submission_data=submission,
+                submission_data=submission.model_dump(),  # Converter para dict
                 performance_metrics=performance_metrics,
                 collected_at=datetime.now(UTC)
             )
@@ -56,7 +64,7 @@ class BehavioralDataCollector:
             # Log do evento
             cryptoquest_logger.log_business_event(
                 "behavioral_data_collected",
-                context={
+                {
                     "user_id": user_id,
                     "quiz_id": quiz_id,
                     "session_id": session_id,
@@ -154,9 +162,35 @@ class BehavioralDataCollector:
         return min(1.0, engagement)
     
     async def _store_behavioral_data(self, data: UserBehavioralData):
-        """Armazena dados comportamentais (simulado - seria banco de dados)"""
+        """Armazena dados comportamentais no Firestore"""
         try:
-            # Em produção, salvar no banco de dados
+            db = await self._get_db()
+            
+            # Estrutura organizada no Firestore
+            behavioral_doc = {
+                "user_id": data.user_id,
+                "session_id": data.session_id,
+                "quiz_id": data.quiz_id,
+                "submission_data": {
+                    "answers": data.submission_data.answers,
+                    "time_per_question": data.submission_data.time_per_question,
+                    "confidence_levels": data.submission_data.confidence_levels,
+                    "hints_used": data.submission_data.hints_used,
+                    "attempts_per_question": data.submission_data.attempts_per_question,
+                    "session_metadata": data.submission_data.session_metadata,
+                    "device_info": data.submission_data.device_info
+                },
+                "performance_metrics": data.performance_metrics,
+                "collected_at": data.collected_at,
+                "created_at": datetime.now(UTC),
+                "data_version": "1.0"
+            }
+            
+            # Salvar na coleção 'ai_behavioral_data'
+            doc_ref = db.collection("ai_behavioral_data").document(data.session_id)
+            await doc_ref.set(behavioral_doc)
+            
+            # Atualizar cache local para performance
             if data.user_id not in self.data_storage:
                 self.data_storage[data.user_id] = []
             
@@ -167,31 +201,118 @@ class BehavioralDataCollector:
                 "collected_at": data.collected_at.isoformat()
             })
             
-            # Limitar histórico para evitar crescimento excessivo
+            # Limitar cache local para evitar crescimento excessivo
             if len(self.data_storage[data.user_id]) > 100:
                 self.data_storage[data.user_id] = self.data_storage[data.user_id][-50:]
+            
+            logger.info(f"Dados comportamentais salvos no Firestore: {data.session_id}")
                 
         except Exception as e:
-            logger.error(f"Erro ao armazenar dados comportamentais: {e}")
+            logger.error(f"Erro ao armazenar dados comportamentais no Firestore: {e}")
+            # Fallback para cache local em caso de erro
+            if data.user_id not in self.data_storage:
+                self.data_storage[data.user_id] = []
+            self.data_storage[data.user_id].append({
+                "session_id": data.session_id,
+                "quiz_id": data.quiz_id,
+                "performance_metrics": data.performance_metrics,
+                "collected_at": data.collected_at.isoformat()
+            })
     
     async def _update_knowledge_profile(self, user_id: str, behavioral_data: UserBehavioralData):
-        """Atualiza perfil de conhecimento do usuário"""
+        """Atualiza perfil de conhecimento do usuário no Firestore"""
         try:
-            # Em produção, buscar e atualizar no banco de dados
-            # Por enquanto, simular atualização
+            db = await self._get_db()
             
             metrics = behavioral_data.performance_metrics
             quiz_id = behavioral_data.quiz_id
             
-            # Determinar domínio baseado no quiz_id (simulação)
+            # Determinar domínio baseado no quiz_id
             domain = self._determine_domain_from_quiz(quiz_id)
             
             # Calcular proficiência baseada na performance
             proficiency = self._calculate_domain_proficiency(metrics)
             
+            # Buscar perfil existente ou criar novo
+            profile_ref = db.collection("ai_knowledge_profiles").document(user_id)
+            profile_doc = await profile_ref.get()
+            
+            if profile_doc.exists:
+                # Atualizar perfil existente
+                profile_data = profile_doc.to_dict()
+                domains = profile_data.get("domains", {})
+                
+                # Atualizar domínio específico
+                if domain in domains:
+                    # Calcular média ponderada com dados existentes
+                    existing_proficiency = domains[domain].get("proficiency_level", 0.5)
+                    existing_questions = domains[domain].get("total_questions", 0)
+                    new_questions = metrics.get("total_questions", 1)
+                    
+                    # Média ponderada: (existing * existing_questions + new * new_questions) / total
+                    total_questions = existing_questions + new_questions
+                    new_proficiency = (existing_proficiency * existing_questions + proficiency * new_questions) / total_questions
+                    
+                    domains[domain].update({
+                        "proficiency_level": new_proficiency,
+                        "total_questions": total_questions,
+                        "correct_answers": domains[domain].get("correct_answers", 0) + metrics.get("total_questions", 0),
+                        "average_response_time": (domains[domain].get("average_response_time", 0) + metrics.get("avg_response_time", 0)) / 2,
+                        "last_updated": datetime.now(UTC)
+                    })
+                else:
+                    # Novo domínio
+                    domains[domain] = {
+                        "domain": domain,
+                        "proficiency_level": proficiency,
+                        "confidence": 0.7,  # Confiança inicial
+                        "last_updated": datetime.now(UTC),
+                        "evidence_sources": [quiz_id],
+                        "total_questions": metrics.get("total_questions", 1),
+                        "correct_answers": metrics.get("total_questions", 0),
+                        "average_response_time": metrics.get("avg_response_time", 0),
+                        "difficulty_preference": 0.5
+                    }
+                
+                # Atualizar perfil geral
+                profile_data.update({
+                    "domains": domains,
+                    "updated_at": datetime.now(UTC),
+                    "engagement_score": (profile_data.get("engagement_score", 0) + metrics.get("engagement_score", 0)) / 2
+                })
+                
+                await profile_ref.update(profile_data)
+            else:
+                # Criar novo perfil
+                new_profile = {
+                    "user_id": user_id,
+                    "domains": {
+                        domain: {
+                            "domain": domain,
+                            "proficiency_level": proficiency,
+                            "confidence": 0.7,
+                            "last_updated": datetime.now(UTC),
+                            "evidence_sources": [quiz_id],
+                            "total_questions": metrics.get("total_questions", 1),
+                            "correct_answers": metrics.get("total_questions", 0),
+                            "average_response_time": metrics.get("avg_response_time", 0),
+                            "difficulty_preference": 0.5
+                        }
+                    },
+                    "learning_style": "mixed",
+                    "pace_preference": "medium",
+                    "difficulty_preference": 0.5,
+                    "engagement_score": metrics.get("engagement_score", 0),
+                    "retention_rate": 0.0,
+                    "created_at": datetime.now(UTC),
+                    "updated_at": datetime.now(UTC)
+                }
+                
+                await profile_ref.set(new_profile)
+            
             cryptoquest_logger.log_business_event(
                 "knowledge_profile_updated",
-                context={
+                {
                     "user_id": user_id,
                     "domain": domain,
                     "proficiency": proficiency,
@@ -237,39 +358,76 @@ class BehavioralDataCollector:
     
     async def get_user_behavioral_history(self, user_id: str, 
                                         limit: int = 50) -> List[Dict[str, Any]]:
-        """Retorna histórico de dados comportamentais do usuário"""
+        """Retorna histórico de dados comportamentais do usuário do Firestore"""
         try:
-            user_data = self.data_storage.get(user_id, [])
-            return user_data[-limit:]  # Últimos N registros
+            db = await self._get_db()
+            
+            # Buscar dados do Firestore
+            query = (db.collection("ai_behavioral_data")
+                    .where("user_id", "==", user_id)
+                    .order_by("collected_at", direction="DESCENDING")
+                    .limit(limit))
+            
+            docs = await query.get()
+            
+            behavioral_history = []
+            for doc in docs:
+                data = doc.to_dict()
+                behavioral_history.append({
+                    "session_id": data.get("session_id"),
+                    "quiz_id": data.get("quiz_id"),
+                    "performance_metrics": data.get("performance_metrics", {}),
+                    "collected_at": data.get("collected_at").isoformat() if data.get("collected_at") else None
+                })
+            
+            # Atualizar cache local para performance
+            self.data_storage[user_id] = behavioral_history
+            
+            return behavioral_history
             
         except Exception as e:
-            logger.error(f"Erro ao buscar histórico comportamental: {e}")
-            return []
+            logger.error(f"Erro ao buscar histórico comportamental do Firestore: {e}")
+            # Fallback para cache local
+            user_data = self.data_storage.get(user_id, [])
+            return user_data[-limit:] if user_data else []
     
     async def get_user_performance_summary(self, user_id: str) -> Dict[str, Any]:
-        """Retorna resumo de performance do usuário"""
+        """Retorna resumo de performance do usuário do Firestore"""
         try:
-            user_data = self.data_storage.get(user_id, [])
+            # Buscar dados do Firestore
+            behavioral_history = await self.get_user_behavioral_history(user_id, limit=100)
             
-            if not user_data:
+            if not behavioral_history:
                 return {"status": "no_data"}
             
             # Calcular médias
-            all_metrics = [item['performance_metrics'] for item in user_data]
+            all_metrics = [item['performance_metrics'] for item in behavioral_history if item.get('performance_metrics')]
+            
+            if not all_metrics:
+                return {"status": "no_metrics"}
             
             avg_response_time = sum(m.get('avg_response_time', 0) for m in all_metrics) / len(all_metrics)
             avg_confidence = sum(m.get('avg_confidence', 0) for m in all_metrics) / len(all_metrics)
             avg_engagement = sum(m.get('engagement_score', 0) for m in all_metrics) / len(all_metrics)
             
+            # Calcular tendência
+            performance_trend = "stable"
+            if len(all_metrics) > 1:
+                recent_engagement = all_metrics[0].get('engagement_score', 0)
+                older_engagement = all_metrics[-1].get('engagement_score', 0)
+                if recent_engagement > older_engagement + 0.1:
+                    performance_trend = "improving"
+                elif recent_engagement < older_engagement - 0.1:
+                    performance_trend = "declining"
+            
             return {
-                "total_sessions": len(user_data),
-                "avg_response_time": avg_response_time,
-                "avg_confidence": avg_confidence,
-                "avg_engagement_score": avg_engagement,
-                "last_session": user_data[-1]['collected_at'] if user_data else None,
-                "performance_trend": "improving" if len(user_data) > 1 and 
-                                   all_metrics[-1].get('engagement_score', 0) > 
-                                   all_metrics[0].get('engagement_score', 0) else "stable"
+                "total_sessions": len(behavioral_history),
+                "avg_response_time": round(avg_response_time, 2),
+                "avg_confidence": round(avg_confidence, 3),
+                "avg_engagement_score": round(avg_engagement, 3),
+                "last_session": behavioral_history[0]['collected_at'] if behavioral_history else None,
+                "performance_trend": performance_trend,
+                "data_source": "firestore"
             }
             
         except Exception as e:
@@ -277,7 +435,7 @@ class BehavioralDataCollector:
             return {"status": "error", "message": str(e)}
     
     async def start_learning_session(self, user_id: str, session_type: str = "quiz") -> str:
-        """Inicia uma nova sessão de aprendizado"""
+        """Inicia uma nova sessão de aprendizado e salva no Firestore"""
         try:
             session_id = f"{user_id}_{session_type}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             
@@ -287,8 +445,27 @@ class BehavioralDataCollector:
                 start_time=datetime.now(UTC)
             )
             
+            # Salvar no Firestore
+            db = await self._get_db()
+            session_doc = {
+                "session_id": session_id,
+                "user_id": user_id,
+                "start_time": session.start_time,
+                "end_time": None,
+                "quizzes_completed": [],
+                "total_time_spent": 0.0,
+                "average_confidence": 0.0,
+                "learning_style_detected": None,
+                "difficulty_adaptations": [],
+                "created_at": datetime.now(UTC)
+            }
+            
+            await db.collection("ai_learning_sessions").document(session_id).set(session_doc)
+            
+            # Manter no cache local para performance
             self.session_tracking[session_id] = session
             
+            logger.info(f"Sessão de aprendizado iniciada: {session_id}")
             return session_id
             
         except Exception as e:
@@ -296,7 +473,7 @@ class BehavioralDataCollector:
             return ""
     
     async def end_learning_session(self, session_id: str) -> Dict[str, Any]:
-        """Finaliza uma sessão de aprendizado"""
+        """Finaliza uma sessão de aprendizado e atualiza no Firestore"""
         try:
             session = self.session_tracking.get(session_id)
             if not session:
@@ -316,9 +493,24 @@ class BehavioralDataCollector:
                 "difficulty_adaptations": len(session.difficulty_adaptations)
             }
             
+            # Atualizar no Firestore
+            db = await self._get_db()
+            session_doc = {
+                "end_time": session.end_time,
+                "total_time_spent": session.total_time_spent,
+                "quizzes_completed": session.quizzes_completed,
+                "average_confidence": session.average_confidence,
+                "learning_style_detected": session.learning_style_detected,
+                "difficulty_adaptations": session.difficulty_adaptations,
+                "updated_at": datetime.now(UTC)
+            }
+            
+            await db.collection("ai_learning_sessions").document(session_id).update(session_doc)
+            
             # Remover da tracking ativa
             del self.session_tracking[session_id]
             
+            logger.info(f"Sessão de aprendizado finalizada: {session_id}")
             return session_summary
             
         except Exception as e:

@@ -107,15 +107,50 @@ class LearningPathService {
 
   /// Conclui uma missão e atualiza o progresso
   Future<Map<String, dynamic>> completeMission(
-      String pathId, String missionId, List<int> answers, String token) async {
+      String pathId, String missionId, List<int> answers, String token,
+      {List<double>? timePerQuestion,
+      List<double>? confidenceLevels,
+      List<int>? hintsUsed,
+      List<int>? attemptsPerQuestion}) async {
     try {
+      // 🆕 Preparar dados enriquecidos para IA
+      Map<String, dynamic> submissionData = {
+        'answers': answers,
+      };
+
+      // Adicionar dados comportamentais se disponíveis
+      if (timePerQuestion != null) {
+        submissionData['time_per_question'] = timePerQuestion;
+      }
+      if (confidenceLevels != null) {
+        submissionData['confidence_levels'] = confidenceLevels;
+      }
+      if (hintsUsed != null) {
+        submissionData['hints_used'] = hintsUsed;
+      }
+      if (attemptsPerQuestion != null) {
+        submissionData['attempts_per_question'] = attemptsPerQuestion;
+      }
+
+      // Adicionar metadados da sessão
+      submissionData['session_metadata'] = {
+        'device_type': 'mobile', // Seria detectado dinamicamente
+        'browser': 'flutter',
+        'session_duration': 300, // Seria calculado dinamicamente
+      };
+
+      // Adicionar informações do dispositivo
+      submissionData['device_info'] = {
+        'os': 'Android', // Seria detectado dinamicamente
+        'version': '12',
+        'screen_resolution': '1080x1920',
+      };
+
       final response = await http.post(
         Uri.parse(
             '$baseUrl/learning-paths/$pathId/missions/$missionId/complete'),
         headers: _getHeaders(token),
-        body: json.encode({
-          'answers': answers,
-        }),
+        body: json.encode(submissionData),
       );
 
       if (response.statusCode == 200) {

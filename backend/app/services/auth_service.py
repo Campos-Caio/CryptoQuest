@@ -31,7 +31,6 @@ class AuthService:
 
             logger.debug(f"Buscando perfil no Firestore para UID: {uid}")
             user_profile = self.user_repo.get_user_profile(uid)
-<<<<<<< HEAD
             
             # Log de autenticação bem-sucedida
             cryptoquest_logger.log_security_event(
@@ -39,8 +38,6 @@ class AuthService:
                 "INFO",
                 {"user_id": uid, "email": email}
             )
-=======
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
             if not user_profile:
                 logger.warning(f"Perfil do usuário {uid} não encontrado. Criando novo perfil.")

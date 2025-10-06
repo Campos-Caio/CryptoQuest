@@ -144,7 +144,11 @@ class LearningPathProvider with ChangeNotifier {
 
   /// Conclui uma missão
   Future<bool> completeMission(
-      String pathId, String missionId, List<int> answers, String? token) async {
+      String pathId, String missionId, List<int> answers, String? token,
+      {List<double>? timePerQuestion,
+      List<double>? confidenceLevels,
+      List<int>? hintsUsed,
+      List<int>? attemptsPerQuestion}) async {
     if (token == null) {
       _errorMessage = 'Token de autenticação não encontrado';
       return false;
@@ -157,8 +161,16 @@ class LearningPathProvider with ChangeNotifier {
     try {
       if (kDebugMode) {}
 
-      final result =
-          await _service.completeMission(pathId, missionId, answers, token);
+      final result = await _service.completeMission(
+        pathId,
+        missionId,
+        answers,
+        token,
+        timePerQuestion: timePerQuestion,
+        confidenceLevels: confidenceLevels,
+        hintsUsed: hintsUsed,
+        attemptsPerQuestion: attemptsPerQuestion,
+      );
 
       // Atualiza o progresso
       if (result['progress'] != null) {

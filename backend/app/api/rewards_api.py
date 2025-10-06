@@ -80,15 +80,18 @@ async def get_available_badges_for_user(
 
 @router.post("/award/mission")
 async def award_mission_completion(
-    user_id: str,
-    mission_id: str,
-    score: float,
-    mission_type: str = "daily",
+    request_data: dict,
     current_user: FirebaseUser = Depends(get_current_user),
     reward_service: RewardService = Depends(get_reward_service)
 ):
     """Concede recompensas por conclusão de missão (sistema legado)"""
     try:
+        # Extrair dados do request body
+        user_id = request_data.get('user_id')
+        mission_id = request_data.get('mission_id')
+        score = request_data.get('score')
+        mission_type = request_data.get('mission_type', 'daily')
+        
         if current_user.uid != user_id:
             raise HTTPException(status_code=403, detail="Acesso negado")
         

@@ -1,10 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
-<<<<<<< HEAD
 from datetime import datetime, UTC
-=======
-from datetime import datetime
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from enum import Enum
 
 
@@ -33,11 +29,7 @@ class Ranking(BaseModel):
     period: str 
     entries: List["RankingEntry"] = Field(default_factory=list)
     total_users: int 
-<<<<<<< HEAD
     generated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-=======
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     context: Dict[str, Any] = Field(default_factory=dict)
 
 class UserRankingStats(BaseModel): 
@@ -48,9 +40,5 @@ class UserRankingStats(BaseModel):
     level_rank: int
     total_users: int 
     percentile: float 
-<<<<<<< HEAD
     last_update: datetime = Field(default_factory=lambda: datetime.now(UTC))
-=======
-    last_update: datetime = Field(default_factory=datetime.utcnow)
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     

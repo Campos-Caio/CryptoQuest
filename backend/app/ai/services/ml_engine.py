@@ -396,7 +396,7 @@ class MLEngine:
             
             cryptoquest_logger.log_business_event(
                 "learning_pattern_analyzed",
-                context={
+                {
                     "user_id": user_id,
                     "pattern_type": pattern_type,
                     "strength": strength

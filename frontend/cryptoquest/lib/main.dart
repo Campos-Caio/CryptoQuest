@@ -13,6 +13,7 @@ import 'package:cryptoquest/features/rewards/providers/reward_provider.dart';
 import 'package:cryptoquest/features/ranking/providers/ranking_provider.dart';
 import 'package:cryptoquest/features/rewards/pages/rewards_page.dart';
 import 'package:cryptoquest/features/ranking/pages/ranking_page.dart';
+import 'package:cryptoquest/features/ai/pages/ai_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -89,6 +90,7 @@ class MyApp extends StatelessWidget {
         },
         '/rewards': (context) => const RewardsPage(),
         '/ranking': (context) => const RankingPage(),
+        '/ai-profile': (context) => const AIProfilePage(),
       },
     );
   }
