@@ -111,6 +111,46 @@ class BasicRecommendationEngine:
             }
         }
     
+    async def _get_user_profile_from_firestore(self, user_id: str) -> Dict[str, Any]:
+        """Busca perfil real do usuário do Firestore"""
+        try:
+            from app.core.firebase import get_firestore_db_async
+            db = await get_firestore_db_async()
+            
+            # Buscar perfil de conhecimento
+            profile_ref = db.collection("ai_knowledge_profiles").document(user_id)
+            profile_doc = await profile_ref.get()
+            
+            if profile_doc.exists:
+                profile_data = profile_doc.to_dict()
+                return {
+                    "user_id": user_id,
+                    "domains": profile_data.get("domains", {}),
+                    "learning_style": profile_data.get("learning_style", "mixed"),
+                    "engagement_score": profile_data.get("engagement_score", 0.5),
+                    "data_points": profile_data.get("total_questions", 0)
+                }
+            else:
+                # Perfil não existe - retornar perfil padrão
+                return {
+                    "user_id": user_id,
+                    "domains": {},
+                    "learning_style": "mixed",
+                    "engagement_score": 0.5,
+                    "data_points": 0
+                }
+                
+        except Exception as e:
+            logger.error(f"Erro ao buscar perfil do usuário: {e}")
+            # Retornar perfil padrão em caso de erro
+            return {
+                "user_id": user_id,
+                "domains": {},
+                "learning_style": "mixed",
+                "engagement_score": 0.5,
+                "data_points": 0
+            }
+    
     async def get_recommendations(self, user_id: str, limit: int = 5) -> List[ContentRecommendation]:
         """Gera recomendações personalizadas para o usuário"""
         try:
@@ -121,8 +161,8 @@ class BasicRecommendationEngine:
                 if datetime.now(UTC).timestamp() - cached_time < 900:  # 15 minutos
                     return self.recommendation_cache[cache_key]['recommendations']
             
-            # Buscar perfil do usuário (simulado - seria do banco de dados)
-            user_profile = await self._get_user_profile(user_id)
+            # ✅ CORREÇÃO: Buscar perfil real do usuário do Firestore
+            user_profile = await self._get_user_profile_from_firestore(user_id)
             
             # Identificar gaps de conhecimento
             knowledge_gaps = self._identify_knowledge_gaps(user_profile)
@@ -130,7 +170,7 @@ class BasicRecommendationEngine:
             # Gerar recomendações
             recommendations = []
             
-            # Recomendar conteúdo para gaps prioritários
+            # ✅ ESTRATÉGIA 1: Recomendar conteúdo para gaps prioritários
             for gap in knowledge_gaps[:limit]:
                 content_items = self._find_content_for_gap(gap)
                 
@@ -154,6 +194,16 @@ class BasicRecommendationEngine:
                             learning_objectives=content_item['learning_objectives']
                         )
                         recommendations.append(recommendation)
+            
+            # ✅ ESTRATÉGIA 2: Se não há gaps ou poucas recomendações, sugerir próximo nível
+            if len(recommendations) < limit:
+                next_level_recommendations = self._get_next_level_recommendations(user_profile, limit - len(recommendations))
+                recommendations.extend(next_level_recommendations)
+            
+            # ✅ ESTRATÉGIA 3: Se ainda não há recomendações suficientes, sugerir conteúdo popular
+            if len(recommendations) < limit:
+                popular_recommendations = self._get_popular_recommendations(user_profile, limit - len(recommendations))
+                recommendations.extend(popular_recommendations)
             
             # Ordenar por score de relevância
             recommendations.sort(key=lambda x: x.relevance_score, reverse=True)
@@ -254,6 +304,93 @@ class BasicRecommendationEngine:
                     suitable_content.append(content_data)
         
         return suitable_content
+    
+    def _get_next_level_recommendations(self, user_profile: Dict[str, Any], limit: int) -> List[ContentRecommendation]:
+        """Recomenda conteúdo do próximo nível baseado no progresso do usuário"""
+        recommendations = []
+        domains = user_profile.get('domains', {})
+        
+        for domain, domain_data in domains.items():
+            if len(recommendations) >= limit:
+                break
+                
+            proficiency = domain_data.get('proficiency_level', 0.0)
+            
+            # Se o usuário tem boa proficiência (>= 0.7), sugerir próximo nível
+            if proficiency >= 0.7:
+                next_level_content = self._find_next_level_content(domain, proficiency)
+                for content_item in next_level_content:
+                    if len(recommendations) >= limit:
+                        break
+                    
+                    recommendation = ContentRecommendation(
+                        content_id=content_item['id'],
+                        content_type=content_item['type'],
+                        relevance_score=0.8,  # Score alto para próximo nível
+                        difficulty_level=self._map_difficulty(content_item['difficulty']),
+                        estimated_time=content_item['estimated_time'],
+                        reasoning=f"Próximo nível em {domain} (proficiência atual: {proficiency:.2f})",
+                        learning_objectives=content_item['learning_objectives']
+                    )
+                    recommendations.append(recommendation)
+        
+        return recommendations
+    
+    def _get_popular_recommendations(self, user_profile: Dict[str, Any], limit: int) -> List[ContentRecommendation]:
+        """Recomenda conteúdo popular para usuários novos ou sem gaps específicos"""
+        recommendations = []
+        
+        # Conteúdo popular baseado em domínios fundamentais
+        popular_content = [
+            'bitcoin_fundamentals_quiz',
+            'blockchain_101_quiz',
+            'wallet_security_quiz',
+            'trading_basics_quiz',
+            'defi_overview_quiz'
+        ]
+        
+        for content_id in popular_content:
+            if len(recommendations) >= limit:
+                break
+                
+            if content_id in self.content_database:
+                content_item = self.content_database[content_id]
+                
+                recommendation = ContentRecommendation(
+                    content_id=content_item['id'],
+                    content_type=content_item['type'],
+                    relevance_score=0.6,  # Score médio para conteúdo popular
+                    difficulty_level=self._map_difficulty(content_item['difficulty']),
+                    estimated_time=content_item['estimated_time'],
+                    reasoning="Conteúdo fundamental recomendado para todos os usuários",
+                    learning_objectives=content_item['learning_objectives']
+                )
+                recommendations.append(recommendation)
+        
+        return recommendations
+    
+    def _find_next_level_content(self, domain: str, current_proficiency: float) -> List[Dict[str, Any]]:
+        """Encontra conteúdo do próximo nível para um domínio"""
+        next_level_content = []
+        
+        # Mapear domínios para conteúdo de próximo nível
+        next_level_mapping = {
+            'bitcoin_basics': ['blockchain_101_quiz', 'consensus_mechanisms_lesson'],
+            'blockchain_technology': ['defi_overview_quiz', 'smart_contracts_101'],
+            'defi': ['liquidity_pools_lesson', 'yield_farming_quiz'],
+            'crypto_trading': ['market_analysis_lesson', 'risk_management_quiz'],
+        }
+        
+        # Buscar conteúdo do próximo nível
+        next_content_ids = next_level_mapping.get(domain, [])
+        for content_id in next_content_ids:
+            if content_id in self.content_database:
+                content_item = self.content_database[content_id]
+                # Verificar se a dificuldade é apropriada para o próximo nível
+                if content_item['difficulty'] > current_proficiency + 0.1:
+                    next_level_content.append(content_item)
+        
+        return next_level_content
     
     def _calculate_relevance_score(self, content_item: Dict[str, Any], 
                                  gap: KnowledgeGap, user_profile: Dict[str, Any]) -> float:

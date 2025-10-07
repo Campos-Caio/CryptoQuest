@@ -71,11 +71,11 @@ class RewardRepository:
             return default
         return value
 
-    def save_user_reward(self, user_reward: UserReward):
+    async def save_user_reward(self, user_reward: UserReward):
         """Salva recompensa do usuário"""
         try:
             doc_ref = self.db.collection("user_rewards").document()
-            doc_ref.set(user_reward.model_dump())
+            await doc_ref.set(user_reward.model_dump())
         except Exception as e:
             logger.error(f"Erro ao salvar recompensa: {e}")
             raise

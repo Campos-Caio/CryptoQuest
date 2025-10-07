@@ -38,6 +38,18 @@ class _QuizPageState extends State<QuizPage> {
   bool _isAnswerSubmitted = false; // Se a resposta foi enviada
   bool _isAnswerCorrect = false; // Se a resposta está correta
 
+  // 🆕 COLETA DE DADOS COMPORTAMENTAIS REAIS PARA IA
+  DateTime? _questionStartTime; // Momento em que a questão foi exibida
+  DateTime? _quizStartTime; // Momento em que o quiz começou
+  List<double> _realTimePerQuestion =
+      []; // Tempo real gasto em cada questão (segundos)
+  List<int> _attemptsPerQuestion = []; // Número de tentativas por questão
+  int _currentQuestionAttempts = 0; // Tentativas na questão atual
+
+  // Dados que podem ser coletados futuramente:
+  // List<double> _confidenceLevels = []; // Nível de confiança do usuário (0-1)
+  // List<int> _hintsUsed = []; // Número de dicas usadas por questão
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +68,16 @@ class _QuizPageState extends State<QuizPage> {
         setState(() {
           quiz = loadedQuiz;
           selectedAnswers = List.filled(loadedQuiz.questions.length, -1);
+
+          // 🆕 Inicializar coleta de dados comportamentais
+          _quizStartTime = DateTime.now();
+          _questionStartTime = DateTime.now(); // Primeira questão começa agora
+          _realTimePerQuestion = [];
+          _attemptsPerQuestion = List.filled(loadedQuiz.questions.length, 0);
+          _currentQuestionAttempts = 0;
+
+          print('🎯 [IA] Quiz iniciado às ${_quizStartTime}');
+          print('🎯 [IA] Timer da primeira questão iniciado');
         });
       }
     }
@@ -64,6 +86,24 @@ class _QuizPageState extends State<QuizPage> {
   // NOVO MÉTODO: Processar seleção de resposta
   void _selectAnswer(int answerIndex) {
     if (_isAnswerSubmitted) return; // Evita múltiplas seleções
+
+    // 🆕 CALCULAR TEMPO REAL gasto na questão
+    if (_questionStartTime != null) {
+      final elapsed = DateTime.now().difference(_questionStartTime!);
+      final timeInSeconds =
+          elapsed.inMilliseconds / 1000.0; // Precisão em milissegundos
+      _realTimePerQuestion.add(timeInSeconds);
+
+      print(
+          '🎯 [IA] Questão ${currentQuestionIndex + 1}: ${timeInSeconds.toStringAsFixed(2)}s');
+    }
+
+    // 🆕 REGISTRAR tentativa
+    _currentQuestionAttempts++;
+    _attemptsPerQuestion[currentQuestionIndex] = _currentQuestionAttempts;
+
+    print(
+        '🎯 [IA] Tentativa #${_currentQuestionAttempts} na questão ${currentQuestionIndex + 1}');
 
     setState(() {
       _selectedAnswerIndex = answerIndex;
@@ -95,9 +135,17 @@ class _QuizPageState extends State<QuizPage> {
         _correctAnswerIndex = null;
         _isAnswerSubmitted = false;
         _isAnswerCorrect = false;
+
+        // 🆕 RESETAR timer e tentativas para próxima questão
+        _questionStartTime = DateTime.now();
+        _currentQuestionAttempts = 0;
+
+        print('🎯 [IA] Avançou para questão ${currentQuestionIndex + 1}');
+        print('🎯 [IA] Timer da questão ${currentQuestionIndex + 1} iniciado');
       });
     } else {
       // Última pergunta - submeter o quiz
+      print('🎯 [IA] Finalizando quiz...');
       _submitQuiz();
     }
   }
@@ -165,25 +213,40 @@ class _QuizPageState extends State<QuizPage> {
         if (widget.isLearningPathMission && widget.pathId != null) {
           // Usar serviço de trilhas de aprendizado
           final learningPathService = LearningPathService();
-          // 🆕 Simular dados comportamentais para IA
-          List<double> timePerQuestion =
-              List.generate(selectedAnswers.length, (i) => 10.0 + (i * 2.5));
-          List<double> confidenceLevels =
-              List.generate(selectedAnswers.length, (i) => 0.7 + (i * 0.1));
-          List<int> hintsUsed =
-              List.generate(selectedAnswers.length, (i) => i % 3 == 0 ? 1 : 0);
-          List<int> attemptsPerQuestion =
-              List.generate(selectedAnswers.length, (i) => 1);
+
+          // 🆕 USAR DADOS COMPORTAMENTAIS REAIS coletados durante o quiz
+          print('🎯 [IA] ===== RESUMO DOS DADOS COLETADOS =====');
+          print(
+              '🎯 [IA] Tempo total do quiz: ${DateTime.now().difference(_quizStartTime!).inSeconds}s');
+          print('🎯 [IA] Tempo por questão (real): $_realTimePerQuestion');
+          print('🎯 [IA] Tentativas por questão: $_attemptsPerQuestion');
+          print('🎯 [IA] ===========================================');
+
+          // Preparar dados de confiança (por enquanto estimado, mas estrutura pronta)
+          // Estimativa baseada em tempo: resposta rápida = mais confiança
+          List<double> confidenceLevels = _realTimePerQuestion.map((time) {
+            if (time < 5) return 0.9; // Muito rápido = muito confiante
+            if (time < 10) return 0.75; // Rápido = confiante
+            if (time < 20) return 0.6; // Normal = moderado
+            if (time < 30) return 0.45; // Lento = pouco confiante
+            return 0.3; // Muito lento = muito pouco confiante
+          }).toList();
+
+          // Preparar dados de dicas (por enquanto 0, mas estrutura pronta)
+          List<int> hintsUsed = List.filled(selectedAnswers.length, 0);
+
+          print('🎯 [IA] Confiança estimada: $confidenceLevels');
 
           result = await learningPathService.completeMission(
             widget.pathId!,
             widget.missionId,
             selectedAnswers,
             authNotifier.token!,
-            timePerQuestion: timePerQuestion,
-            confidenceLevels: confidenceLevels,
-            hintsUsed: hintsUsed,
-            attemptsPerQuestion: attemptsPerQuestion,
+            timePerQuestion: _realTimePerQuestion, // ✅ DADOS REAIS!
+            confidenceLevels:
+                confidenceLevels, // ⚠️ Estimado, mas melhor que fake
+            hintsUsed: hintsUsed, // ⚠️ Por enquanto 0 (sem sistema de dicas)
+            attemptsPerQuestion: _attemptsPerQuestion, // ✅ DADOS REAIS!
           );
           success = result['success'] == true;
         } else {

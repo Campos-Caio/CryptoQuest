@@ -72,9 +72,12 @@ class RewardService:
             await self._check_streak_rewards(user_id)
 
             # Log de evento de negócio
+            # ✅ CORREÇÃO: Buscar usuário ATUALIZADO após apply_rewards
+            updated_user = self.user_repo.get_user_profile(user_id)
+            
             cryptoquest_logger.log_business_event(
                 "mission_reward_awarded",
-                context={
+                {
                     "user_id": user_id,
                     "mission_id": mission_id,
                     "points_earned": points,
@@ -87,8 +90,9 @@ class RewardService:
             return {
                 'points_earned': points,
                 'xp_earned': xp,
-                'total_points': user.points + points,
-                'total_xp': user.xp + xp
+                'total_points': updated_user.points if updated_user else 0,  # ✅ Valores ATUALIZADOS!
+                'total_xp': updated_user.xp if updated_user else 0,
+                'badges_earned': []  # Lista de badges conquistados
             }
             
         except Exception as e:
@@ -116,10 +120,13 @@ class RewardService:
                 'total_score': total_score
             })
 
+            # ✅ CORREÇÃO: Buscar usuário ATUALIZADO
+            updated_user = self.user_repo.get_user_profile(user_id)
+
             # Log de evento de negócio
             cryptoquest_logger.log_business_event(
                 "learning_path_reward_awarded",
-                context={
+                {
                     "user_id": user_id,
                     "path_id": path_id,
                     "points_earned": points,
@@ -131,8 +138,8 @@ class RewardService:
             return {
                 'points_earned': points,
                 'xp_earned': xp,
-                'total_points': user.points + points,
-                'total_xp': user.xp + xp
+                'total_points': updated_user.points if updated_user else 0,  # ✅ Valores ATUALIZADOS!
+                'total_xp': updated_user.xp if updated_user else 0
             }
             
         except Exception as e:
@@ -141,11 +148,26 @@ class RewardService:
 
     async def apply_rewards(self, user_id: str, reward_type: RewardType, points: int, xp: int, context: Dict[str, Any]):
         """Aplica recompensas ao usuário"""
-        # Atualiza perfil de usuário 
-        await self.user_repo.update_user_Profile(user_id, {
-            'points': points,
-            'xp': xp
+        # ✅ CORREÇÃO: Buscar valores atuais e SOMAR (não sobrescrever!)
+        user = self.user_repo.get_user_profile(user_id)
+        if not user:
+            raise ValueError(f"Usuário {user_id} não encontrado")
+        
+        current_points = user.points if user.points else 0
+        current_xp = user.xp if user.xp else 0
+        
+        # Atualiza perfil de usuário SOMANDO os valores
+        new_total_points = current_points + points
+        new_total_xp = current_xp + xp
+        
+        self.user_repo.update_user_Profile(user_id, {
+            'points': new_total_points,
+            'xp': new_total_xp
         })
+        
+        logger.info(f"✅ Recompensas aplicadas: {user_id} ganhou +{points} pontos e +{xp} XP")
+        logger.info(f"   Pontos: {current_points} → {new_total_points}")
+        logger.info(f"   XP: {current_xp} → {new_total_xp}")
 
         # Criar registro de recompensa
         user_reward = UserReward(
@@ -157,7 +179,7 @@ class RewardService:
             awarded_at=datetime.now()
         )
         
-        self.reward_repo.save_user_reward(user_reward)
+        await self.reward_repo.save_user_reward(user_reward)
     
     async def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]): 
         """Concede badge ao usuário usando o novo sistema"""

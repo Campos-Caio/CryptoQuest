@@ -14,6 +14,7 @@ import 'package:cryptoquest/features/ranking/providers/ranking_provider.dart';
 import 'package:cryptoquest/features/rewards/pages/rewards_page.dart';
 import 'package:cryptoquest/features/ranking/pages/ranking_page.dart';
 import 'package:cryptoquest/features/ai/pages/ai_profile_page.dart';
+import 'package:cryptoquest/features/ai/providers/ai_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -51,6 +52,7 @@ void main() async {
           update: (context, authNotifier, previousRankingProvider) =>
               RankingProvider(authNotifier: authNotifier),
         ),
+        ChangeNotifierProvider(create: (_) => AIProvider()),
       ],
       child: const MyApp(),
     ),

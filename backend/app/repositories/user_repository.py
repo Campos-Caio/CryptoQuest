@@ -67,7 +67,7 @@ class UserRepository:
         user_profile = UserProfile(uid=doc.id, **data)
         return user_profile
 
-    def update_user_Profile(self, uid:str, new_data: dict) -> bool: # Adicione tipo para new_data
+    def update_user_profile(self, uid: str, new_data: dict) -> bool:
         """
         Atualiza o perfil de um usuario existente
         """
@@ -76,10 +76,6 @@ class UserRepository:
             doc_ref.update(new_data)
             return True
         return False
-    
-    def update_user_profile(self, uid: str, new_data: dict) -> bool:
-        """Alias para update_user_Profile para compatibilidade"""
-        return self.update_user_Profile(uid, new_data)
 
     def delete_user_profile(self, uid:str) -> bool:
         doc_ref = self.collection.document(uid)
@@ -114,8 +110,6 @@ class UserRepository:
                     data["current_streak"] = 0
                 if "average_score" not in data:
                     data["average_score"] = 0
-                if "current_streak" not in data:
-                    data["current_streak"] = 0
                 
                 user_profile = UserProfile(uid=doc.id, **data)
                 users.append(user_profile)

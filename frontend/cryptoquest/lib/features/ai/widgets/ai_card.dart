@@ -346,6 +346,33 @@ class AIRecommendationCard extends StatelessWidget {
                     ))
                 .toList(),
           ],
+          if (onTap != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  Icons.touch_app,
+                  size: 16,
+                  color: AIColors.aiPrimary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Toque para acessar',
+                  style: TextStyle(
+                    color: AIColors.aiPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: AIColors.aiPrimary,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import logging
 
 from app.models.user import FirebaseUser
 from app.dependencies.auth import get_current_user
-from app.ai.models.ai_models import (
-    UserKnowledgeProfile, ContentRecommendation, AIPrediction,
-    LearningPattern, KnowledgeGap
-)
 from app.ai.services.ml_engine import get_ml_engine
 from app.ai.services.recommendation_engine import get_recommendation_engine
 from app.ai.data.behavioral_data_collector import get_behavioral_collector
@@ -154,8 +150,12 @@ async def get_ai_insights(
         # Métricas dos modelos
         model_metrics = ml_engine.get_model_metrics()
         
+        # ✅ CORREÇÃO: Formato compatível com frontend
         insights = {
             "user_id": user_id,
+            "ideal_time": "Manhã (9h-11h)",  # TODO: Calcular baseado nos dados
+            "avg_response_time": performance_summary.get("avg_response_time", 0.0),
+            "focus_area": "Bitcoin Básico",  # TODO: Calcular baseado na menor proficiência
             "learning_pattern": {
                 "type": learning_pattern.pattern_type,
                 "strength": learning_pattern.strength,

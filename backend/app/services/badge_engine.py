@@ -44,6 +44,46 @@ class BadgeEngine:
         
         logger.info("🎯 Handlers de eventos registrados no BadgeEngine")
 
+    async def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]) -> bool:
+        """Concede um badge específico ao usuário"""
+        try:
+            logger.info(f"🎯 Concedendo badge {badge_id} para usuário {user_id}")
+            
+            # Verificar se o badge existe
+            badge = self.badge_repo.get_badge_by_id(badge_id)
+            if not badge:
+                logger.warning(f"⚠️ Badge {badge_id} não encontrado")
+                return False
+            
+            # Verificar se o usuário já tem o badge
+            user_badges = self.badge_repo.get_user_badges(user_id)
+            if any(ub.badge_id == badge_id for ub in user_badges):
+                logger.info(f"✅ Usuário {user_id} já possui badge {badge_id}")
+                return True
+            
+            # Conceder o badge
+            from app.models.reward import UserBadge
+            from datetime import datetime, UTC
+            
+            user_badge = UserBadge(
+                user_id=user_id,
+                badge_id=badge_id,
+                awarded_at=datetime.now(UTC),
+                context=context
+            )
+            
+            success = self.badge_repo.save_user_badge(user_badge)
+            if success:
+                logger.info(f"✅ Badge {badge_id} concedido com sucesso para usuário {user_id}")
+                return True
+            else:
+                logger.error(f"❌ Erro ao salvar badge {badge_id} para usuário {user_id}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Erro ao conceder badge {badge_id} para usuário {user_id}: {e}")
+            return False
+
     async def _handle_mission_completed(self, event: BaseEvent):
         """Handler para eventos de missão completada"""
         try:

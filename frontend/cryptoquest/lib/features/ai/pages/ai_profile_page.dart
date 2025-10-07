@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:cryptoquest/features/ai/theme/ai_colors.dart';
 import 'package:cryptoquest/features/ai/widgets/ai_card.dart';
+import 'package:cryptoquest/features/ai/providers/ai_provider.dart';
+import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
+import 'package:cryptoquest/features/quiz/pages/quiz_page.dart';
 
 class AIProfilePage extends StatefulWidget {
   const AIProfilePage({Key? key}) : super(key: key);
@@ -10,97 +14,21 @@ class AIProfilePage extends StatefulWidget {
 }
 
 class _AIProfilePageState extends State<AIProfilePage> {
-  bool isLoading = true;
-  Map<String, dynamic>? aiProfile;
-  List<Map<String, dynamic>>? recommendations;
-  String? errorMessage;
-
   @override
   void initState() {
     super.initState();
-    _loadAIProfile();
+    _loadAIData();
   }
 
-  Future<void> _loadAIProfile() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
+  Future<void> _loadAIData() async {
+    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+    final aiProvider = Provider.of<AIProvider>(context, listen: false);
 
-    try {
-      // Simular carregamento de dados (será substituído pela API real)
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Dados mock para desenvolvimento
-      setState(() {
-        aiProfile = {
-          'learning_pattern': {
-            'type': 'visual',
-            'strength': 0.85,
-            'context': 'Prefere conteúdo visual e gráficos'
-          },
-          'performance_summary': {
-            'bitcoin_proficiency': 0.87,
-            'ethereum_proficiency': 0.45,
-            'defi_proficiency': 0.32,
-            'engagement_score': 0.88,
-            'avg_response_time': 12.5,
-            'consistency_score': 0.82
-          },
-          'data_points': 15,
-          'ai_enabled': true
-        };
-
-        recommendations = [
-          {
-            'content_id': 'ethereum_basics_quiz',
-            'content_type': 'Quiz',
-            'relevance_score': 0.92,
-            'difficulty_level': 'beginner',
-            'estimated_time': 15,
-            'reasoning':
-                'Baseado no seu perfil visual, recomendamos este quiz interativo',
-            'learning_objectives': [
-              'Conceitos básicos do Ethereum',
-              'Diferenças com Bitcoin'
-            ]
-          },
-          {
-            'content_id': 'defi_concepts_lesson',
-            'content_type': 'Lição',
-            'relevance_score': 0.78,
-            'difficulty_level': 'intermediate',
-            'estimated_time': 25,
-            'reasoning': 'Para expandir seus conhecimentos em DeFi',
-            'learning_objectives': [
-              'Protocolos DeFi',
-              'Yield Farming',
-              'Liquidez'
-            ]
-          },
-          {
-            'content_id': 'trading_advanced_challenge',
-            'content_type': 'Desafio',
-            'relevance_score': 0.65,
-            'difficulty_level': 'advanced',
-            'estimated_time': 30,
-            'reasoning': 'Desafio para testar seus conhecimentos avançados',
-            'learning_objectives': [
-              'Análise técnica',
-              'Gestão de risco',
-              'Estratégias'
-            ]
-          }
-        ];
-      });
-    } catch (e) {
-      setState(() {
-        errorMessage = 'Erro ao carregar perfil de IA: $e';
-      });
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+    if (authNotifier.token != null && authNotifier.userProfile != null) {
+      await aiProvider.loadAllAIData(
+        authNotifier.userProfile!.uid,
+        authNotifier.token!,
+      );
     }
   }
 
@@ -131,7 +59,7 @@ class _AIProfilePageState extends State<AIProfilePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadAIProfile,
+            onPressed: _loadAIData,
             tooltip: 'Atualizar perfil',
           ),
         ],
@@ -141,19 +69,28 @@ class _AIProfilePageState extends State<AIProfilePage> {
   }
 
   Widget _buildBody() {
-    if (isLoading) {
-      return _buildLoadingState();
-    }
+    return Consumer2<AIProvider, AuthNotifier>(
+      builder: (context, aiProvider, authNotifier, child) {
+        // Verificar se está carregando
+        if (aiProvider.isLoadingProfile ||
+            aiProvider.isLoadingRecommendations ||
+            aiProvider.isLoadingInsights) {
+          return _buildLoadingState();
+        }
 
-    if (errorMessage != null) {
-      return _buildErrorState();
-    }
+        // Verificar se há erros
+        if (aiProvider.hasErrors) {
+          return _buildErrorState(aiProvider);
+        }
 
-    if (aiProfile == null) {
-      return _buildEmptyState();
-    }
+        // Verificar se não há dados
+        if (!aiProvider.hasData) {
+          return _buildEmptyState();
+        }
 
-    return _buildProfileContent();
+        return _buildProfileContent(aiProvider);
+      },
+    );
   }
 
   Widget _buildLoadingState() {
@@ -187,7 +124,16 @@ class _AIProfilePageState extends State<AIProfilePage> {
     );
   }
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(AIProvider aiProvider) {
+    String errorMessage = 'Erro desconhecido';
+    if (aiProvider.profileError != null) {
+      errorMessage = aiProvider.profileError!;
+    } else if (aiProvider.recommendationsError != null) {
+      errorMessage = aiProvider.recommendationsError!;
+    } else if (aiProvider.insightsError != null) {
+      errorMessage = aiProvider.insightsError!;
+    }
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -208,7 +154,7 @@ class _AIProfilePageState extends State<AIProfilePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            errorMessage!,
+            errorMessage,
             style: TextStyle(
               color: AIColors.textSecondary,
               fontSize: 14,
@@ -217,7 +163,7 @@ class _AIProfilePageState extends State<AIProfilePage> {
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
-            onPressed: _loadAIProfile,
+            onPressed: _loadAIData,
             icon: const Icon(Icons.refresh),
             label: const Text('Tentar Novamente'),
             style: ElevatedButton.styleFrom(
@@ -263,28 +209,25 @@ class _AIProfilePageState extends State<AIProfilePage> {
     );
   }
 
-  Widget _buildProfileContent() {
+  Widget _buildProfileContent(AIProvider aiProvider) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileCard(),
+          _buildProfileCard(aiProvider),
           const SizedBox(height: 16),
-          _buildRecommendationsCard(),
+          _buildRecommendationsCard(aiProvider),
           const SizedBox(height: 16),
-          _buildInsightsCard(),
+          _buildInsightsCard(aiProvider),
           const SizedBox(height: 16),
-          _buildStatsCard(),
+          _buildStatsCard(aiProvider),
         ],
       ),
     );
   }
 
-  Widget _buildProfileCard() {
-    final learningPattern = aiProfile!['learning_pattern'] ?? {};
-    final performanceSummary = aiProfile!['performance_summary'] ?? {};
-
+  Widget _buildProfileCard(AIProvider aiProvider) {
     return AICard(
       title: 'Seu Perfil de Aprendizado',
       titleIcon: Icons.psychology,
@@ -293,32 +236,31 @@ class _AIProfilePageState extends State<AIProfilePage> {
         children: [
           AIStatCard(
             label: 'Estilo de Aprendizado',
-            value: _getLearningStyleText(learningPattern['type']),
-            icon: _getLearningStyleIcon(learningPattern['type']),
+            value: _getLearningStyleText(aiProvider.learningStyle),
+            icon: _getLearningStyleIcon(aiProvider.learningStyle),
             color:
-                AIColors.getLearningStyleColor(learningPattern['type'] ?? ''),
+                AIColors.getLearningStyleColor(aiProvider.learningStyle ?? ''),
           ),
           const SizedBox(height: 12),
           AIStatCard(
             label: 'Proficiência Bitcoin',
-            value:
-                '${(performanceSummary['bitcoin_proficiency'] * 100).toInt()}%',
+            value: '${((aiProvider.bitcoinProficiency ?? 0.0) * 100).toInt()}%',
             icon: Icons.currency_bitcoin,
             color: AIColors.getProficiencyColor(
-                performanceSummary['bitcoin_proficiency'] ?? 0.0),
+                aiProvider.bitcoinProficiency ?? 0.0),
           ),
           const SizedBox(height: 12),
           AIStatCard(
             label: 'Engajamento',
-            value: _getEngagementText(performanceSummary['engagement_score']),
+            value: _getEngagementText(aiProvider.engagementScore),
             icon: Icons.local_fire_department,
-            color: AIColors.getEngagementColor(
-                performanceSummary['engagement_score'] ?? 0.0),
+            color:
+                AIColors.getEngagementColor(aiProvider.engagementScore ?? 0.0),
           ),
           const SizedBox(height: 12),
           AIStatCard(
             label: 'Sessões Completadas',
-            value: '${aiProfile!['data_points']}',
+            value: '${aiProvider.dataPoints ?? 0}',
             icon: Icons.check_circle,
             color: AIColors.aiSuccess,
           ),
@@ -327,43 +269,34 @@ class _AIProfilePageState extends State<AIProfilePage> {
     );
   }
 
-  Widget _buildRecommendationsCard() {
+  Widget _buildRecommendationsCard(AIProvider aiProvider) {
     return AICard(
       title: 'Suas Recomendações',
       titleIcon: Icons.recommend,
       titleIconColor: AIColors.aiSuccess,
       child: Column(
         children: [
-          if (recommendations != null && recommendations!.isNotEmpty)
-            ...recommendations!
+          if (aiProvider.recommendations.isNotEmpty)
+            ...aiProvider.recommendations
                 .take(3)
                 .map((rec) => AIRecommendationCard(
-                      title: rec['content_id'],
-                      type: rec['content_type'],
-                      relevanceScore: rec['relevance_score'],
-                      reasoning: rec['reasoning'],
+                      title: rec['content_id'] ?? 'Conteúdo',
+                      type: rec['content_type'] ?? 'Quiz',
+                      relevanceScore: rec['relevance_score'] ?? 0.0,
+                      reasoning:
+                          rec['reasoning'] ?? 'Recomendação personalizada',
                       learningObjectives:
-                          List<String>.from(rec['learning_objectives']),
-                      onTap: () {
-                        // TODO: Implementar navegação para o conteúdo recomendado
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content:
-                                Text('Navegando para: ${rec['content_id']}'),
-                            backgroundColor: AIColors.aiPrimary,
-                          ),
-                        );
-                      },
+                          List<String>.from(rec['learning_objectives'] ?? []),
+                      onTap: () => _navigateToRecommendedContent(rec),
                     ))
-                .toList()
           else
-            _buildPlaceholderItem('Carregando recomendações...'),
+            _buildPlaceholderItem('Nenhuma recomendação disponível'),
         ],
       ),
     );
   }
 
-  Widget _buildInsightsCard() {
+  Widget _buildInsightsCard(AIProvider aiProvider) {
     return AICard(
       title: 'Insights da IA',
       titleIcon: Icons.lightbulb,
@@ -372,19 +305,19 @@ class _AIProfilePageState extends State<AIProfilePage> {
         children: [
           _buildInsightItem(
             'Horário Ideal',
-            'Você rende melhor às 19h',
+            aiProvider.idealTime ?? 'Analisando padrões...',
             Icons.access_time,
           ),
           const SizedBox(height: 12),
           _buildInsightItem(
             'Velocidade',
-            'Tempo médio: 12s por pergunta',
+            'Tempo médio: ${aiProvider.avgResponseTime?.toStringAsFixed(1) ?? 'Calculando...'}s por pergunta',
             Icons.speed,
           ),
           const SizedBox(height: 12),
           _buildInsightItem(
             'Foco',
-            'Área para melhorar: Ethereum',
+            'Área para melhorar: ${aiProvider.focusArea ?? 'Analisando...'}',
             Icons.gps_fixed,
           ),
         ],
@@ -392,9 +325,7 @@ class _AIProfilePageState extends State<AIProfilePage> {
     );
   }
 
-  Widget _buildStatsCard() {
-    final performanceSummary = aiProfile!['performance_summary'] ?? {};
-
+  Widget _buildStatsCard(AIProvider aiProvider) {
     return AICard(
       title: 'Estatísticas Detalhadas',
       titleIcon: Icons.analytics,
@@ -403,25 +334,25 @@ class _AIProfilePageState extends State<AIProfilePage> {
         children: [
           AIProgressCard(
             label: 'Ethereum',
-            value: performanceSummary['ethereum_proficiency'] ?? 0.0,
+            value: aiProvider.ethereumProficiency ?? 0.0,
             color: AIColors.getProficiencyColor(
-                performanceSummary['ethereum_proficiency'] ?? 0.0),
+                aiProvider.ethereumProficiency ?? 0.0),
             description: 'Sua proficiência em conceitos Ethereum',
           ),
           const SizedBox(height: 12),
           AIProgressCard(
             label: 'DeFi',
-            value: performanceSummary['defi_proficiency'] ?? 0.0,
-            color: AIColors.getProficiencyColor(
-                performanceSummary['defi_proficiency'] ?? 0.0),
+            value: aiProvider.defiProficiency ?? 0.0,
+            color:
+                AIColors.getProficiencyColor(aiProvider.defiProficiency ?? 0.0),
             description: 'Conhecimento em finanças descentralizadas',
           ),
           const SizedBox(height: 12),
           AIProgressCard(
             label: 'Consistência',
-            value: performanceSummary['consistency_score'] ?? 0.0,
-            color: AIColors.getEngagementColor(
-                performanceSummary['consistency_score'] ?? 0.0),
+            value: aiProvider.consistencyScore ?? 0.0,
+            color:
+                AIColors.getEngagementColor(aiProvider.consistencyScore ?? 0.0),
             description: 'Regularidade no seu aprendizado',
           ),
         ],
@@ -485,5 +416,177 @@ class _AIProfilePageState extends State<AIProfilePage> {
   String _getEngagementText(double? score) {
     if (score == null) return 'Calculando...';
     return AIColors.getEngagementText(score);
+  }
+
+  /// Navega para o conteúdo recomendado pela IA
+  void _navigateToRecommendedContent(Map<String, dynamic> recommendation) {
+    final contentId = recommendation['content_id'] as String?;
+    final contentType = recommendation['content_type'] as String?;
+
+    if (contentId == null) {
+      _showErrorSnackBar('ID do conteúdo não encontrado');
+      return;
+    }
+
+    try {
+      switch (contentType?.toLowerCase()) {
+        case 'quiz':
+          _navigateToQuiz(contentId, recommendation);
+          break;
+        case 'lesson':
+          _navigateToLesson(contentId, recommendation);
+          break;
+        case 'learning_path':
+          _navigateToLearningPath(contentId, recommendation);
+          break;
+        default:
+          _navigateToQuiz(contentId, recommendation); // Fallback para quiz
+      }
+    } catch (e) {
+      _showErrorSnackBar('Erro ao navegar para o conteúdo: $e');
+    }
+  }
+
+  /// Navega para um quiz recomendado
+  void _navigateToQuiz(String contentId, Map<String, dynamic> recommendation) {
+    // Mapear content_id para quiz_id real
+    final quizId = _mapContentIdToQuizId(contentId);
+
+    if (quizId == null) {
+      _showErrorSnackBar('Quiz não encontrado: $contentId');
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => QuizPage(
+          missionId: 'ai_recommendation_${contentId}',
+          quizId: quizId,
+          missionTitle:
+              '🤖 ${recommendation['content_id'] ?? 'Quiz Recomendado'}',
+        ),
+      ),
+    ).then((result) {
+      // Recarregar dados de IA após completar o quiz
+      if (result != null) {
+        _loadAIData();
+        _showSuccessSnackBar('Quiz recomendado completado! 🎉');
+      }
+    });
+  }
+
+  /// Navega para uma lição recomendada
+  void _navigateToLesson(
+      String contentId, Map<String, dynamic> recommendation) {
+    // Por enquanto, redireciona para a página de learning paths
+    // TODO: Implementar página específica para lições
+    _showInfoSnackBar(
+        'Lição recomendada: $contentId\nRedirecionando para Learning Paths...');
+
+    Future.delayed(const Duration(seconds: 1), () {
+      Navigator.pushNamed(context, '/learning-paths');
+    });
+  }
+
+  /// Navega para uma trilha de aprendizado recomendada
+  void _navigateToLearningPath(
+      String contentId, Map<String, dynamic> recommendation) {
+    // Mapear content_id para path_id real
+    final pathId = _mapContentIdToPathId(contentId);
+
+    if (pathId == null) {
+      _showErrorSnackBar('Trilha de aprendizado não encontrada: $contentId');
+      return;
+    }
+
+    Navigator.pushNamed(
+      context,
+      '/learning-path-details',
+      arguments: pathId,
+    ).then((result) {
+      // Recarregar dados de IA após interagir com a trilha
+      if (result != null) {
+        _loadAIData();
+        _showSuccessSnackBar('Trilha recomendada acessada! 🚀');
+      }
+    });
+  }
+
+  /// Mapeia content_id da IA para quiz_id real do sistema
+  String? _mapContentIdToQuizId(String contentId) {
+    // Mapeamento baseado no banco de conteúdo da IA
+    final contentMapping = {
+      'bitcoin_fundamentals_quiz': 'bitcoin_basics_quiz',
+      'bitcoin_history_lesson': 'bitcoin_history_quiz',
+      'blockchain_101_quiz': 'blockchain_basics_quiz',
+      'consensus_mechanisms_lesson': 'consensus_quiz',
+      'defi_overview_quiz': 'defi_basics_quiz',
+      'liquidity_pools_lesson': 'liquidity_pools_quiz',
+      'trading_basics_quiz': 'trading_basics_quiz',
+      'market_analysis_lesson': 'market_analysis_quiz',
+      'wallet_security_quiz': 'wallet_security_quiz',
+      'phishing_prevention_lesson': 'phishing_prevention_quiz',
+      'crypto_regulations_quiz': 'crypto_regulations_quiz',
+      'legal_aspects_lesson': 'legal_aspects_quiz',
+      'nft_basics_quiz': 'nft_basics_quiz',
+      'nft_marketplace_lesson': 'nft_marketplace_quiz',
+      'smart_contracts_101': 'smart_contracts_quiz',
+      'solidity_basics_lesson': 'solidity_basics_quiz',
+      'contract_security_quiz': 'contract_security_quiz',
+      'utxo_questionnaire': 'utxo_questionnaire',
+      'lightning_network_questionnaire': 'lightning_network_questionnaire',
+      'autocustodia_multisig_questionnaire':
+          'autocustodia_multisig_questionnaire',
+    };
+
+    return contentMapping[contentId];
+  }
+
+  /// Mapeia content_id da IA para path_id real do sistema
+  String? _mapContentIdToPathId(String contentId) {
+    // Mapeamento para trilhas de aprendizado
+    final pathMapping = {
+      'bitcoin_learning_path': 'aprofundando_bitcoin_tecnologia',
+      'blockchain_learning_path': 'bitcoin_ecossistema_financeiro',
+      'defi_learning_path': 'defi_ecosystem',
+      'trading_learning_path': 'crypto_trading_mastery',
+      'security_learning_path': 'crypto_security_fundamentals',
+    };
+
+    return pathMapping[contentId];
+  }
+
+  /// Mostra snackbar de sucesso
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AIColors.aiSuccess,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// Mostra snackbar de erro
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AIColors.aiError,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  /// Mostra snackbar informativa
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AIColors.aiWarning,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }

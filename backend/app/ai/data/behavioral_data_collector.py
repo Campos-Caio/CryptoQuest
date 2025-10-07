@@ -42,6 +42,9 @@ class BehavioralDataCollector:
             # Gerar ID único para a sessão
             session_id = f"{user_id}_{quiz_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
             
+            # ✅ NOVO: Iniciar sessão de aprendizado se não existir
+            learning_session_id = await self._get_or_create_learning_session(user_id, quiz_id)
+            
             # Calcular métricas de performance
             performance_metrics = self._calculate_performance_metrics(submission)
             
@@ -58,6 +61,9 @@ class BehavioralDataCollector:
             # Armazenar dados
             await self._store_behavioral_data(behavioral_data)
             
+            # ✅ NOVO: Atualizar sessão de aprendizado
+            await self._update_learning_session(learning_session_id, quiz_id, performance_metrics)
+            
             # Atualizar perfil de conhecimento
             await self._update_knowledge_profile(user_id, behavioral_data)
             
@@ -68,6 +74,7 @@ class BehavioralDataCollector:
                     "user_id": user_id,
                     "quiz_id": quiz_id,
                     "session_id": session_id,
+                    "learning_session_id": learning_session_id,
                     "metrics": performance_metrics
                 }
             )
@@ -77,6 +84,87 @@ class BehavioralDataCollector:
         except Exception as e:
             logger.error(f"Erro ao coletar dados comportamentais: {e}")
             raise
+    
+    async def _get_or_create_learning_session(self, user_id: str, quiz_id: str) -> str:
+        """Obtém ou cria uma sessão de aprendizado ativa para o usuário"""
+        try:
+            # Verificar se já existe uma sessão ativa hoje
+            today = datetime.now(UTC).strftime('%Y%m%d')
+            session_id = f"{user_id}_quiz_{today}"
+            
+            db = await self._get_db()
+            session_ref = db.collection("ai_learning_sessions").document(session_id)
+            session_doc = await session_ref.get()
+            
+            if not session_doc.exists:
+                # Criar nova sessão
+                session_data = {
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "start_time": datetime.now(UTC),
+                    "end_time": None,
+                    "quizzes_completed": [],
+                    "total_time_spent": 0.0,
+                    "average_confidence": 0.0,
+                    "learning_style_detected": None,
+                    "difficulty_adaptations": [],
+                    "created_at": datetime.now(UTC)
+                }
+                
+                await session_ref.set(session_data)
+                logger.info(f"✅ Nova sessão de aprendizado criada: {session_id}")
+            
+            return session_id
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter/criar sessão de aprendizado: {e}")
+            # Retornar ID de fallback
+            return f"{user_id}_quiz_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}"
+    
+    async def _update_learning_session(self, session_id: str, quiz_id: str, performance_metrics: Dict[str, Any]):
+        """Atualiza uma sessão de aprendizado com dados do quiz completado"""
+        try:
+            db = await self._get_db()
+            session_ref = db.collection("ai_learning_sessions").document(session_id)
+            
+            # Buscar dados atuais da sessão
+            session_doc = await session_ref.get()
+            if not session_doc.exists:
+                logger.warning(f"Sessão {session_id} não encontrada para atualização")
+                return
+            
+            session_data = session_doc.to_dict()
+            
+            # Atualizar dados da sessão
+            quizzes_completed = session_data.get("quizzes_completed", [])
+            if quiz_id not in quizzes_completed:
+                quizzes_completed.append(quiz_id)
+            
+            # Calcular tempo total (aproximado)
+            total_time = session_data.get("total_time_spent", 0.0)
+            quiz_time = performance_metrics.get("avg_response_time", 0.0) * len(performance_metrics.get("time_per_question", []))
+            total_time += quiz_time
+            
+            # Calcular confiança média
+            current_avg = session_data.get("average_confidence", 0.0)
+            quiz_confidence = performance_metrics.get("avg_confidence", 0.0)
+            total_quizzes = len(quizzes_completed)
+            
+            # Média ponderada
+            new_avg_confidence = ((current_avg * (total_quizzes - 1)) + quiz_confidence) / total_quizzes
+            
+            # Atualizar documento
+            await session_ref.update({
+                "quizzes_completed": quizzes_completed,
+                "total_time_spent": total_time,
+                "average_confidence": new_avg_confidence,
+                "end_time": datetime.now(UTC)  # Atualizar sempre
+            })
+            
+            logger.info(f"✅ Sessão de aprendizado atualizada: {session_id}")
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar sessão de aprendizado: {e}")
     
     def _calculate_performance_metrics(self, submission: EnhancedQuizSubmission) -> Dict[str, Any]:
         """Calcula métricas de performance baseadas na submissão"""
@@ -172,13 +260,13 @@ class BehavioralDataCollector:
                 "session_id": data.session_id,
                 "quiz_id": data.quiz_id,
                 "submission_data": {
-                    "answers": data.submission_data.answers,
-                    "time_per_question": data.submission_data.time_per_question,
-                    "confidence_levels": data.submission_data.confidence_levels,
-                    "hints_used": data.submission_data.hints_used,
-                    "attempts_per_question": data.submission_data.attempts_per_question,
-                    "session_metadata": data.submission_data.session_metadata,
-                    "device_info": data.submission_data.device_info
+                    "answers": data.submission_data.get("answers", []),
+                    "time_per_question": data.submission_data.get("time_per_question", []),
+                    "confidence_levels": data.submission_data.get("confidence_levels", []),
+                    "hints_used": data.submission_data.get("hints_used", []),
+                    "attempts_per_question": data.submission_data.get("attempts_per_question", []),
+                    "session_metadata": data.submission_data.get("session_metadata", {}),
+                    "device_info": data.submission_data.get("device_info", {})
                 },
                 "performance_metrics": data.performance_metrics,
                 "collected_at": data.collected_at,
@@ -420,11 +508,28 @@ class BehavioralDataCollector:
                 elif recent_engagement < older_engagement - 0.1:
                     performance_trend = "declining"
             
+            # ✅ CORREÇÃO: Buscar perfil de conhecimento para proficiências por domínio
+            knowledge_profile = await self._get_user_knowledge_profile(user_id)
+            
+            # Calcular proficiências por domínio
+            bitcoin_proficiency = knowledge_profile.get('domains', {}).get('bitcoin_basics', {}).get('proficiency_level', 0.0)
+            ethereum_proficiency = knowledge_profile.get('domains', {}).get('ethereum_basics', {}).get('proficiency_level', 0.0)
+            defi_proficiency = knowledge_profile.get('domains', {}).get('defi_basics', {}).get('proficiency_level', 0.0)
+            
+            # Calcular consistência baseada na variância dos scores
+            consistency_scores = [m.get('engagement_score', 0) for m in all_metrics]
+            consistency_score = 1.0 - (max(consistency_scores) - min(consistency_scores)) if consistency_scores else 0.0
+            consistency_score = max(0.0, min(1.0, consistency_score))
+            
             return {
                 "total_sessions": len(behavioral_history),
                 "avg_response_time": round(avg_response_time, 2),
                 "avg_confidence": round(avg_confidence, 3),
-                "avg_engagement_score": round(avg_engagement, 3),
+                "engagement_score": round(avg_engagement, 3),  # ✅ Nome correto!
+                "consistency_score": round(consistency_score, 3),  # ✅ Adicionado!
+                "bitcoin_proficiency": round(bitcoin_proficiency, 3),  # ✅ Adicionado!
+                "ethereum_proficiency": round(ethereum_proficiency, 3),  # ✅ Adicionado!
+                "defi_proficiency": round(defi_proficiency, 3),  # ✅ Adicionado!
                 "last_session": behavioral_history[0]['collected_at'] if behavioral_history else None,
                 "performance_trend": performance_trend,
                 "data_source": "firestore"
@@ -433,6 +538,22 @@ class BehavioralDataCollector:
         except Exception as e:
             logger.error(f"Erro ao calcular resumo de performance: {e}")
             return {"status": "error", "message": str(e)}
+    
+    async def _get_user_knowledge_profile(self, user_id: str) -> Dict[str, Any]:
+        """Busca perfil de conhecimento do usuário no Firestore"""
+        try:
+            db = await self._get_db()
+            profile_ref = db.collection("ai_knowledge_profiles").document(user_id)
+            profile_doc = await profile_ref.get()
+            
+            if profile_doc.exists:
+                return profile_doc.to_dict()
+            else:
+                return {}
+                
+        except Exception as e:
+            logger.error(f"Erro ao buscar perfil de conhecimento: {e}")
+            return {}
     
     async def start_learning_session(self, user_id: str, session_type: str = "quiz") -> str:
         """Inicia uma nova sessão de aprendizado e salva no Firestore"""
