@@ -8,6 +8,13 @@ import 'package:cryptoquest/features/auth/pages/login_page.dart';
 import 'package:cryptoquest/features/auth/pages/register_page.dart';
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
+import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
+import 'package:cryptoquest/features/rewards/providers/reward_provider.dart';
+import 'package:cryptoquest/features/ranking/providers/ranking_provider.dart';
+import 'package:cryptoquest/features/rewards/pages/rewards_page.dart';
+import 'package:cryptoquest/features/ranking/pages/ranking_page.dart';
+import 'package:cryptoquest/features/ai/pages/ai_profile_page.dart';
+import 'package:cryptoquest/features/ai/providers/ai_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -30,6 +37,22 @@ void main() async {
               QuestionnaireProvider(authNotifier: authNotifier),
         ),
         ChangeNotifierProvider(create: (_) => MissionNotifier()),
+        ChangeNotifierProvider(create: (_) => LearningPathProvider()),
+        ChangeNotifierProxyProvider<AuthNotifier, RewardProvider>(
+          create: (context) => RewardProvider(
+            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
+          ),
+          update: (context, authNotifier, previousRewardProvider) =>
+              RewardProvider(authNotifier: authNotifier),
+        ),
+        ChangeNotifierProxyProvider<AuthNotifier, RankingProvider>(
+          create: (context) => RankingProvider(
+            authNotifier: Provider.of<AuthNotifier>(context, listen: false),
+          ),
+          update: (context, authNotifier, previousRankingProvider) =>
+              RankingProvider(authNotifier: authNotifier),
+        ),
+        ChangeNotifierProvider(create: (_) => AIProvider()),
       ],
       child: const MyApp(),
     ),
@@ -53,6 +76,23 @@ class MyApp extends StatelessWidget {
         '/questionnaire': (context) => const QuestionnairePage(),
         '/profile': (context) => const ProfilePage(),
         '/missions': (context) => const MissionsPages(),
+        '/learning-paths': (context) => const LearningPathsPage(),
+        '/learning-path-details': (context) {
+          final pathId = ModalRoute.of(context)!.settings.arguments as String;
+          return LearningPathDetailsPage(pathId: pathId);
+        },
+        '/module-details': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          return ModulePage(
+            pathId: args['pathId'],
+            module: args['module'],
+            progress: args['progress'],
+          );
+        },
+        '/rewards': (context) => const RewardsPage(),
+        '/ranking': (context) => const RankingPage(),
+        '/ai-profile': (context) => const AIProfilePage(),
       },
     );
   }

@@ -31,20 +31,17 @@ class UserProfile(BaseModel):
     register_date: datetime 
     level: Optional[int] = 1 
     has_completed_questionnaire: bool = False
-    points: int = 0 
+    points: int = 0
+    xp: int = 0
+    badges: List[str] = Field(default_factory=list)
     completed_missions: Dict[str, datetime] = Field(default_factory=dict)
     daily_missions: List[str] = Field(default_factory=list)
     daily_assigned_at: Optional[datetime] = None
+    current_streak: int = 0
     knowledge_profile: Optional[dict] = None 
     initial_answers: Optional[dict] = None
 
-    class Config: 
-        # Permite que o Pydantic mapeie o campo 'id' do Firestore para 'uid'
-        # e outros campos que possam ser retornados com nomes diferentes.
-        # Mas para Firestore, onde estamos usando uid como ID do documento,
-        # 'uid' será o campo principal.
-        # from_attributes = True # Pydantic v2+ (Antigo: orm_mode = True)
-        pass 
+    model_config = {"from_attributes": True} 
 
 
 class UserProfileUpdate(BaseModel):

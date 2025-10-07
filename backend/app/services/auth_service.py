@@ -5,8 +5,10 @@ from app.repositories.user_repository import UserRepository, get_user_repository
 from app.models.user import UserProfile, FirebaseUser, UserRegister
 from firebase_admin.auth import UserNotFoundError, InvalidIdTokenError, EmailAlreadyExistsError
 from firebase_admin.exceptions import FirebaseError
+from app.core.logging_config import get_cryptoquest_logger, LogCategory
 
 logger = logging.getLogger(__name__)
+cryptoquest_logger = get_cryptoquest_logger()
 
 class AuthService:
     def __init__(self, user_repo: UserRepository):
@@ -17,7 +19,7 @@ class AuthService:
         logger.info("--- [AUTH SERVICE] Iniciando verificação do token ---")
 
         try:
-            logger.debug(f"Verificando token com Firebase: {id_token[:30]}...")
+            logger.debug("Verificando token com Firebase")
             decoded_token = self.auth.verify_id_token(id_token, clock_skew_seconds=30)
 
             uid = decoded_token['uid']
@@ -28,11 +30,18 @@ class AuthService:
             firebase_user_info = FirebaseUser(uid=uid, email=email, name=name)
 
             logger.debug(f"Buscando perfil no Firestore para UID: {uid}")
-            user_profile = await self.user_repo.get_user_profile(uid)
+            user_profile = self.user_repo.get_user_profile(uid)
+            
+            # Log de autenticação bem-sucedida
+            cryptoquest_logger.log_security_event(
+                "login_successful",
+                "INFO",
+                {"user_id": uid, "email": email}
+            )
 
             if not user_profile:
                 logger.warning(f"Perfil do usuário {uid} não encontrado. Criando novo perfil.")
-                user_profile = await self.user_repo.create_user_profile(uid=uid, email=email, name=name)
+                user_profile = self.user_repo.create_user_profile(uid=uid, email=email, name=name)
                 logger.info(f"Perfil criado com sucesso para UID: {uid}")
                 logger.info(f"🔍 [AuthService] Novo perfil criado - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
             else:
@@ -59,7 +68,7 @@ class AuthService:
                 display_name=user_data.name
             )
 
-            user_profile = await self.user_repo.create_user_profile(
+            user_profile = self.user_repo.create_user_profile(
                 uid=user.uid,
                 name=user_data.name,
                 email=user_data.email

@@ -12,31 +12,31 @@ class UserAnswer {
 
 class QuestionnaireProvider extends ChangeNotifier {
   final QuestionnaireApiService _apiService = QuestionnaireApiService();
-  late final AuthNotifier authNotifier; 
+  late final AuthNotifier authNotifier;
   QuestionnaireProvider({required this.authNotifier});
 
   bool isLoading = false;
   String? errorMessage;
-  InitialQuestionnaire? quesitonnaire;
+  InitialQuestionnaire? questionnaire;
   final List<UserAnswer> _userAnswers = [];
   List<UserAnswer> get userAnswers => _userAnswers;
 
   // Carrega as perguntas do backend
   Future<void> fetchQuestionnaire() async {
-    final token = authNotifier.token; 
+    final token = authNotifier.token;
 
-    if(token == null){    
-      errorMessage = 'Usuario nao autenticado!'; 
-      notifyListeners(); 
-      return; 
+    if (token == null) {
+      errorMessage = 'Usuario nao autenticado!';
+      notifyListeners();
+      return;
     }
 
-    isLoading = true; 
-    errorMessage = null; 
-    notifyListeners(); 
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
 
     try {
-      quesitonnaire = await _apiService.getInitialQuestionnaire(token);
+      questionnaire = await _apiService.getInitialQuestionnaire(token);
     } catch (error) {
       errorMessage = error.toString();
     } finally {

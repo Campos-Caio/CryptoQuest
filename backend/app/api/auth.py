@@ -54,7 +54,7 @@ async def read_current_user_profile(
     Endpoint para obter o perfil do usuário atualmente autenticado.
     Requer um token de ID do Firebase no cabeçalho Authorization.
     """
-    user_profile = await user_repo.get_user_profile(current_user.uid)
+    user_profile = user_repo.get_user_profile(current_user.uid)
     if not user_profile:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -80,19 +80,11 @@ async def authenticate_user_endpoint(
         )
 
     id_token = authorization[len("Bearer "):].strip()
-    logger.debug(f"Token recebido com {len(id_token)} caracteres")
-    logger.debug(f"Token (início): {id_token[:30]}...")
+    logger.debug("Token de autenticação recebido")
 
     try:
         firebase_user, user_profile = await auth_service.authenticate_and_get_profile(id_token)
         logger.info(f"Usuário autenticado com sucesso: UID={firebase_user.uid}")
-        
-        # ✅ LOGS DETALHADOS para debug
-        logger.info(f"🔍 [AUTH API] UserProfile retornado:")
-        logger.info(f"🔍 [AUTH API] - UID: {user_profile.uid}")
-        logger.info(f"🔍 [AUTH API] - has_completed_questionnaire: {user_profile.has_completed_questionnaire}")
-        logger.info(f"🔍 [AUTH API] - Level: {user_profile.level}")
-        logger.info(f"🔍 [AUTH API] - Points: {user_profile.points}")
         
         return AuthSuccess(
             message="Usuário autenticado com sucesso!",

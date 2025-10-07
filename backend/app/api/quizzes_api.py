@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.firebase import get_firestore_db_async
 from app.models.mission import Quiz
+from app.dependencies.auth import get_current_user
+from app.models.user import FirebaseUser
 
 router = APIRouter(prefix="/quizzes", tags=["Quizzes"])
 logger = logging.getLogger(__name__)
@@ -16,12 +18,15 @@ logger = logging.getLogger(__name__)
 async def get_quiz_endpoint(
     quiz_id: str,
     db_client=Depends(get_firestore_db_async),
+    current_user: Annotated[FirebaseUser, Depends(get_current_user)] = None
 ):
     """
     Recupera um quiz específico do Firestore pelo seu ID.
     
     Args:
         quiz_id: O ID do quiz a ser recuperado
+        db_client: Instância do cliente Firestore assíncrono
+        current_user: Usuário autenticado (garante que só usuários logados acessem)
         
     Raises:
         HTTPException(404): Se o quiz não for encontrado

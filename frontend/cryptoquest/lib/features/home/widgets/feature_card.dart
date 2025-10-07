@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cryptoquest/core/config/theme/app_colors.dart';
 
 class FeatureCard extends StatelessWidget {
   final String title;
@@ -21,8 +22,11 @@ class FeatureCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: const Color(0xFF6926C4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.cardBorder, width: 1),
+      ),
       margin: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -47,7 +51,8 @@ class FeatureCard extends StatelessWidget {
                     Text(
                       title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white, fontWeight: FontWeight.bold),
+                          color: AppColors.onSurface,
+                          fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(
                       height: 6,
@@ -57,12 +62,12 @@ class FeatureCard extends StatelessWidget {
                       style: Theme.of(context)
                           .textTheme
                           .bodyMedium
-                          ?.copyWith(color: Colors.white70),
+                          ?.copyWith(color: AppColors.onSurfaceVariant),
                     )
                   ],
                 ),
               ),
-              if (trailing != null) trailing!, 
+              if (trailing != null) trailing!,
             ],
           ),
         ),

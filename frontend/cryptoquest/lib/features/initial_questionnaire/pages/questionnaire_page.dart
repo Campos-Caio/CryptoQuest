@@ -28,7 +28,7 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
       ),
       body: Consumer<QuestionnaireProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading && provider.quesitonnaire == null) {
+          if (provider.isLoading && provider.questionnaire == null) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -36,11 +36,11 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
             return Center(child: Text("Erro: ${provider.errorMessage}"));
           }
 
-          if (provider.quesitonnaire == null) {
+          if (provider.questionnaire == null) {
             return const Center(child: Text("Nenhuma pergunta encontrada!"));
           }
 
-          final questions = provider.quesitonnaire!.questions;
+          final questions = provider.questionnaire!.questions;
 
           return Column(
             children: [
@@ -116,14 +116,15 @@ class _QuestionnairePageState extends State<QuestionnairePage> {
                       listen: false);
                   final sucess = await provider.submitAllAnswers();
 
-                  if (!mounted) return; 
+                  if (!mounted) return;
 
                   if (sucess) {
                     // Navegar para tela principal do app
                     Navigator.pushReplacementNamed(context, '/home');
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text("Error: ${provider.errorMessage ?? 'Ocorreu um erro desconhecido!'} ")));
+                        content: Text(
+                            "Error: ${provider.errorMessage ?? 'Ocorreu um erro desconhecido!'} ")));
                   }
                 },
                 child: provider.isLoading
