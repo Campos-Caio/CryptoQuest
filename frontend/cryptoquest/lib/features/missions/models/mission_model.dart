@@ -4,6 +4,7 @@ class Mission {
   final String description;
   final String type;
   final int rewardPoints;
+  final int rewardXp; // ✅ ADICIONADO: Campo para XP
   final int requiredLevel;
   final String contentId;
 
@@ -13,6 +14,7 @@ class Mission {
     required this.description,
     required this.type,
     required this.rewardPoints,
+    required this.rewardXp, // ✅ ADICIONADO
     required this.requiredLevel,
     required this.contentId,
   });
@@ -24,6 +26,7 @@ class Mission {
       description: json['description'] ?? '',
       type: json['type'] ?? '',
       rewardPoints: json['reward_points'] ?? 0,
+      rewardXp: json['reward_xp'] ?? 0, // ✅ ADICIONADO
       requiredLevel: json['required_level'] ?? 1,
       contentId: json['content_id'] ?? '',
     );

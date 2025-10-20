@@ -38,4 +38,33 @@ class UserProfile {
       badges: List<String>.from(json['badges'] ?? []),
     );
   }
+
+  /// ⚡ OTIMIZAÇÃO: Cria cópia do perfil com valores atualizados
+  /// Permite atualizar pontos e XP sem fazer nova chamada à API
+  UserProfile copyWith({
+    String? uid,
+    String? name,
+    String? email,
+    DateTime? registerDate,
+    int? level,
+    bool? hasCompletedQuestionnaire,
+    int? points,
+    int? xp,
+    int? currentStreak,
+    List<String>? badges,
+  }) {
+    return UserProfile(
+      uid: uid ?? this.uid,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      registerDate: registerDate ?? this.registerDate,
+      level: level ?? this.level,
+      hasCompletedQuestionnaire:
+          hasCompletedQuestionnaire ?? this.hasCompletedQuestionnaire,
+      points: points ?? this.points,
+      xp: xp ?? this.xp,
+      currentStreak: currentStreak ?? this.currentStreak,
+      badges: badges ?? this.badges,
+    );
+  }
 }

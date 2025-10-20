@@ -12,6 +12,12 @@ class LearningPathProvider with ChangeNotifier {
   Map<String, LearningPathResponse> _pathDetails = {};
   Map<String, UserPathProgress?> _userProgress = {};
 
+  // 🆕 FASE 4: Estado das recomendações de IA
+  List<Map<String, dynamic>> _aiRecommendations = [];
+  bool _isLoadingRecommendations = false;
+  String? _recommendationsErrorMessage;
+  DateTime? _lastRecommendationsLoad;
+
   // Estado de loading
   bool _isLoading = false;
   bool _isLoadingDetails = false;
@@ -30,6 +36,11 @@ class LearningPathProvider with ChangeNotifier {
   List<LearningPath> get learningPaths => _learningPaths;
   Map<String, LearningPathResponse> get pathDetails => _pathDetails;
   Map<String, UserPathProgress?> get userProgress => _userProgress;
+
+  // 🆕 FASE 4: Getters para recomendações de IA
+  List<Map<String, dynamic>> get aiRecommendations => _aiRecommendations;
+  bool get isLoadingRecommendations => _isLoadingRecommendations;
+  String? get recommendationsErrorMessage => _recommendationsErrorMessage;
 
   bool get isLoading => _isLoading;
   bool get isLoadingDetails => _isLoadingDetails;
@@ -180,16 +191,35 @@ class LearningPathProvider with ChangeNotifier {
         // Atualiza os detalhes se já estiverem carregados
         if (_pathDetails.containsKey(pathId)) {
           final currentDetails = _pathDetails[pathId]!;
+
+          // ⚡ OTIMIZAÇÃO: Recalcular stats localmente em vez de buscar do backend
+          final totalMissions = currentDetails.stats['total_missions'] ?? 0;
+          final completedMissions = progress.completedMissions.length;
+          final progressPercentage = totalMissions > 0
+              ? (completedMissions / totalMissions * 100).toDouble()
+              : 0.0;
+
           _pathDetails[pathId] = LearningPathResponse(
             path: currentDetails.path,
             progress: progress,
-            stats: currentDetails.stats,
+            stats: {
+              ...currentDetails.stats,
+              'completed_missions': completedMissions,
+              'progress_percentage': progressPercentage,
+            },
           );
+
+          print('⚡ [OTIMIZAÇÃO] Detalhes da trilha atualizados localmente');
+          print('   Missões completadas: $completedMissions/$totalMissions');
+          print('   Progresso: ${progressPercentage.toStringAsFixed(1)}%');
         }
       }
 
-      // Recarrega os detalhes da trilha para atualizar a interface
-      await refreshPathDetails(pathId, token);
+      // ⚡ OTIMIZAÇÃO: Não recarregar detalhes - backend já retornou progresso atualizado!
+      // Backend retorna progress completo na resposta acima (linha 164)
+      // ECONOMIA: ~900ms por não fazer GET /path/details
+      //
+      // ❌ REMOVIDO: await refreshPathDetails(pathId, token);
 
       if (kDebugMode) {}
 
@@ -241,10 +271,54 @@ class LearningPathProvider with ChangeNotifier {
 
   // ==================== MÉTODOS AUXILIARES ====================
 
+  /// 🆕 FASE 4: Carrega recomendações de IA para o usuário
+  Future<void> loadRecommendedLearningPaths(String? token,
+      {int limit = 5}) async {
+    if (token == null) {
+      _recommendationsErrorMessage = 'Token de autenticação não encontrado';
+      return;
+    }
+
+    // 🚀 OTIMIZAÇÃO: Cache simples de 5 minutos
+    final now = DateTime.now();
+    if (_lastRecommendationsLoad != null &&
+        now.difference(_lastRecommendationsLoad!).inMinutes < 5 &&
+        _aiRecommendations.isNotEmpty) {
+      return; // Usar cache se disponível e recente
+    }
+
+    // Evitar múltiplas chamadas simultâneas
+    if (_isLoadingRecommendations) {
+      return;
+    }
+
+    _isLoadingRecommendations = true;
+    _recommendationsErrorMessage = null;
+    notifyListeners();
+
+    try {
+      _aiRecommendations =
+          await _service.getRecommendedLearningPaths(token, limit: limit);
+      _lastRecommendationsLoad = now;
+      _recommendationsErrorMessage = null;
+    } catch (e) {
+      _recommendationsErrorMessage = 'Erro ao carregar recomendações: $e';
+      if (kDebugMode) {
+        print('Erro ao carregar recomendações de IA: $e');
+      }
+    } finally {
+      _isLoadingRecommendations = false;
+      if (!_disposed) {
+        notifyListeners();
+      }
+    }
+  }
+
   /// Limpa mensagens de erro
   void clearErrors() {
     _errorMessage = null;
     _detailsErrorMessage = null;
+    _recommendationsErrorMessage = null;
     if (!_disposed) {
       notifyListeners();
     }
@@ -264,6 +338,45 @@ class LearningPathProvider with ChangeNotifier {
   /// Obtém o progresso de uma trilha específica
   UserPathProgress? getPathProgress(String pathId) {
     return _userProgress[pathId];
+  }
+
+  /// Atualiza o progresso de uma trilha específica
+  void updateProgress(String pathId, UserPathProgress progress) {
+    print('🔍 [DEBUG] Updating progress for path: $pathId');
+    print('🔍 [DEBUG] New progress: ${progress.completedMissions}');
+    print(
+        '🔍 [DEBUG] Old progress: ${_userProgress[pathId]?.completedMissions}');
+
+    _userProgress[pathId] = progress;
+
+    // Atualiza os detalhes se já estiverem carregados
+    if (_pathDetails.containsKey(pathId)) {
+      final currentDetails = _pathDetails[pathId]!;
+
+      // Recalcular stats localmente
+      final totalMissions = currentDetails.stats['total_missions'] ?? 0;
+      final completedMissions = progress.completedMissions.length;
+      final progressPercentage = totalMissions > 0
+          ? (completedMissions / totalMissions * 100).toDouble()
+          : 0.0;
+
+      _pathDetails[pathId] = LearningPathResponse(
+        path: currentDetails.path,
+        progress: progress,
+        stats: {
+          ...currentDetails.stats,
+          'completed_missions': completedMissions,
+          'progress_percentage': progressPercentage,
+        },
+      );
+
+      print('✅ [DEBUG] Path details updated with new progress');
+    }
+
+    if (!_disposed) {
+      notifyListeners();
+      print('✅ [DEBUG] Notified listeners of progress update');
+    }
   }
 
   /// Obtém os detalhes de uma trilha específica

@@ -100,6 +100,7 @@ class ContentRecommendation(BaseModel):
     estimated_time: int = Field(..., description="Tempo estimado em minutos")
     reasoning: str = Field(..., description="Justificativa da recomendação")
     learning_objectives: List[str] = Field(default_factory=list, description="Objetivos de aprendizado")
+    title: Optional[str] = Field(None, description="Título amigável do conteúdo")
 
 
 class AdaptiveLearningPlan(BaseModel):

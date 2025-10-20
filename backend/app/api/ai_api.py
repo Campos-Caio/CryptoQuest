@@ -153,9 +153,9 @@ async def get_ai_insights(
         # ✅ CORREÇÃO: Formato compatível com frontend
         insights = {
             "user_id": user_id,
-            "ideal_time": "Manhã (9h-11h)",  # TODO: Calcular baseado nos dados
+            "ideal_time": _calculate_ideal_time(behavioral_history),
             "avg_response_time": performance_summary.get("avg_response_time", 0.0),
-            "focus_area": "Bitcoin Básico",  # TODO: Calcular baseado na menor proficiência
+            "focus_area": _calculate_focus_area(performance_summary),
             "learning_pattern": {
                 "type": learning_pattern.pattern_type,
                 "strength": learning_pattern.strength,
@@ -370,3 +370,106 @@ def _map_difficulty_to_level(difficulty: float) -> str:
         return "advanced"
     else:
         return "expert"
+
+
+def _calculate_focus_area(performance_summary: Dict[str, Any]) -> str:
+    """Calcula área de foco baseada na menor proficiência do usuário"""
+    try:
+        # Buscar proficiências dos domínios
+        bitcoin_proficiency = performance_summary.get("bitcoin_proficiency", 0.0)
+        ethereum_proficiency = performance_summary.get("ethereum_proficiency", 0.0)
+        defi_proficiency = performance_summary.get("defi_proficiency", 0.0)
+        trading_proficiency = performance_summary.get("trading_proficiency", 0.0)
+        security_proficiency = performance_summary.get("security_proficiency", 0.0)
+        
+        # Mapear domínios e suas proficiências
+        domains = {
+            "Bitcoin": bitcoin_proficiency,
+            "Ethereum": ethereum_proficiency,
+            "DeFi": defi_proficiency,
+            "Trading": trading_proficiency,
+            "Segurança": security_proficiency
+        }
+        
+        # Encontrar domínio com menor proficiência
+        min_domain = min(domains.items(), key=lambda x: x[1])
+        
+        # Se a menor proficiência for muito alta (>80%), sugerir próximo nível
+        if min_domain[1] > 0.8:
+            # Encontrar segundo menor
+            sorted_domains = sorted(domains.items(), key=lambda x: x[1])
+            if len(sorted_domains) > 1:
+                min_domain = sorted_domains[1]
+        
+        # Se todas as proficiências são altas, sugerir avançado
+        if min_domain[1] > 0.7:
+            return f"{min_domain[0]} Avançado"
+        elif min_domain[1] > 0.4:
+            return f"{min_domain[0]} Intermediário"
+        else:
+            return f"{min_domain[0]} Básico"
+            
+    except Exception as e:
+        logger.error(f"Erro ao calcular área de foco: {e}")
+        return "Bitcoin Básico"  # Fallback
+
+
+def _calculate_ideal_time(behavioral_history: List[Dict[str, Any]]) -> str:
+    """Calcula horário ideal baseado nos padrões de performance do usuário"""
+    try:
+        if not behavioral_history:
+            return "Manhã (9h-11h)"  # Default
+        
+        # Analisar performance por hora do dia
+        performance_by_hour = {}
+        
+        for session in behavioral_history:
+            # Extrair hora do timestamp
+            collected_at = session.get('collected_at')
+            if isinstance(collected_at, str):
+                from datetime import datetime
+                try:
+                    dt = datetime.fromisoformat(collected_at.replace('Z', '+00:00'))
+                    hour = dt.hour
+                except (ValueError, TypeError):
+                    continue
+            else:
+                continue
+            
+            # Obter métricas de performance
+            performance_metrics = session.get('performance_metrics', {})
+            success_rate = performance_metrics.get('success_rate', 0.5)
+            avg_response_time = performance_metrics.get('avg_response_time', 30)
+            
+            # Calcular score de performance (sucesso alto + tempo baixo = melhor)
+            performance_score = success_rate * (1.0 - min(avg_response_time / 60.0, 1.0))
+            
+            if hour not in performance_by_hour:
+                performance_by_hour[hour] = []
+            performance_by_hour[hour].append(performance_score)
+        
+        if not performance_by_hour:
+            return "Manhã (9h-11h)"  # Default
+        
+        # Calcular performance média por hora
+        avg_performance_by_hour = {
+            hour: sum(scores) / len(scores) 
+            for hour, scores in performance_by_hour.items()
+        }
+        
+        # Encontrar melhor horário
+        best_hour = max(avg_performance_by_hour.items(), key=lambda x: x[1])[0]
+        
+        # Mapear para períodos do dia
+        if 6 <= best_hour < 12:
+            return "Manhã (6h-12h)"
+        elif 12 <= best_hour < 18:
+            return "Tarde (12h-18h)"
+        elif 18 <= best_hour < 22:
+            return "Noite (18h-22h)"
+        else:
+            return "Madrugada (22h-6h)"
+            
+    except Exception as e:
+        logger.error(f"Erro ao calcular horário ideal: {e}")
+        return "Manhã (9h-11h)"  # Fallback

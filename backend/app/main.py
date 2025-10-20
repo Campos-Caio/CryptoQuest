@@ -17,6 +17,8 @@ from app.services.badge_engine import get_badge_engine
 from app.services.metrics_collector import get_metrics_collector
 from app.services.alert_manager import get_alert_manager
 from app.services.health_monitor import get_health_monitor
+from app.services.background_task_service import get_background_service
+from app.services.fast_cache_service import get_fast_cache
 from app.middleware.security import SecurityHeadersMiddleware, RateLimitMiddleware
 from app.middleware.logging_middleware import RequestLoggingMiddleware, ErrorLoggingMiddleware
 from app.api import monitoring_api
@@ -34,6 +36,16 @@ async def lifespan(app: FastAPI):
     # Startup
     logging.info("🚀 Inicializando CryptoQuest Backend...")
     
+    # ⚡ Inicializar workers de processamento assíncrono
+    background_service = get_background_service()
+    await background_service.start_worker()
+    logging.info("✅ Background task worker inicializado!")
+    
+    # Inicializar cache service
+    cache_service = get_fast_cache()
+    await cache_service.start_cleanup_worker()
+    logging.info("✅ Cache service inicializado!")
+    
     # Inicializar BadgeEngine
     badge_engine = get_badge_engine()
     
@@ -47,11 +59,17 @@ async def lifespan(app: FastAPI):
     logging.info("✅ Sistema de monitoramento avançado inicializado!")
     
     logging.info("✅ Sistema de eventos inicializado com sucesso!")
+    logging.info("🎉 CryptoQuest Backend pronto para processar requisições!")
     
     yield
     
     # Shutdown
     logging.info("🛑 Finalizando CryptoQuest Backend...")
+    
+    # Parar workers
+    await background_service.stop_worker()
+    await cache_service.stop_cleanup_worker()
+    logging.info("✅ Workers finalizados com sucesso!")
 
 app = FastAPI(
     title=os.getenv("API_TITLE", "CryptoQuest Backend"),
@@ -165,4 +183,15 @@ async def get_event_stats():
     return {
         "event_bus_stats": event_bus.get_event_counts(),
         "badge_engine_stats": badge_engine.get_engine_stats()
+    }
+
+@app.get("/background/stats", tags=["Background"])
+async def get_background_stats():
+    """Endpoint para verificar estatísticas do processamento em background"""
+    background_service = get_background_service()
+    cache_service = get_fast_cache()
+    
+    return {
+        "background_tasks": background_service.get_metrics(),
+        "cache": cache_service.get_stats()
     }

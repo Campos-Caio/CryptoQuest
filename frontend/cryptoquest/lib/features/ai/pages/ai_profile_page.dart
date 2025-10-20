@@ -279,21 +279,106 @@ class _AIProfilePageState extends State<AIProfilePage> {
           if (aiProvider.recommendations.isNotEmpty)
             ...aiProvider.recommendations
                 .take(3)
-                .map((rec) => AIRecommendationCard(
-                      title: rec['content_id'] ?? 'Conteúdo',
-                      type: rec['content_type'] ?? 'Quiz',
-                      relevanceScore: rec['relevance_score'] ?? 0.0,
-                      reasoning:
-                          rec['reasoning'] ?? 'Recomendação personalizada',
-                      learningObjectives:
-                          List<String>.from(rec['learning_objectives'] ?? []),
-                      onTap: () => _navigateToRecommendedContent(rec),
-                    ))
+                .map((rec) => _buildRecommendationItem(rec))
           else
             _buildPlaceholderItem('Nenhuma recomendação disponível'),
         ],
       ),
     );
+  }
+
+  Widget _buildRecommendationItem(Map<String, dynamic> rec) {
+    // ✅ CORREÇÃO: Adaptar para diferentes tipos de recomendação
+    final isLearningPath =
+        rec.containsKey('path_id') || rec.containsKey('name');
+
+    if (isLearningPath) {
+      // Recomendação de Learning Path
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AIColors.aiSuccess.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AIColors.aiSuccess.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.school, color: AIColors.aiSuccess, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    rec['name'] ?? 'Trilha de Aprendizado',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AIColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    rec['description'] ?? 'Descrição não disponível',
+                    style: TextStyle(
+                      color: AIColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AIColors.aiSuccess.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${((rec['relevance_score'] ?? 0.0) * 100).toInt()}%',
+                          style: TextStyle(
+                            color: AIColors.aiSuccess,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        rec['reasoning'] ?? 'Recomendação personalizada',
+                        style: TextStyle(
+                          color: AIColors.textTertiary,
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                color: AIColors.textTertiary, size: 16),
+          ],
+        ),
+      );
+    } else {
+      // Recomendação de Quiz/Conteúdo
+      return AIRecommendationCard(
+        title: rec['title'] ??
+            rec['content_id'] ??
+            'Conteúdo', // ✅ CORREÇÃO: Usar título real
+        type: rec['content_type'] ?? 'Quiz',
+        relevanceScore: rec['relevance_score'] ?? 0.0,
+        reasoning: rec['reasoning'] ?? 'Recomendação personalizada',
+        learningObjectives: List<String>.from(rec['learning_objectives'] ?? []),
+        onTap: () => _navigateToRecommendedContent(rec),
+      );
+    }
   }
 
   Widget _buildInsightsCard(AIProvider aiProvider) {
@@ -515,29 +600,25 @@ class _AIProfilePageState extends State<AIProfilePage> {
 
   /// Mapeia content_id da IA para quiz_id real do sistema
   String? _mapContentIdToQuizId(String contentId) {
-    // Mapeamento baseado no banco de conteúdo da IA
+    // ✅ CORREÇÃO: Mapeamento baseado nos quizzes que realmente existem
     final contentMapping = {
-      'bitcoin_fundamentals_quiz': 'bitcoin_basics_quiz',
-      'bitcoin_history_lesson': 'bitcoin_history_quiz',
-      'blockchain_101_quiz': 'blockchain_basics_quiz',
-      'consensus_mechanisms_lesson': 'consensus_quiz',
-      'defi_overview_quiz': 'defi_basics_quiz',
-      'liquidity_pools_lesson': 'liquidity_pools_quiz',
-      'trading_basics_quiz': 'trading_basics_quiz',
-      'market_analysis_lesson': 'market_analysis_quiz',
-      'wallet_security_quiz': 'wallet_security_quiz',
-      'phishing_prevention_lesson': 'phishing_prevention_quiz',
-      'crypto_regulations_quiz': 'crypto_regulations_quiz',
-      'legal_aspects_lesson': 'legal_aspects_quiz',
-      'nft_basics_quiz': 'nft_basics_quiz',
+      'btc_quiz_01': 'btc_quiz_01',
+      'blockchain_conceitos_questionnaire':
+          'blockchain_conceitos_questionnaire',
+      'daily_crypto_security_quiz': 'daily_crypto_security_quiz',
+      'bitcoin_caracteristicas_questionnaire':
+          'bitcoin_caracteristicas_questionnaire',
+      'chaves_privadas_questionnaire': 'chaves_privadas_questionnaire',
+      'autocustodia_multisig_questionnaire':
+          'autocustodia_multisig_questionnaire',
+      'daily_backup_quiz': 'daily_backup_quiz',
+      'btc_quiz_02': 'btc_quiz_02',
       'nft_marketplace_lesson': 'nft_marketplace_quiz',
       'smart_contracts_101': 'smart_contracts_quiz',
       'solidity_basics_lesson': 'solidity_basics_quiz',
       'contract_security_quiz': 'contract_security_quiz',
       'utxo_questionnaire': 'utxo_questionnaire',
       'lightning_network_questionnaire': 'lightning_network_questionnaire',
-      'autocustodia_multisig_questionnaire':
-          'autocustodia_multisig_questionnaire',
     };
 
     return contentMapping[contentId];

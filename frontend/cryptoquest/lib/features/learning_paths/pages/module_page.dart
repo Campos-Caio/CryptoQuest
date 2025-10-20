@@ -338,15 +338,29 @@ class _ModulePageState extends State<ModulePage> {
     // Verifica se a missão está disponível baseada na ordem
     final missionIndex = widget.module.missions.indexOf(mission);
 
+    // 🔍 DEBUG: Log da verificação de disponibilidade
+    print('🔍 [DEBUG] Checking availability for mission: ${mission.id}');
+    print('🔍 [DEBUG] Mission index: $missionIndex');
+    print('🔍 [DEBUG] Progress: ${widget.progress}');
+    print(
+        '🔍 [DEBUG] Completed missions: ${widget.progress?.completedMissions}');
+
     // Se é a primeira missão, está sempre disponível se o módulo estiver ativo
     if (missionIndex == 0) {
+      print('✅ [DEBUG] First mission - always available');
       return true;
     }
 
     // Para outras missões, verifica se a anterior foi concluída
     final previousMission = widget.module.missions[missionIndex - 1];
-    return widget.progress?.completedMissions.contains(previousMission.id) ??
-        false;
+    final isPreviousCompleted =
+        widget.progress?.completedMissions.contains(previousMission.id) ??
+            false;
+
+    print('🔍 [DEBUG] Previous mission: ${previousMission.id}');
+    print('🔍 [DEBUG] Is previous completed: $isPreviousCompleted');
+
+    return isPreviousCompleted;
   }
 
   void _navigateToMission(MissionReference mission) {
@@ -374,8 +388,10 @@ class _ModulePageState extends State<ModulePage> {
               widget.pathId, authNotifier.token);
         }
 
-        // Força rebuild da página
-        setState(() {});
+        // Força rebuild da página apenas se ainda estiver montado
+        if (mounted) {
+          setState(() {});
+        }
 
         // Retorna resultado para a página anterior
         Navigator.of(context).pop(result);

@@ -56,19 +56,19 @@ class MissionNotifier extends ChangeNotifier {
     try {
       _isLoadingQuiz = true;
       _quizError = null;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
 
       final quiz = await _apiService.getQuiz(quizId, token);
 
       _currentQuiz = quiz;
       _isLoadingQuiz = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
 
       return quiz;
     } catch (e) {
       _quizError = e.toString();
       _isLoadingQuiz = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
       return null;
     }
   }
@@ -112,6 +112,12 @@ class MissionNotifier extends ChangeNotifier {
   void clearCurrentQuiz() {
     _currentQuiz = null;
     _quizError = null;
+    notifyListeners();
+  }
+
+  // Definir dados da última missão completada
+  void setLastCompletedMission(Map<String, dynamic> result) {
+    _lastCompletedMission = result;
     notifyListeners();
   }
 }

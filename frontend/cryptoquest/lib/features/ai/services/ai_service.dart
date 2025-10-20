@@ -81,6 +81,33 @@ class AIService {
     }
   }
 
+  /// Busca recomendações de learning paths (fallback para recomendações de IA)
+  static Future<List<Map<String, dynamic>>> getLearningPathRecommendations(
+      String userId, String token,
+      {int limit = 5}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/learning-paths/recommended?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      } else {
+        print(
+            'Erro ao buscar recomendações de learning paths: ${response.statusCode}');
+        return [];
+      }
+    } catch (e) {
+      print('Erro na requisição de learning paths: $e');
+      return [];
+    }
+  }
+
   /// Busca sugestão de dificuldade para um domínio específico
   static Future<Map<String, dynamic>?> getDifficultySuggestion(
       String userId, String domain, String token) async {

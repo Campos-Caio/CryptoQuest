@@ -1,0 +1,203 @@
+ .gitignore                                         |  14 [32m+[m[31m-[m
+ backend/.coverage                                  | Bin [31m0[m -> [32m69632[m bytes
+ backend/Procfile                                   |   2 [32m+[m[31m-[m
+ backend/app/__pycache__/__init__.cpython-312.pyc   | Bin [31m177[m -> [32m0[m bytes
+ backend/app/__pycache__/main.cpython-312.pyc       | Bin [31m1807[m -> [32m0[m bytes
+ backend/app/ai/__init__.py                         |  17 [32m+[m
+ .../app/ai/__pycache__/__init__.cpython-312.pyc    | Bin [31m0[m -> [32m671[m bytes
+ backend/app/ai/__pycache__/config.cpython-312.pyc  | Bin [31m0[m -> [32m5293[m bytes
+ backend/app/ai/config.py                           | 195 [32m+++++[m
+ backend/app/ai/data/__init__.py                    |   3 [32m+[m
+ .../ai/data/__pycache__/__init__.cpython-312.pyc   | Bin [31m0[m -> [32m243[m bytes
+ .../behavioral_data_collector.cpython-312.pyc      | Bin [31m0[m -> [32m31020[m bytes
+ backend/app/ai/data/behavioral_data_collector.py   | 650 [32m+++++++++++++++[m
+ backend/app/ai/models/__init__.py                  |   3 [32m+[m
+ .../ai/models/__pycache__/__init__.cpython-312.pyc | Bin [31m0[m -> [32m243[m bytes
+ .../models/__pycache__/ai_models.cpython-312.pyc   | Bin [31m0[m -> [32m14963[m bytes
+ backend/app/ai/models/ai_models.py                 | 172 [32m++++[m
+ backend/app/ai/services/__init__.py                |   3 [32m+[m
+ .../services/__pycache__/__init__.cpython-312.pyc  | Bin [31m0[m -> [32m257[m bytes
+ .../services/__pycache__/ml_engine.cpython-312.pyc | Bin [31m0[m -> [32m22121[m bytes
+ .../recommendation_engine.cpython-312.pyc          | Bin [31m0[m -> [32m19167[m bytes
+ backend/app/ai/services/ml_engine.py               | 488 [32m+++++++++++[m
+ backend/app/ai/services/recommendation_engine.py   | 507 [32m++++++++++++[m
+ backend/app/ai/utils/__init__.py                   |   3 [32m+[m
+ backend/app/api/__pycache__/auth.cpython-312.pyc   | Bin [31m6041[m -> [32m0[m bytes
+ .../api/__pycache__/missions_api.cpython-312.pyc   | Bin [31m5427[m -> [32m0[m bytes
+ .../__pycache__/questionnaire_api.cpython-312.pyc  | Bin [31m3417[m -> [32m0[m bytes
+ .../api/__pycache__/quizzes_api.cpython-312.pyc    | Bin [31m2394[m -> [32m0[m bytes
+ .../api/__pycache__/ranking_api.cpython-312.pyc    | Bin [31m0[m -> [32m2405[m bytes
+ .../api/__pycache__/rewards_api.cpython-312.pyc    | Bin [31m0[m -> [32m8133[m bytes
+ .../app/api/__pycache__/user_api.cpython-312.pyc   | Bin [31m1672[m -> [32m0[m bytes
+ backend/app/api/ai_api.py                          | 372 [32m+++++++++[m
+ backend/app/api/auth.py                            |  12 [32m+[m[31m-[m
+ backend/app/api/learning_paths_api.py              | 260 [32m++++++[m
+ backend/app/api/missions_api.py                    |   2 [32m+[m[31m-[m
+ backend/app/api/monitoring_api.py                  | 397 [32m+++++++++[m
+ backend/app/api/questionnaire_api.py               |   2 [32m+[m[31m-[m
+ backend/app/api/quiz_optimized_api.py              |   1 [32m+[m
+ backend/app/api/quizzes_api.py                     |   5 [32m+[m
+ backend/app/api/ranking_api.py                     |  38 [32m+[m
+ backend/app/api/rewards_api.py                     | 140 [32m++++[m
+ backend/app/api/user_api.py                        |   4 [32m+[m[31m-[m
+ .../app/core/__pycache__/__init__.cpython-312.pyc  | Bin [31m182[m -> [32m0[m bytes
+ .../app/core/__pycache__/config.cpython-312.pyc    | Bin [31m629[m -> [32m0[m bytes
+ .../app/core/__pycache__/firebase.cpython-312.pyc  | Bin [31m3098[m -> [32m0[m bytes
+ .../app/core/__pycache__/firestore.cpython-312.pyc | Bin [31m484[m -> [32m0[m bytes
+ backend/app/core/firebase.py                       |  32 [32m+[m[31m-[m
+ backend/app/core/logging_config.py                 | 212 [32m+++++[m
+ .../dependencies/__pycache__/auth.cpython-312.pyc  | Bin [31m2242[m -> [32m0[m bytes
+ backend/app/dependencies/auth.py                   |  48 [32m+[m[31m-[m
+ backend/app/main.py                                | 146 [32m+++[m[31m-[m
+ backend/app/middleware/__init__.py                 |   1 [32m+[m
+ .../__pycache__/__init__.cpython-312.pyc           | Bin [31m0[m -> [32m188[m bytes
+ .../__pycache__/logging_middleware.cpython-312.pyc | Bin [31m0[m -> [32m5526[m bytes
+ .../__pycache__/security.cpython-312.pyc           | Bin [31m0[m -> [32m4668[m bytes
+ backend/app/middleware/logging_middleware.py       | 131 [32m+++[m
+ backend/app/middleware/security.py                 | 101 [32m+++[m
+ .../models/__pycache__/__init__.cpython-312.pyc    | Bin [31m184[m -> [32m0[m bytes
+ .../app/models/__pycache__/events.cpython-312.pyc  | Bin [31m0[m -> [32m5033[m bytes
+ .../app/models/__pycache__/mission.cpython-312.pyc | Bin [31m2082[m -> [32m0[m bytes
+ .../app/models/__pycache__/profile.cpython-312.pyc | Bin [31m988[m -> [32m0[m bytes
+ .../models/__pycache__/question.cpython-312.pyc    | Bin [31m796[m -> [32m0[m bytes
+ .../__pycache__/questionnaire.cpython-312.pyc      | Bin [31m1974[m -> [32m0[m bytes
+ .../app/models/__pycache__/quizz.cpython-312.pyc   | Bin [31m1495[m -> [32m0[m bytes
+ .../app/models/__pycache__/ranking.cpython-312.pyc | Bin [31m0[m -> [32m2561[m bytes
+ .../app/models/__pycache__/reward.cpython-312.pyc  | Bin [31m0[m -> [32m3105[m bytes
+ .../app/models/__pycache__/user.cpython-312.pyc    | Bin [31m2845[m -> [32m0[m bytes
+ backend/app/models/events.py                       | 106 [32m+++[m
+ backend/app/models/learningPath.py                 |   8 [31m-[m
+ backend/app/models/learning_path.py                |  56 [32m++[m
+ backend/app/models/mission.py                      |  17 [32m+[m[31m-[m
+ backend/app/models/questionnaire.py                |   3 [32m+[m[31m-[m
+ backend/app/models/quizz.py                        |  10 [32m+[m[31m-[m
+ backend/app/models/ranking.py                      |  55 [32m+[m[31m-[m
+ backend/app/models/reward.py                       |  54 [32m++[m
+ backend/app/models/rewards.py                      |  14 [31m-[m
+ backend/app/models/user.py                         |  13 [32m+[m[31m-[m
+ .../__pycache__/badge_repository.cpython-312.pyc   | Bin [31m0[m -> [32m13514[m bytes
+ .../__pycache__/ranking_repository.cpython-312.pyc | Bin [31m0[m -> [32m3768[m bytes
+ .../__pycache__/reward_repository.cpython-312.pyc  | Bin [31m0[m -> [32m10052[m bytes
+ .../__pycache__/user_repository.cpython-312.pyc    | Bin [31m4963[m -> [32m0[m bytes
+ backend/app/repositories/badge_repository.py       | 297 [32m+++++++[m
+ .../app/repositories/learning_path_repository.py   | 216 [32m+++++[m
+ backend/app/repositories/ranking_repository.py     |  53 [32m++[m
+ backend/app/repositories/reward_repository.py      | 186 [32m+++++[m
+ backend/app/repositories/user_repository.py        | 174 [32m+++[m[31m-[m
+ .../__pycache__/auth_service.cpython-312.pyc       | Bin [31m7585[m -> [32m0[m bytes
+ .../__pycache__/badge_engine.cpython-312.pyc       | Bin [31m0[m -> [32m19900[m bytes
+ .../services/__pycache__/event_bus.cpython-312.pyc | Bin [31m0[m -> [32m8776[m bytes
+ .../__pycache__/mission_service.cpython-312.pyc    | Bin [31m9945[m -> [32m0[m bytes
+ .../questionnaire_service.cpython-312.pyc          | Bin [31m4118[m -> [32m0[m bytes
+ .../__pycache__/ranking_service.cpython-312.pyc    | Bin [31m0[m -> [32m11669[m bytes
+ .../__pycache__/reward_service.cpython-312.pyc     | Bin [31m0[m -> [32m10274[m bytes
+ .../__pycache__/validation_service.cpython-312.pyc | Bin [31m0[m -> [32m23100[m bytes
+ backend/app/services/advanced_cache_service.py     | 314 [32m+++++++[m
+ backend/app/services/alert_manager.py              | 438 [32m++++++++++[m
+ backend/app/services/auth_service.py               |  17 [32m+[m[31m-[m
+ backend/app/services/badge_engine.py               | 398 [32m+++++++++[m
+ backend/app/services/cache_service.py              | 192 [32m+++++[m
+ backend/app/services/event_bus.py                  | 193 [32m+++++[m
+ backend/app/services/health_monitor.py             | 687 [32m++++++++++++++++[m
+ .../app/services/learning_path_progress_service.py | 194 [32m+++++[m
+ backend/app/services/learning_path_service.py      | 794 [32m++++++++++++++++++[m
+ backend/app/services/metrics_collector.py          | 435 [32m++++++++++[m
+ backend/app/services/mission_service.py            | 172 [32m+++[m[31m-[m
+ backend/app/services/questionnaire_service.py      |  19 [32m+[m[31m-[m
+ backend/app/services/ranking_service.py            | 223 [32m+++++[m
+ backend/app/services/reward_service.py             | 214 [32m+++++[m
+ backend/app/services/validation_service.py         | 516 [32m++++++++++++[m
+ backend/env.example                                |  14 [32m+[m
+ backend/pytest.ini                                 |  24 [32m+[m[31m-[m
+ backend/requirements.txt                           | Bin [31m2482[m -> [32m2832[m bytes
+ backend/run_ai_tests.py                            | 224 [32m+++++[m
+ backend/run_tests.py                               | 184 [32m+++++[m
+ backend/scripts/README_POPULATE.md                 | 224 [31m-----[m
+ backend/scripts/create_learning_path_badges.py     | 309 [32m+++++++[m
+ backend/scripts/create_learning_path_quizzes.py    | 604 [32m++++++++++++++[m
+ backend/scripts/migrate_to_event_system.py         | 213 [32m+++++[m
+ backend/scripts/populate_badges.py                 | 282 [32m+++++++[m
+ backend/scripts/populate_missions.py               | 219 [31m-----[m
+ backend/scripts/security_check.py                  | 184 [32m+++++[m
+ backend/scripts/seed_expanded.json                 | 194 [31m-----[m
+ backend/scripts/test_badge_system.py               | 203 [32m+++++[m
+ backend/test_commands.md                           | 116 [32m+++[m
+ backend/tests/README.md                            | 290 [32m+++++++[m
+ backend/tests/__pycache__/__init__.cpython-312.pyc | Bin [31m179[m -> [32m0[m bytes
+ .../test_auth_api.cpython-312-pytest-8.4.1.pyc     | Bin [31m2925[m -> [32m0[m bytes
+ .../test_auth_service.cpython-312-pytest-8.4.1.pyc | Bin [31m7531[m -> [32m0[m bytes
+ .../__pycache__/test_database.cpython-312.pyc      | Bin [31m1762[m -> [32m0[m bytes
+ .../tests/__pycache__/test_profile.cpython-312.pyc | Bin [31m1682[m -> [32m0[m bytes
+ .../__pycache__/test_question.cpython-312.pyc      | Bin [31m1252[m -> [32m0[m bytes
+ .../tests/__pycache__/test_quizz.cpython-312.pyc   | Bin [31m1480[m -> [32m0[m bytes
+ .../tests/__pycache__/test_user.cpython-312.pyc    | Bin [31m1768[m -> [32m0[m bytes
+ .../conftest.cpython-312-pytest-8.4.1.pyc          | Bin [31m0[m -> [32m2150[m bytes
+ .../test_auth_api.cpython-312-pytest-8.4.1.pyc     | Bin [31m7925[m -> [32m0[m bytes
+ ..._questionnaire_api.cpython-312-pytest-8.4.1.pyc | Bin [31m7510[m -> [32m0[m bytes
+ .../test_ranking_api.cpython-312-pytest-8.4.1.pyc  | Bin [31m0[m -> [32m27378[m bytes
+ .../test_rewards_api.cpython-312-pytest-8.4.1.pyc  | Bin [31m0[m -> [32m19862[m bytes
+ .../test_user_api.cpython-312-pytest-8.4.1.pyc     | Bin [31m8053[m -> [32m0[m bytes
+ backend/tests/api/conftest.py                      |  80 [32m++[m
+ backend/tests/api/test_ai_api.py                   | 419 [32m++++++++++[m
+ backend/tests/api/test_ai_api_complete.py          | 516 [32m++++++++++++[m
+ backend/tests/api/test_auth_api.py                 |  45 [32m+[m[31m-[m
+ backend/tests/api/test_questionnaire_api.py        |  31 [32m+[m[31m-[m
+ backend/tests/api/test_ranking_api.py              | 269 [32m++++++[m
+ backend/tests/api/test_rewards_api.py              | 336 [32m++++++++[m
+ backend/tests/api/test_user_api.py                 | 139 [32m++[m[31m--[m
+ backend/tests/fixtures/__init__.py                 |   4 [32m+[m
+ .../fixtures/__pycache__/__init__.cpython-312.pyc  | Bin [31m0[m -> [32m243[m bytes
+ backend/tests/fixtures/ai_fixtures.py              | 536 [32m++++++++++++[m
+ backend/tests/fixtures/conftest.py                 | 260 [32m++++++[m
+ backend/tests/integration/__init__.py              |   4 [32m+[m
+ .../__pycache__/__init__.cpython-312.pyc           | Bin [31m0[m -> [32m236[m bytes
+ ...system_integration.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m16208[m bytes
+ ...adge_system_manual.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m12542[m bytes
+ ...ackend_integration.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m23080[m bytes
+ ...t_full_integration.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m10884[m bytes
+ ...system_integration.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m25907[m bytes
+ backend/tests/integration/conftest.py              |  47 [32m++[m
+ backend/tests/integration/test_ai_integration.py   | 488 [32m+++++++++++[m
+ .../integration/test_ai_integration_complete.py    | 646 [32m+++++++++++++++[m
+ .../integration/test_ai_integration_simple.py      | 479 [32m+++++++++++[m
+ .../integration/test_badge_system_integration.py   | 442 [32m++++++++++[m
+ .../tests/integration/test_badge_system_manual.py  | 274 [32m++++++[m
+ .../test_frontend_backend_integration.py           | 677 [32m+++++++++++++++[m
+ backend/tests/integration/test_full_integration.py | 257 [32m++++++[m
+ .../integration/test_unified_system_integration.py | 358 [32m++++++++[m
+ ...st_mission_service.cpython-312-pytest-8.4.1.pyc | Bin [31m5127[m -> [32m0[m bytes
+ backend/tests/test_auth_api.py                     |  39 [31m-[m
+ backend/tests/test_auth_service.py                 |  87 [31m--[m
+ backend/tests/unit/__init__.py                     |   4 [32m+[m
+ .../unit/__pycache__/__init__.cpython-312.pyc      | Bin [31m0[m -> [32m224[m bytes
+ ...t_badge_repository.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m19630[m bytes
+ .../test_badge_system.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m32105[m bytes
+ ...adge_system_legacy.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m32372[m bytes
+ .../test_event_bus.cpython-312-pytest-8.4.1.pyc    | Bin [31m0[m -> [32m16882[m bytes
+ ...g_path_integration.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m17975[m bytes
+ ...st_mission_service.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m5102[m bytes
+ ...nnaire_integration.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m36452[m bytes
+ ...stionnaire_service.cpython-312-pytest-8.4.1.pyc | Bin [31m4166[m -> [32m4162[m bytes
+ ...ranking_repository.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m19196[m bytes
+ ...st_ranking_service.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m12141[m bytes
+ ...est_reward_service.cpython-312-pytest-8.4.1.pyc | Bin [31m0[m -> [32m22063[m bytes
+ backend/tests/unit/test_ai_complete.py             | 874 [32m++++++++++++++++++++[m
+ backend/tests/unit/test_ai_services.py             | 291 [32m+++++++[m
+ backend/tests/unit/test_ai_system_complete.py      | 914 [32m+++++++++++++++++++++[m
+ backend/tests/unit/test_badge_repository.py        | 407 [32m+++++++++[m
+ backend/tests/unit/test_badge_system_legacy.py     | 439 [32m++++++++++[m
+ backend/tests/unit/test_event_bus.py               | 198 [32m+++++[m
+ .../tests/unit/test_learning_path_integration.py   | 279 [32m+++++++[m
+ .../{services => unit}/test_mission_service.py     |  14 [32m+[m[31m-[m
+ .../tests/unit/test_questionnaire_integration.py   | 332 [32m++++++++[m
+ .../test_questionnaire_service.py                  |   0
+ backend/tests/unit/test_ranking_repository.py      | 217 [32m+++++[m
+ backend/tests/unit/test_ranking_service.py         | 266 [32m++++++[m
+ backend/tests/unit/test_reward_service.py          | 308 [32m+++++++[m
+ backend/tests/utils/__init__.py                    |   4 [32m+[m
+ .../utils/__pycache__/__init__.cpython-312.pyc     | Bin [31m0[m -> [32m247[m bytes
+ .../test_helpers.cpython-312-pytest-8.4.1.pyc      | Bin [31m0[m -> [32m12786[m bytes
+ backend/tests/utils/test_helpers.py                | 249 [32m++++++[m
+ .../cryptoquest/lib/core/config/app_config.dart    |   4 [32m+[m[31m-[m
+ .../lib/core/config/theme/app_colors.dart          |  75 [32m++[m
+ .../lib/core/config/theme/app_theme.dart      

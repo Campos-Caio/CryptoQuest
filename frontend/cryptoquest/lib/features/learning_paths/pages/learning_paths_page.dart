@@ -4,6 +4,8 @@ import '../providers/learning_path_provider.dart';
 import '../widgets/learning_path_card.dart';
 import '../theme/learning_path_colors.dart';
 import '../widgets/glassmorphism_card.dart';
+import '../widgets/ai_recommendation_card.dart';
+import '../../auth/state/auth_notifier.dart';
 
 class LearningPathsPage extends StatefulWidget {
   const LearningPathsPage({Key? key}) : super(key: key);
@@ -23,7 +25,14 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
 
   void _loadLearningPaths() {
     final provider = Provider.of<LearningPathProvider>(context, listen: false);
+    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+
     provider.loadLearningPaths();
+
+    // 🆕 FASE 5: Carregar recomendações de IA
+    if (authNotifier.token != null) {
+      provider.loadRecommendedLearningPaths(authNotifier.token!, limit: 5);
+    }
   }
 
   @override
@@ -174,22 +183,83 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
             },
             color: LearningPathColors.primaryPurple,
             backgroundColor: LearningPathColors.cardBackground,
-            child: ListView.builder(
+            child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-              itemCount: provider.learningPaths.length,
-              itemBuilder: (context, index) {
-                final learningPath = provider.learningPaths[index];
-                final progress = provider.getPathProgress(learningPath.id);
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: LearningPathCard(
-                    learningPath: learningPath,
-                    progress: progress,
-                    onTap: () => _navigateToPathDetails(learningPath.id),
+              children: [
+                // 🆕 FASE 5: Seção de Recomendações de IA
+                if (provider.aiRecommendations.isNotEmpty) ...[
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.psychology,
+                          color: LearningPathColors.primaryPurple,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Recomendações Inteligentes',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: LearningPathColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
+                  // Lista de recomendações
+                  ...provider.aiRecommendations.map((recommendation) {
+                    return AIRecommendationCard(
+                      recommendation: recommendation,
+                      showFullReasoning: true,
+                      onTap: () {
+                        final pathId = recommendation['path_id'] as String?;
+                        if (pathId != null) {
+                          _navigateToPathDetails(pathId);
+                        }
+                      },
+                    );
+                  }).toList(),
+
+                  // Separador
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 24),
+                    height: 1,
+                    color: LearningPathColors.textSecondary.withOpacity(0.3),
+                  ),
+
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: Text(
+                      'Todas as Trilhas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: LearningPathColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Lista normal de trilhas
+                ...provider.learningPaths.map((learningPath) {
+                  final progress = provider.getPathProgress(learningPath.id);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: LearningPathCard(
+                      learningPath: learningPath,
+                      progress: progress,
+                      onTap: () => _navigateToPathDetails(learningPath.id),
+                    ),
+                  );
+                }).toList(),
+              ],
             ),
           );
         },

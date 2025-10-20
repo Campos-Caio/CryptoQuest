@@ -63,7 +63,7 @@ class _MissionsPagesState extends State<MissionsPages> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: missionNotifier.isLoading
-            ? const SkeletonLoading(itemCount: 3, itemHeight: 100)
+            ? const SkeletonLoading(itemCount: 7, itemHeight: 100)
             : missionNotifier.errorMessage != null
                 ? ErrorStateWidget(
                     message: missionNotifier.errorMessage!,
