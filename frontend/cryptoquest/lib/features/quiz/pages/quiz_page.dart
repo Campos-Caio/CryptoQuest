@@ -5,7 +5,9 @@ import 'package:cryptoquest/features/learning_paths/providers/learning_path_prov
 import 'package:cryptoquest/features/learning_paths/models/user_path_progress_model.dart';
 import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
 import 'package:cryptoquest/features/feedback/feedback.dart';
+import 'package:cryptoquest/shared/widgets/animated_lottie_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class QuizPage extends StatefulWidget {
@@ -120,12 +122,62 @@ class _QuizPageState extends State<QuizPage> {
       selectedAnswers[currentQuestionIndex] = answerIndex;
     });
 
+    // Feedback háptico
+    if (_isAnswerCorrect) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.heavyImpact();
+    }
+
+    // Mostrar feedback visual com Lottie (opcional - aparece como overlay)
+    _showAnswerFeedbackOverlay(_isAnswerCorrect);
+
     // Aguardar 2 segundos para o usuário ver o resultado
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         _nextQuestion();
       }
     });
+  }
+
+  /// Mostra feedback visual discreto no canto da tela
+  void _showAnswerFeedbackOverlay(bool isCorrect) {
+    // Usar SnackBar em vez de overlay para não sobrepor o conteúdo
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              child: isCorrect
+                  ? LottieAnimations.successCheck(size: 24)
+                  : LottieAnimations.errorCross(size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              isCorrect ? 'Correto!' : 'Incorreto',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isCorrect ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.only(
+          bottom: 100, // Posicionar acima dos botões
+          left: 16,
+          right: 16,
+        ),
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
   }
 
   // NOVO MÉTODO: Avançar para próxima pergunta
@@ -393,11 +445,32 @@ class _QuizPageState extends State<QuizPage> {
     final userProfile = authNotifier.userProfile;
 
     // Preparar dados de feedback com informações mais ricas
-    final xpGained = (result?['xp_earned'] ?? result?['xp'] ?? 0) as int;
-    final pointsGained =
-        (result?['points_earned'] ?? result?['points'] ?? 0) as int;
-    final currentXP = (result?['total_xp'] ?? userProfile?.xp ?? 0) as int;
+    // Baseado nos logs do servidor, os campos corretos são:
+    final xpGained = (result?['xp_gained'] ??
+        result?['xp_earned'] ??
+        result?['xp'] ??
+        0) as int;
+    final pointsGained = (result?['points_gained'] ??
+        result?['points_earned'] ??
+        result?['points'] ??
+        0) as int;
+    final currentXP =
+        (result?['total_xp'] ?? result?['xp'] ?? userProfile?.xp ?? 0) as int;
+    final currentPoints = (result?['total_points'] ??
+        result?['points'] ??
+        userProfile?.points ??
+        0) as int;
     final previousXP = currentXP - xpGained;
+    final previousPoints = currentPoints - pointsGained;
+
+    // 🔍 DEBUG: Verificar dados extraídos
+    print('🔍 [FEEDBACK DEBUG] Result data: $result');
+    print('🔍 [FEEDBACK DEBUG] XP gained: $xpGained');
+    print('🔍 [FEEDBACK DEBUG] Points gained: $pointsGained');
+    print('🔍 [FEEDBACK DEBUG] Current XP: $currentXP');
+    print('🔍 [FEEDBACK DEBUG] Current Points: $currentPoints');
+    print('🔍 [FEEDBACK DEBUG] Previous XP: $previousXP');
+    print('🔍 [FEEDBACK DEBUG] Previous Points: $previousPoints');
 
     // Calcular nível baseado no novo sistema de XP
     final currentLevel = _calculateLevelFromXP(currentXP);
@@ -433,11 +506,18 @@ class _QuizPageState extends State<QuizPage> {
       message: message,
     );
 
-    // Exibir novo sistema de feedback
-    RewardSummarySheet.show(
+    // Exibir novo sistema central de feedback
+    FeedbackService.showQuizFeedback(
       context: context,
+      quizResult: {
+        'score': percentage.round(),
+        'success': percentage >= 70,
+        'points': result?['points'] ?? 0,
+        'level': result?['level'] ?? 1,
+        'answers': selectedAnswers,
+      },
       rewardData: rewardData,
-      onContinue: () {
+      onComplete: () {
         // Retorna o resultado para a tela anterior
         Navigator.of(context).pop({
           'score': percentage.round(),
@@ -447,14 +527,6 @@ class _QuizPageState extends State<QuizPage> {
           'answers': selectedAnswers,
         });
       },
-      onViewProfile: () {
-        Navigator.pushNamed(context, '/profile');
-      },
-      onViewBadges: percentage >= 70
-          ? () {
-              Navigator.pushNamed(context, '/rewards');
-            }
-          : null,
     );
   }
 

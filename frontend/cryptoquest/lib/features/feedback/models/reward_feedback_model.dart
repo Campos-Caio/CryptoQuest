@@ -62,14 +62,38 @@ class RewardFeedbackModel {
 
   /// Determina o tipo de celebração baseado nas recompensas
   CelebrationType get celebrationType {
+    // 1. Level up sempre tem prioridade máxima
     if (leveledUp) return CelebrationType.levelUp;
+
+    // 2. Badges lendários têm prioridade alta
     if (badgesEarned.any((badge) => badge.rarity == 'legendary')) {
       return CelebrationType.legendary;
     }
+
+    // 3. Múltiplos badges
     if (badgesEarned.length >= 3) return CelebrationType.multiple;
     if (badgesEarned.isNotEmpty) return CelebrationType.badge;
-    if (xpGained >= 500) return CelebrationType.major;
-    if (xpGained > 0) return CelebrationType.minor;
+
+    // 4. Conquistas baseadas em performance e recompensas
+    if (quizPercentage >= 100) return CelebrationType.legendary; // Perfeito!
+    if (quizPercentage >= 90) return CelebrationType.major; // Excelente
+    if (quizPercentage >= 80) return CelebrationType.major; // Muito bom
+
+    // 5. Conquistas baseadas em XP e pontos
+    if (xpGained >= 500 || pointsGained >= 1000) return CelebrationType.major;
+    if (xpGained >= 100 || pointsGained >= 200) return CelebrationType.major;
+
+    // 6. Streak celebrations
+    if (streakDays >= 30) return CelebrationType.legendary; // Streak lendário
+    if (streakDays >= 7) return CelebrationType.major; // Streak semanal
+
+    // 7. Missões completadas com sucesso
+    if (isSuccess && (xpGained > 0 || pointsGained > 0)) {
+      return CelebrationType.major; // Missão bem-sucedida
+    }
+
+    // 8. Fallback
+    if (xpGained > 0 || pointsGained > 0) return CelebrationType.minor;
     return CelebrationType.none;
   }
 }
