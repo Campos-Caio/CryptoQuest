@@ -45,7 +45,7 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  /// ✅ MÉTODO ROBUSTO: Executa login com Google e retorna o UserProfile garantindo estado atualizado
+  /// Executa login com Google e retorna o UserProfile garantindo estado atualizado
   Future<UserProfile?> signInWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
@@ -72,7 +72,7 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  /// ✅ MÉTODO AUXILIAR: Verifica se o usuário deve ir para home ou questionário
+  /// Verifica se o usuário deve ir para home ou questionário
   bool shouldGoToHome() {
     if (_userProfile == null) return false;
     return _userProfile!.hasCompletedQuestionnaire;
@@ -116,6 +116,30 @@ class AuthNotifier extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  /// Atualiza perfil local sem fazer chamada à API
+  ///
+  /// Usa dados que já vieram do backend (ex: após completar missão)
+  /// Economia: ~500ms por não fazer GET /auth/me
+  void updateLocalProfile({
+    int? points,
+    int? xp,
+    int? level,
+    int? currentStreak,
+    List<String>? badges,
+  }) {
+    if (_userProfile == null) return;
+
+    _userProfile = _userProfile!.copyWith(
+      points: points,
+      xp: xp,
+      level: level,
+      currentStreak: currentStreak,
+      badges: badges,
+    );
+
+    notifyListeners();
   }
 
   /// Busca os dados mais recentes do perfil do usuário no backend e atualiza o estado.

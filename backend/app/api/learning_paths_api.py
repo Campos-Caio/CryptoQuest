@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import List, Dict, Any, Union
+from datetime import datetime, UTC
 import logging
 from app.models.learning_path import LearningPath, UserPathProgress, LearningPathResponse
 from app.models.user import FirebaseUser
@@ -35,6 +36,38 @@ async def get_all_learning_paths(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao buscar trilhas: {str(e)}"
+        )
+
+@router.get("/recommended")
+async def get_recommended_learning_paths(
+    current_user: FirebaseUser = Depends(get_current_user),
+    service: LearningPathService = Depends(get_service),
+    limit: int = 5
+):
+    """
+    🆕 FASE 2: Busca learning paths recomendados pela IA baseado no perfil do usuário
+    
+    Args:
+        current_user: Usuário autenticado
+        limit: Número máximo de recomendações (padrão: 5)
+    
+    Returns:
+        List[Dict]: Lista de trilhas recomendadas com scores e reasoning
+    """
+    try:
+        user_id = current_user.uid
+        recommendations = await service.get_recommended_learning_paths(user_id, limit)
+        
+        return {
+            "user_id": user_id,
+            "recommendations": recommendations,
+            "total_found": len(recommendations),
+            "generated_at": datetime.now(UTC).isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao buscar recomendações: {str(e)}"
         )
 
 @router.get("/{path_id}", response_model=LearningPath)

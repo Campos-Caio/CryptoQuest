@@ -1,9 +1,13 @@
 import 'package:cryptoquest/features/auth/state/auth_notifier.dart';
 import 'package:cryptoquest/features/missions/state/mission_notifier.dart';
 import 'package:cryptoquest/features/learning_paths/services/learning_path_service.dart';
+import 'package:cryptoquest/features/learning_paths/providers/learning_path_provider.dart';
+import 'package:cryptoquest/features/learning_paths/models/user_path_progress_model.dart';
 import 'package:cryptoquest/features/quiz/models/quiz_model.dart';
-import 'package:cryptoquest/features/rewards/providers/reward_provider.dart';
+import 'package:cryptoquest/features/feedback/feedback.dart';
+import 'package:cryptoquest/shared/widgets/animated_lottie_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 class QuizPage extends StatefulWidget {
@@ -38,11 +42,8 @@ class _QuizPageState extends State<QuizPage> {
   bool _isAnswerSubmitted = false; // Se a resposta foi enviada
   bool _isAnswerCorrect = false; // Se a resposta está correta
 
-  // 🆕 COLETA DE DADOS COMPORTAMENTAIS REAIS PARA IA
-  DateTime? _questionStartTime; // Momento em que a questão foi exibida
-  DateTime? _quizStartTime; // Momento em que o quiz começou
-  List<double> _realTimePerQuestion =
-      []; // Tempo real gasto em cada questão (segundos)
+  DateTime? _questionStartTime;
+  List<double> _realTimePerQuestion = [];
   List<int> _attemptsPerQuestion = []; // Número de tentativas por questão
   int _currentQuestionAttempts = 0; // Tentativas na questão atual
 
@@ -69,41 +70,26 @@ class _QuizPageState extends State<QuizPage> {
           quiz = loadedQuiz;
           selectedAnswers = List.filled(loadedQuiz.questions.length, -1);
 
-          // 🆕 Inicializar coleta de dados comportamentais
-          _quizStartTime = DateTime.now();
-          _questionStartTime = DateTime.now(); // Primeira questão começa agora
+          _questionStartTime = DateTime.now();
           _realTimePerQuestion = [];
           _attemptsPerQuestion = List.filled(loadedQuiz.questions.length, 0);
           _currentQuestionAttempts = 0;
-
-          print('🎯 [IA] Quiz iniciado às ${_quizStartTime}');
-          print('🎯 [IA] Timer da primeira questão iniciado');
         });
       }
     }
   }
 
-  // NOVO MÉTODO: Processar seleção de resposta
-  void _selectAnswer(int answerIndex) {
-    if (_isAnswerSubmitted) return; // Evita múltiplas seleções
+    void _selectAnswer(int answerIndex) {
+      if (_isAnswerSubmitted) return;
 
-    // 🆕 CALCULAR TEMPO REAL gasto na questão
-    if (_questionStartTime != null) {
-      final elapsed = DateTime.now().difference(_questionStartTime!);
-      final timeInSeconds =
-          elapsed.inMilliseconds / 1000.0; // Precisão em milissegundos
-      _realTimePerQuestion.add(timeInSeconds);
+      if (_questionStartTime != null) {
+        final elapsed = DateTime.now().difference(_questionStartTime!);
+        final timeInSeconds = elapsed.inMilliseconds / 1000.0;
+        _realTimePerQuestion.add(timeInSeconds);
+      }
 
-      print(
-          '🎯 [IA] Questão ${currentQuestionIndex + 1}: ${timeInSeconds.toStringAsFixed(2)}s');
-    }
-
-    // 🆕 REGISTRAR tentativa
     _currentQuestionAttempts++;
     _attemptsPerQuestion[currentQuestionIndex] = _currentQuestionAttempts;
-
-    print(
-        '🎯 [IA] Tentativa #${_currentQuestionAttempts} na questão ${currentQuestionIndex + 1}');
 
     setState(() {
       _selectedAnswerIndex = answerIndex;
@@ -118,12 +104,62 @@ class _QuizPageState extends State<QuizPage> {
       selectedAnswers[currentQuestionIndex] = answerIndex;
     });
 
+    // Feedback háptico
+    if (_isAnswerCorrect) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.heavyImpact();
+    }
+
+    // Mostrar feedback visual com Lottie (opcional - aparece como overlay)
+    _showAnswerFeedbackOverlay(_isAnswerCorrect);
+
     // Aguardar 2 segundos para o usuário ver o resultado
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         _nextQuestion();
       }
     });
+  }
+
+  /// Mostra feedback visual discreto no canto da tela
+  void _showAnswerFeedbackOverlay(bool isCorrect) {
+    // Usar SnackBar em vez de overlay para não sobrepor o conteúdo
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              child: isCorrect
+                  ? LottieAnimations.successCheck(size: 24)
+                  : LottieAnimations.errorCross(size: 24),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              isCorrect ? 'Correto!' : 'Incorreto',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: isCorrect ? Colors.green : Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: const EdgeInsets.only(
+          bottom: 100, // Posicionar acima dos botões
+          left: 16,
+          right: 16,
+        ),
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
   }
 
   // NOVO MÉTODO: Avançar para próxima pergunta
@@ -136,16 +172,11 @@ class _QuizPageState extends State<QuizPage> {
         _isAnswerSubmitted = false;
         _isAnswerCorrect = false;
 
-        // 🆕 RESETAR timer e tentativas para próxima questão
         _questionStartTime = DateTime.now();
         _currentQuestionAttempts = 0;
 
-        print('🎯 [IA] Avançou para questão ${currentQuestionIndex + 1}');
-        print('🎯 [IA] Timer da questão ${currentQuestionIndex + 1} iniciado');
       });
     } else {
-      // Última pergunta - submeter o quiz
-      print('🎯 [IA] Finalizando quiz...');
       _submitQuiz();
     }
   }
@@ -214,13 +245,6 @@ class _QuizPageState extends State<QuizPage> {
           // Usar serviço de trilhas de aprendizado
           final learningPathService = LearningPathService();
 
-          // 🆕 USAR DADOS COMPORTAMENTAIS REAIS coletados durante o quiz
-          print('🎯 [IA] ===== RESUMO DOS DADOS COLETADOS =====');
-          print(
-              '🎯 [IA] Tempo total do quiz: ${DateTime.now().difference(_quizStartTime!).inSeconds}s');
-          print('🎯 [IA] Tempo por questão (real): $_realTimePerQuestion');
-          print('🎯 [IA] Tentativas por questão: $_attemptsPerQuestion');
-          print('🎯 [IA] ===========================================');
 
           // Preparar dados de confiança (por enquanto estimado, mas estrutura pronta)
           // Estimativa baseada em tempo: resposta rápida = mais confiança
@@ -235,33 +259,32 @@ class _QuizPageState extends State<QuizPage> {
           // Preparar dados de dicas (por enquanto 0, mas estrutura pronta)
           List<int> hintsUsed = List.filled(selectedAnswers.length, 0);
 
-          print('🎯 [IA] Confiança estimada: $confidenceLevels');
 
           result = await learningPathService.completeMission(
             widget.pathId!,
             widget.missionId,
             selectedAnswers,
             authNotifier.token!,
-            timePerQuestion: _realTimePerQuestion, // ✅ DADOS REAIS!
-            confidenceLevels:
-                confidenceLevels, // ⚠️ Estimado, mas melhor que fake
-            hintsUsed: hintsUsed, // ⚠️ Por enquanto 0 (sem sistema de dicas)
-            attemptsPerQuestion: _attemptsPerQuestion, // ✅ DADOS REAIS!
+            timePerQuestion: _realTimePerQuestion,
+            confidenceLevels: confidenceLevels,
+            hintsUsed: hintsUsed,
+            attemptsPerQuestion: _attemptsPerQuestion,
           );
           success = result['success'] == true;
         } else {
           // Usar serviço de missões diárias (comportamento original)
           final missionNotifier =
               Provider.of<MissionNotifier>(context, listen: false);
-          success = await missionNotifier.completeMission(
+          result = await missionNotifier.completeMission(
             widget.missionId,
             selectedAnswers,
             authNotifier.token!,
           );
+          success = result != null;
         }
 
-        if (success && mounted) {
-          // Calcular pontuação
+        if (mounted) {
+          // Calcular pontuação localmente
           int correctAnswers = 0;
           for (int i = 0; i < quiz!.questions.length; i++) {
             if (selectedAnswers[i] == quiz!.questions[i].correctAnswerIndex) {
@@ -270,10 +293,41 @@ class _QuizPageState extends State<QuizPage> {
           }
           double percentage = (correctAnswers / quiz!.questions.length) * 100;
 
-          // 🎯 NOVA INTEGRAÇÃO: Processar recompensas e badges
-          await _processRewardsAndBadges(percentage);
+          if (success && widget.pathId != null && result != null) {
+            final missionNotifier =
+                Provider.of<MissionNotifier>(context, listen: false);
+            missionNotifier.setLastCompletedMission(result);
 
-          // Mostrar resultado
+            final learningPathProvider =
+                Provider.of<LearningPathProvider>(context, listen: false);
+
+            if (result['progress'] != null) {
+              try {
+                final progress = UserPathProgress.fromJson(result['progress']);
+                learningPathProvider.updateProgress(widget.pathId!, progress);
+              } catch (e) {
+                // Error parsing progress
+              }
+            }
+          }
+
+          if (success && result != null && percentage >= 70) {
+            final updatedPoints = result['points'] as int?;
+            final updatedXp = result['xp'] as int?;
+            final updatedLevel = result['level'] as int?;
+            final updatedStreak = result['current_streak'] as int?;
+            final updatedBadges = result['badges'] as List<dynamic>?;
+
+            if (updatedPoints != null || updatedXp != null) {
+              authNotifier.updateLocalProfile(
+                points: updatedPoints,
+                xp: updatedXp,
+                level: updatedLevel,
+                currentStreak: updatedStreak,
+                badges: updatedBadges?.map((e) => e.toString()).toList(),
+              );
+            }
+          }
           _showResultDialog(percentage);
         }
       }
@@ -283,8 +337,6 @@ class _QuizPageState extends State<QuizPage> {
         String errorString = e.toString().toLowerCase();
 
         // Debug: imprimir o erro real para console
-        print('Erro capturado: $e');
-        print('Tipo do erro: ${e.runtimeType}');
 
         if (errorString.contains('já foi concluída hoje') ||
             errorString.contains('409') ||
@@ -293,9 +345,9 @@ class _QuizPageState extends State<QuizPage> {
             errorString.contains('não está disponível hoje')) {
           errorMessage =
               'Esta missão já foi concluída hoje. Tente novamente amanhã!';
-        } else if (errorString.contains('acertou')) {
-          errorMessage = e.toString();
         }
+        // Agora o backend não lança erro, apenas retorna resultado indicando falha
+        // O feedback será mostrado na tela de resultados
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -321,141 +373,113 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  // 🎯 NOVO MÉTODO: Processar recompensas e badges
-  Future<void> _processRewardsAndBadges(double percentage) async {
-    try {
-      final rewardProvider =
-          Provider.of<RewardProvider>(context, listen: false);
-      final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-
-      if (authNotifier.token != null) {
-        // Chamar API de recompensas para processar badges
-        final rewardResult = await rewardProvider.awardMissionCompletion(
-          widget.missionId,
-          percentage,
-          'QUIZ',
-        );
-
-        if (rewardResult != null && mounted) {
-          // Mostrar notificação de badges conquistados
-          _showBadgeNotification(rewardResult);
-        }
-      }
-    } catch (e) {
-      print('Erro ao processar recompensas: $e');
-      // Não mostrar erro para o usuário, apenas log
-    }
-  }
-
-  // 🎯 NOVO MÉTODO: Mostrar notificação de badges
-  void _showBadgeNotification(Map<String, dynamic> rewardResult) {
-    final badgesEarned = rewardResult['badges_earned'] as List<dynamic>? ?? [];
-
-    if (badgesEarned.isNotEmpty && mounted) {
-      // Mostrar snackbar com badges conquistados
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.emoji_events, color: Colors.yellow),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '🏆 ${badgesEarned.length} badge(s) conquistado(s)!',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green[700],
-          duration: const Duration(seconds: 4),
-          action: SnackBarAction(
-            label: 'Ver',
-            textColor: Colors.white,
-            onPressed: () {
-              // Navegar para tela de recompensas
-              Navigator.pushNamed(context, '/rewards');
-            },
-          ),
-        ),
-      );
-    }
-  }
+  // Backend já processa tudo (badges, recompensas) em background
+  // Badges aparecem automaticamente quando backend terminar o processamento
+  // ECONOMIA: ~3.2 segundos por não fazer POST /rewards/award/mission redundante
 
   void _showResultDialog(double percentage) {
+    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
     final missionNotifier =
         Provider.of<MissionNotifier>(context, listen: false);
     final result = missionNotifier.lastCompletedMission;
+    final userProfile = authNotifier.userProfile;
 
-    showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-              title: Text(percentage >= 70 ? 'Parabéns' : 'Tente Novamente!'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Você acertou ${percentage.toStringAsFixed(0)}%'),
-                  if (percentage >= 70 && result != null) ...[
-                    const SizedBox(height: 8),
-                    Text('Ganhou ${result['points']} pontos de XP!'),
-                    Text('Nivel: ${result['level']} pontos!'),
-                  ],
-                  // 🎯 NOVA SEÇÃO: Mostrar badges conquistados
-                  if (percentage >= 70) ...[
-                    const SizedBox(height: 16),
-                    const Divider(),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.emoji_events,
-                            color: Colors.amber, size: 20),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Badges processados!',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Verifique sua coleção de badges',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                if (percentage >= 70)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.pushNamed(context, '/rewards');
-                    },
-                    child: const Text("Ver Badges"),
-                  ),
-                TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      // Retorna o resultado para a tela anterior (trilhas)
-                      Navigator.of(context).pop({
-                        'score': percentage.round(),
-                        'success': percentage >= 70,
-                        'points': result?['points'] ?? 0,
-                        'level': result?['level'] ?? 1,
-                        'answers': selectedAnswers, // Adiciona as respostas
-                      });
-                    },
-                    child: const Text("OK"))
-              ],
-            ));
+    // Preparar dados de feedback com informações mais ricas
+    // Baseado nos logs do servidor, os campos corretos são:
+    final xpGained = percentage >= 70
+        ? ((result?['xp_gained'] ??
+            result?['xp_earned'] ??
+            result?['xp'] ??
+            0) as int)
+        : 0;
+    final pointsGained = percentage >= 70
+        ? ((result?['points_gained'] ??
+            result?['points_earned'] ??
+            result?['points'] ??
+            0) as int)
+        : 0;
+    final currentXP = percentage >= 70
+        ? ((result?['total_xp'] ?? result?['xp'] ?? userProfile?.xp ?? 0) as int)
+        : (userProfile?.xp ?? 0);
+    final previousXP = currentXP - xpGained;
+
+
+    // Calcular nível baseado no novo sistema de XP
+    final currentLevel = _calculateLevelFromXP(currentXP);
+    final previousLevel = _calculateLevelFromXP(previousXP);
+    final leveledUp = currentLevel > previousLevel;
+
+    // Determinar mensagem baseada no desempenho
+    String message;
+    if (percentage >= 90) {
+      message = 'Perfeito! Você é um verdadeiro especialista!';
+    } else if (percentage >= 80) {
+      message = 'Excelente trabalho! Continue assim!';
+    } else if (percentage >= 70) {
+      message = 'Muito bom! Você está no caminho certo!';
+    } else if (percentage >= 50) {
+      message = 'Bom esforço! Continue estudando!';
+    } else {
+      message = 'Não desista! Tente novamente!';
+    }
+
+    final rewardData = RewardFeedbackModel(
+      xpGained: xpGained,
+      pointsGained: pointsGained,
+      previousXP: previousXP,
+      currentXP: currentXP,
+      previousLevel: previousLevel,
+      currentLevel: currentLevel,
+      leveledUp: leveledUp,
+      badgesEarned: [], // Será populado pelo processamento de badges
+      streakDays: userProfile?.currentStreak ?? 0,
+      quizPercentage: percentage,
+      isSuccess: percentage >= 70,
+      message: message,
+    );
+
+    // Exibir novo sistema central de feedback
+    FeedbackService.showQuizFeedback(
+      context: context,
+      quizResult: {
+        'score': percentage.round(),
+        'success': percentage >= 70,
+        'points': result?['points'] ?? 0,
+        'level': result?['level'] ?? 1,
+        'answers': selectedAnswers,
+        'onRetry': percentage < 70 ? () {
+          // Recarregar o quiz para tentar novamente
+          _loadQuiz();
+          setState(() {
+            currentQuestionIndex = 0;
+            selectedAnswers = List.filled(quiz!.questions.length, -1);
+            _selectedAnswerIndex = null;
+            _correctAnswerIndex = null;
+            _isAnswerSubmitted = false;
+            _isAnswerCorrect = false;
+            _questionStartTime = DateTime.now();
+            _realTimePerQuestion = [];
+            _attemptsPerQuestion = List.filled(quiz!.questions.length, 0);
+            _currentQuestionAttempts = 0;
+          });
+        } : null,
+      },
+      rewardData: rewardData,
+      onComplete: () {
+        // Para falha, o usuário deve escolher "Tentar Novamente" ou "Continuar"
+        if (percentage >= 70) {
+          // Retorna o resultado para a tela anterior
+          Navigator.of(context).pop({
+            'score': percentage.round(),
+            'success': percentage >= 70,
+            'points': result?['points'] ?? 0,
+            'level': result?['level'] ?? 1,
+            'answers': selectedAnswers,
+          });
+        }
+        // Se falhou, não fechar automaticamente - deixar o usuário escolher
+      },
+    );
   }
 
   // NOVO WIDGET: Opção de resposta com feedback visual
@@ -602,40 +626,6 @@ class _QuizPageState extends State<QuizPage> {
               },
             ),
           ),
-
-          // Mensagem de feedback
-          if (_isAnswerSubmitted)
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _isAnswerCorrect ? Colors.green[100] : Colors.red[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _isAnswerCorrect ? Colors.green : Colors.red,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _isAnswerCorrect ? Icons.check_circle : Icons.cancel,
-                    color: _isAnswerCorrect ? Colors.green : Colors.red,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _isAnswerCorrect ? 'Correto!' : 'Incorreto!',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: _isAnswerCorrect
-                          ? Colors.green[800]
-                          : Colors.red[800],
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
@@ -707,5 +697,49 @@ class _QuizPageState extends State<QuizPage> {
         },
       ),
     );
+  }
+
+  /// Calcula o nível baseado no XP total usando o novo sistema rebalanceado
+  int _calculateLevelFromXP(int totalXP) {
+    // Sistema de níveis rebalanceado (mesmo do backend)
+    final levelRequirements = {
+      1: 0, // Nível 1: 0 XP
+      2: 500, // Nível 2: 500 XP total
+      3: 1000, // Nível 3: 1000 XP total
+      4: 1500, // Nível 4: 1500 XP total
+      5: 2000, // Nível 5: 2000 XP total
+      6: 2500, // Nível 6: 2500 XP total
+      7: 3000, // Nível 7: 3000 XP total
+      8: 3500, // Nível 8: 3500 XP total
+      9: 4000, // Nível 9: 4000 XP total
+      10: 4500, // Nível 10: 4500 XP total
+      11: 5250, // Nível 11: 5250 XP total
+      12: 6000, // Nível 12: 6000 XP total
+      13: 6750, // Nível 13: 6750 XP total
+      14: 7500, // Nível 14: 7500 XP total
+      15: 8250, // Nível 15: 8250 XP total
+      16: 9000, // Nível 16: 9000 XP total
+      17: 9750, // Nível 17: 9750 XP total
+      18: 10500, // Nível 18: 10500 XP total
+      19: 11250, // Nível 19: 11250 XP total
+      20: 12000, // Nível 20: 12000 XP total
+      21: 13000, // Nível 21: 13000 XP total
+      22: 14000, // Nível 22: 14000 XP total
+      23: 15000, // Nível 23: 15000 XP total
+      24: 16000, // Nível 24: 16000 XP total
+      25: 17000, // Nível 25: 17000 XP total
+    };
+
+    int level = 1;
+
+    for (int requiredLevel = 2; requiredLevel <= 25; requiredLevel++) {
+      if (totalXP >= levelRequirements[requiredLevel]!) {
+        level = requiredLevel;
+      } else {
+        break;
+      }
+    }
+
+    return level;
   }
 }

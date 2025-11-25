@@ -74,7 +74,24 @@ class AIProvider extends ChangeNotifier {
     try {
       final recommendations =
           await AIService.getUserRecommendations(userId, token, limit: limit);
-      _recommendations = recommendations;
+
+      // Se não há recomendações do sistema de IA, tentar learning paths
+      if (recommendations.isEmpty) {
+        try {
+          final learningPathRecommendations =
+              await AIService.getLearningPathRecommendations(userId, token,
+                  limit: limit);
+          if (learningPathRecommendations.isNotEmpty) {
+            _recommendations = learningPathRecommendations;
+          } else {
+            _recommendations = _createFallbackRecommendations();
+          }
+        } catch (e) {
+          _recommendations = _createFallbackRecommendations();
+        }
+      } else {
+        _recommendations = recommendations;
+      }
     } catch (e) {
       _recommendationsError = 'Erro ao carregar recomendações: $e';
     } finally {
@@ -140,7 +157,6 @@ class AIProvider extends ChangeNotifier {
     try {
       return await AIService.getDifficultySuggestion(userId, domain, token);
     } catch (e) {
-      print('Erro ao buscar sugestão de dificuldade: $e');
       return null;
     }
   }
@@ -153,7 +169,6 @@ class AIProvider extends ChangeNotifier {
       return await AIService.getContentSuggestions(userId, domain, token,
           limit: limit);
     } catch (e) {
-      print('Erro ao buscar sugestões de conteúdo: $e');
       return [];
     }
   }
@@ -163,7 +178,6 @@ class AIProvider extends ChangeNotifier {
     try {
       return await AIService.isAIEnabled(token);
     } catch (e) {
-      print('Erro ao verificar status da IA: $e');
       return false;
     }
   }
@@ -208,4 +222,49 @@ class AIProvider extends ChangeNotifier {
   String? get idealTime => _insights?['ideal_time'];
   double? get avgResponseTime => _insights?['avg_response_time'];
   String? get focusArea => _insights?['focus_area'];
+
+  /// Cria recomendações básicas como fallback
+  List<Map<String, dynamic>> _createFallbackRecommendations() {
+    return [
+      {
+        'content_id': 'btc_quiz_01',
+        'content_type': 'quiz',
+        'title': 'Fundamentos do Bitcoin',
+        'relevance_score': 0.8,
+        'reasoning': 'Conteúdo fundamental recomendado para iniciantes',
+        'learning_objectives': [
+          'Entender conceitos básicos do Bitcoin',
+          'Conhecer história da criptomoeda'
+        ],
+        'estimated_time': 15,
+        'difficulty_level': 'beginner'
+      },
+      {
+        'content_id': 'blockchain_conceitos_questionnaire',
+        'content_type': 'quiz',
+        'title': 'A Blockchain e a Criptografia',
+        'relevance_score': 0.7,
+        'reasoning': 'Conceitos essenciais de blockchain',
+        'learning_objectives': [
+          'Entender conceitos de blockchain',
+          'Conhecer tipos de consenso'
+        ],
+        'estimated_time': 20,
+        'difficulty_level': 'beginner'
+      },
+      {
+        'content_id': 'daily_crypto_security_quiz',
+        'content_type': 'quiz',
+        'title': 'Segurança em Cripto',
+        'relevance_score': 0.6,
+        'reasoning': 'Segurança é fundamental no mundo crypto',
+        'learning_objectives': [
+          'Aprender sobre segurança de carteiras',
+          'Conhecer boas práticas'
+        ],
+        'estimated_time': 15,
+        'difficulty_level': 'intermediate'
+      }
+    ];
+  }
 }

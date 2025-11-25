@@ -56,25 +56,25 @@ class MissionNotifier extends ChangeNotifier {
     try {
       _isLoadingQuiz = true;
       _quizError = null;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
 
       final quiz = await _apiService.getQuiz(quizId, token);
 
       _currentQuiz = quiz;
       _isLoadingQuiz = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
 
       return quiz;
     } catch (e) {
       _quizError = e.toString();
       _isLoadingQuiz = false;
-      notifyListeners();
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
       return null;
     }
   }
 
   // Completar missão
-  Future<bool> completeMission(
+  Future<Map<String, dynamic>?> completeMission(
       String missionId, List<int> answers, String token) async {
     try {
       _isSubmitting = true;
@@ -90,7 +90,8 @@ class MissionNotifier extends ChangeNotifier {
       _lastCompletedMission = result;
       notifyListeners();
 
-      return true;
+      // Retornar o resultado para que possa ser usado para atualizar o AuthNotifier
+      return result;
     } catch (e) {
       _submitError = e.toString();
       _isSubmitting = false;
@@ -112,6 +113,12 @@ class MissionNotifier extends ChangeNotifier {
   void clearCurrentQuiz() {
     _currentQuiz = null;
     _quizError = null;
+    notifyListeners();
+  }
+
+  // Definir dados da última missão completada
+  void setLastCompletedMission(Map<String, dynamic> result) {
+    _lastCompletedMission = result;
     notifyListeners();
   }
 }

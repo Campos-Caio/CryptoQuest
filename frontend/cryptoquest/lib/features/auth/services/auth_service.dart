@@ -35,8 +35,6 @@ class AuthService {
       // 3. Se o cadastro deu certo, o usuário agora existe.
       //    A maneira mais robusta de obter o estado completo (token, perfil)
       //    é simplesmente realizar o login com as credenciais que acabamos de usar.
-      print(
-          "Cadastro no backend bem-sucedido. Realizando login para obter o perfil...");
       return signInWithEmailAndPassword(email: email, password: password);
     } else {
       // Se o backend retornou um erro (ex: e-mail já existe), lança uma exceção.

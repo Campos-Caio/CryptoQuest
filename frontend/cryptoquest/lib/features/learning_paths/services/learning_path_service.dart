@@ -113,7 +113,6 @@ class LearningPathService {
       List<int>? hintsUsed,
       List<int>? attemptsPerQuestion}) async {
     try {
-      // 🆕 Preparar dados enriquecidos para IA
       Map<String, dynamic> submissionData = {
         'answers': answers,
       };
@@ -199,6 +198,31 @@ class LearningPathService {
       }
     } catch (e) {
       throw Exception('Erro na requisição: $e');
+    }
+  }
+
+  // ==================== ENDPOINTS DE IA ====================
+
+  /// Busca learning paths recomendados pela IA baseado no perfil do usuário
+  Future<List<Map<String, dynamic>>> getRecommendedLearningPaths(String token,
+      {int limit = 5}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/learning-paths/recommended?limit=$limit'),
+        headers: _getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        final List<dynamic> recommendationsJson =
+            jsonResponse['recommendations'] ?? [];
+
+        return recommendationsJson.cast<Map<String, dynamic>>();
+      } else {
+        throw Exception('Erro ao buscar recomendações: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Erro na requisição de recomendações: $e');
     }
   }
 }

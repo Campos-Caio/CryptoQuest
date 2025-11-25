@@ -1,10 +1,7 @@
-<<<<<<< HEAD
-=======
 """
 Testes para a API de recompensas.
 """
 
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from httpx import AsyncClient, ASGITransport
@@ -15,11 +12,7 @@ from app.repositories.reward_repository import get_reward_repository
 from app.services.reward_service import get_reward_service
 from app.dependencies.auth import get_current_user
 from app.models.user import FirebaseUser
-<<<<<<< HEAD
-from app.models.reward import Badge, UserBadge, UserReward
-=======
 
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
 class TestRewardsAPI:
     """Testes para endpoints de recompensas"""
@@ -27,17 +20,6 @@ class TestRewardsAPI:
     @pytest.fixture
     def mock_badge_repo(self):
         """Mock do BadgeRepository"""
-<<<<<<< HEAD
-        mock_repo = MagicMock()
-        mock_repo.get_user_badges.return_value = []
-        mock_repo.get_all_badges.return_value = []
-        mock_repo.get_user_badge_stats = AsyncMock(return_value={
-            'total_badges': 0,
-            'total_available': 0,
-            'completion_percentage': 0.0,
-            'rarity_counts': {}
-        })
-=======
         mock_repo = AsyncMock()
         mock_repo.get_user_badges.return_value = []
         mock_repo.get_all_badges.return_value = []
@@ -47,18 +29,13 @@ class TestRewardsAPI:
             'completion_percentage': 0.0,
             'rarity_counts': {}
         }
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         mock_repo.get_badge_by_id.return_value = None
         return mock_repo
     
     @pytest.fixture
     def mock_reward_repo(self):
         """Mock do RewardRepository"""
-<<<<<<< HEAD
-        mock_repo = MagicMock()
-=======
         mock_repo = AsyncMock()
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         mock_repo.get_user_rewards.return_value = []
         return mock_repo
     
@@ -72,11 +49,7 @@ class TestRewardsAPI:
             'badges_earned': []
         }
         return mock_service
-<<<<<<< HEAD
-
-=======
     
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     @pytest.fixture
     def mock_current_user(self):
         """Mock do usuário atual"""
@@ -95,15 +68,9 @@ class TestRewardsAPI:
         
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/rewards/user/test_user/badges")
-<<<<<<< HEAD
-            
-            assert response.status_code == 200
-            assert response.json() == []
-=======
         
         assert response.status_code == 200
         assert response.json() == []
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         # Limpar override
         app.dependency_overrides.clear()
@@ -117,33 +84,14 @@ class TestRewardsAPI:
         
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/rewards/badges")
-<<<<<<< HEAD
-            
-            assert response.status_code == 200
-            assert response.json() == []
-=======
         
         assert response.status_code == 200
         assert response.json() == []
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         # Limpar override
         app.dependency_overrides.clear()
 
     @pytest.mark.asyncio
-<<<<<<< HEAD
-    async def test_get_user_rewards(self, mock_reward_repo, mock_current_user):
-        """Testa endpoint GET /rewards/user/{user_id}/history"""
-        # Mock das dependências
-        app.dependency_overrides[get_reward_repository] = lambda: mock_reward_repo
-        app.dependency_overrides[get_current_user] = lambda: mock_current_user
-        
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/rewards/user/test_user/history")
-            
-            assert response.status_code == 200
-            assert response.json() == []
-=======
     async def test_get_user_badge_stats(self, mock_badge_repo, mock_current_user):
         """Testa endpoint GET /rewards/user/{user_id}/badge-stats"""
         # Mock das dependências
@@ -158,7 +106,6 @@ class TestRewardsAPI:
         assert 'total_badges' in data
         assert 'total_available' in data
         assert 'completion_percentage' in data
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         # Limpar override
         app.dependency_overrides.clear()
@@ -166,44 +113,20 @@ class TestRewardsAPI:
     @pytest.mark.asyncio
     async def test_get_badge_by_id(self, mock_badge_repo, mock_current_user):
         """Testa endpoint GET /rewards/badges/{badge_id}"""
-<<<<<<< HEAD
-        # Mock de um badge
-        mock_badge = Badge(
-            id="test_badge",
-            name="Test Badge",
-            description="A test badge",
-            criteria={"type": "mission_completed", "count": 1},
-            reward_xp=10,
-            reward_points=5,
-            rarity="common",
-            image_url="http://example.com/badge.png"
-        )
-        mock_badge_repo.get_badge_by_id.return_value = mock_badge
-        
-=======
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         # Mock das dependências
         app.dependency_overrides[get_badge_repository] = lambda: mock_badge_repo
         app.dependency_overrides[get_current_user] = lambda: mock_current_user
         
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get("/rewards/badges/test_badge")
-<<<<<<< HEAD
-            
-            assert response.status_code == 200
-            assert response.json()["id"] == "test_badge"
-=======
         
         assert response.status_code == 404  # Badge não encontrado
         assert response.json()["detail"] == "Badge não encontrado"
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         # Limpar override
         app.dependency_overrides.clear()
 
     @pytest.mark.asyncio
-<<<<<<< HEAD
-=======
     async def test_award_mission_completion(self, mock_reward_service, mock_current_user):
         """Testa endpoint POST /rewards/award/mission"""
         # Mock das dependências
@@ -250,7 +173,6 @@ class TestRewardsAPI:
         app.dependency_overrides.clear()
 
     @pytest.mark.asyncio
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     async def test_invalid_badge_id(self, mock_badge_repo, mock_current_user):
         """Testa comportamento com badge_id inválido"""
         # Mock das dependências
@@ -258,15 +180,9 @@ class TestRewardsAPI:
         app.dependency_overrides[get_current_user] = lambda: mock_current_user
         
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-<<<<<<< HEAD
-            response = await client.get("/rewards/badges/invalid_badge_id")
-            
-            assert response.status_code == 404 # Badge não encontrado
-=======
             response = await client.get("/rewards/badges/")
         
         assert response.status_code == 307  # Redirect (trailing slash)
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         
         # Limpar override
         app.dependency_overrides.clear()
@@ -278,19 +194,6 @@ class TestRewardsAPI:
         from app.repositories.badge_repository import BadgeRepository
         from app.services.reward_service import RewardService
         
-<<<<<<< HEAD
-        mock_reward_service = MagicMock(spec=RewardService)
-        mock_badge_repo = MagicMock(spec=BadgeRepository)
-        
-        app.dependency_overrides[get_reward_service] = lambda: mock_reward_service
-        app.dependency_overrides[get_badge_repository] = lambda: mock_badge_repo
-        app.dependency_overrides[get_current_user] = lambda: mock_current_user
-        
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/rewards/award/mission?user_id=test_user&mission_id=test_mission&score=invalid&mission_type=daily")
-            
-            assert response.status_code == 422 # Validation error
-=======
         # Mock dos repositórios para evitar problemas de coroutine
         mock_badge_repo = MagicMock()
         mock_reward_repo = MagicMock()
@@ -305,7 +208,6 @@ class TestRewardsAPI:
             response = await client.post("/rewards/award/mission?user_id=test_user&mission_id=test_mission&score=invalid&mission_type=daily")
         
         assert response.status_code == 422  # Validation error
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         app.dependency_overrides.clear()
 
     @pytest.mark.asyncio
@@ -319,18 +221,9 @@ class TestRewardsAPI:
         app.dependency_overrides[get_current_user] = lambda: mock_current_user
         
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-<<<<<<< HEAD
-            response = await client.post("/rewards/award/mission?user_id=test_user&mission_id=test_mission&score=100&mission_type=daily")
-            
-            assert response.status_code == 500 # Internal Server Error
-        
-        # Limpar override
-        app.dependency_overrides.clear()
-=======
             response = await client.post("/rewards/award/mission?user_id=test_user&mission_id=test_mission&score=85.0&mission_type=daily")
         
         assert response.status_code == 500
         
         # Limpar override
         app.dependency_overrides.clear()
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)

@@ -18,11 +18,7 @@ from app.models.user import UserProfile
 from app.models.events import MissionCompletedEvent, LevelUpEvent, PointsEarnedEvent
 
 
-<<<<<<< HEAD
-class DataManager:
-=======
 class TestDataManager:
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     """Gerenciador de dados de teste"""
     
     def __init__(self):
@@ -48,11 +44,7 @@ class TestDataManager:
         user = UserProfile(**user_data)
         self.test_users.append(user_id)
         return user
-<<<<<<< HEAD
- 
-=======
     
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     async def cleanup_test_user(self, db, user_id: str):
         """Limpa dados de teste de um usuário"""
         try:
@@ -85,11 +77,7 @@ class EventTestHelper:
         default_data = {
             'user_id': user_id,
             'mission_id': f'test_mission_{user_id}',
-<<<<<<< HEAD
-            'score': 100.0,
-=======
             'score': 85.0,
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
             'mission_type': 'daily',
             'points_earned': 100,
             'xp_earned': 50
@@ -105,13 +93,8 @@ class EventTestHelper:
             'user_id': user_id,
             'old_level': 1,
             'new_level': 2,
-<<<<<<< HEAD
-            'points_required': 100,
-            'points_earned': 100
-=======
             'points_required': 500,
             'points_earned': 200
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         }
         
         event_data = {**default_data, **kwargs}
@@ -122,19 +105,11 @@ class EventTestHelper:
         """Cria evento de pontos ganhos para teste"""
         default_data = {
             'user_id': user_id,
-<<<<<<< HEAD
-            'points_amount': 100,
-            'xp_amount': 50,
-            'source': 'mission',
-            'points_earned': 100,
-            'total_points': 100
-=======
             'points_amount': 1000,
             'xp_amount': 500,
             'source': 'mission',
             'points_earned': 1000,
             'total_points': 1000
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         }
         
         event_data = {**default_data, **kwargs}
@@ -178,19 +153,11 @@ class TestConfig:
     """Configurações para testes"""
     
     # URLs de teste
-<<<<<<< HEAD
-    BASE_URL = "http://localhost:8000"
-    
-    # Timeouts
-    DEFAULT_TIMEOUT = 30
-    EVENT_PROCESSING_DELAY = 0.1
-=======
     BASE_URL = "http://localhost:8001"
     
     # Timeouts
     DEFAULT_TIMEOUT = 30
     EVENT_PROCESSING_DELAY = 1
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     
     # Dados de teste
     TEST_USER_PREFIX = "test_user_"
@@ -199,11 +166,7 @@ class TestConfig:
     
     # Configurações do Firebase
     FIREBASE_PROJECT_ID = "cryptoquest-test"
-<<<<<<< HEAD
- 
-=======
     
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     @classmethod
     def get_test_user_id(cls, suffix: str = "") -> str:
         """Gera ID de usuário de teste"""
@@ -246,4 +209,3 @@ def assert_no_duplicates(badges):
     badge_ids = [b.badge_id for b in badges]
     unique_ids = set(badge_ids)
     assert len(badge_ids) == len(unique_ids), f"Badges duplicados encontrados: {badge_ids}"
-

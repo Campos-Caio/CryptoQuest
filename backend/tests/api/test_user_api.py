@@ -39,30 +39,14 @@ async def override_get_current_user():
 
 pytestmark = pytest.mark.asyncio 
 
-<<<<<<< HEAD
-async def test_update_user_profile_sucess(): 
- """
- Teste se o usuario autenticado consegue atualizar seu perfil com sucesso
-=======
 async def test_update_user_profile_sucess(mocker, mock_updated_user_profile): 
     """
         Teste se o usuario autenticado consegue atualizar seu perfil com sucesso
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
  Returns: 
  (00 OK)
  """
 
-<<<<<<< HEAD
- class MockUserRepository:
-     def update_user_Profile(self, uid: str, new_data:dict):
-         assert uid == 'test_uid_'
-         assert new_data.get("name") == 'Novo Nome'
-         pass
-
-     def get_user_profile(self,uid:str):
-         return mock_updated_user_profile
-=======
     class MockUserRepository:
         async def update_user_Profile(self, uid: str, new_data:dict):
             assert uid == 'test_uid_123'
@@ -71,40 +55,39 @@ async def test_update_user_profile_sucess(mocker, mock_updated_user_profile):
 
         async def get_user_profile(self,uid:str):
             return mock_updated_user_profile
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 
- app.dependency_overrides[get_current_user] = override_get_current_user
- app.dependency_overrides[get_user_repository] = lambda: MockUserRepository()
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_user_repository] = lambda: MockUserRepository()
 
- async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client: 
-     response = await client.put(
-         "/users/me",
-         headers={"Authorization": "Bearer fake-token"},
-         json={"name": "Novo Nome", "bio": "Nova bio do usuário"}
-     )
-     
-     assert response.status_code == 200 
-     response_data = response.json() 
-     assert response_data['name'] == 'Novo Nome'
- 
- app.dependency_overrides = {}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client: 
+        response = await client.put(
+            "/users/me",
+            headers={"Authorization": "Bearer fake-token"},
+            json={"name": "Novo Nome", "bio": "Nova bio do usuário"}
+        )
+        
+        assert response.status_code == 200 
+        response_data = response.json() 
+        assert response_data['name'] == 'Novo Nome'
+    
+    app.dependency_overrides = {}
 
 async def test_update_profile_unauthorized(): 
- """
- Testa se um usuario nao autenticado recebe um erro 0 ao tentar utilizar o perfil. 
- """ 
+    """
+    Testa se um usuario nao autenticado recebe um erro 0 ao tentar utilizar o perfil. 
+    """ 
 
- async def override_get_current_user_unauthorized(): 
-     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+    async def override_get_current_user_unauthorized(): 
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
 
- app.dependency_overrides[get_current_user] = override_get_current_user_unauthorized
+    app.dependency_overrides[get_current_user] = override_get_current_user_unauthorized
 
- async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client: 
-     response = await client.put(
-         "/users/me",
-         headers={"Authorization": "Bearer invalid-token"},
-         json={"name": "Qualquer Nome"}
-     )
-     
-     assert response.status_code == 401 
- app.dependency_overrides = {}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client: 
+        response = await client.put(
+            "/users/me",
+            headers={"Authorization": "Bearer invalid-token"},
+            json={"name": "Qualquer Nome"}
+        )
+        
+        assert response.status_code == 401 
+    app.dependency_overrides = {}

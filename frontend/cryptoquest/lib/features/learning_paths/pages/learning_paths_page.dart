@@ -4,6 +4,9 @@ import '../providers/learning_path_provider.dart';
 import '../widgets/learning_path_card.dart';
 import '../theme/learning_path_colors.dart';
 import '../widgets/glassmorphism_card.dart';
+import '../widgets/ai_recommendation_card.dart';
+import '../../auth/state/auth_notifier.dart';
+import '../models/learning_path_model.dart';
 
 class LearningPathsPage extends StatefulWidget {
   const LearningPathsPage({Key? key}) : super(key: key);
@@ -23,7 +26,15 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
 
   void _loadLearningPaths() {
     final provider = Provider.of<LearningPathProvider>(context, listen: false);
+    final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+
     provider.loadLearningPaths();
+
+    // Carregar progresso do usuário para ordenação correta
+    if (authNotifier.token != null) {
+      provider.loadUserProgress(authNotifier.token);
+      provider.loadRecommendedLearningPaths(authNotifier.token!, limit: 1);
+    }
   }
 
   @override
@@ -174,27 +185,153 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
             },
             color: LearningPathColors.primaryPurple,
             backgroundColor: LearningPathColors.cardBackground,
-            child: ListView.builder(
+            child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-              itemCount: provider.learningPaths.length,
-              itemBuilder: (context, index) {
-                final learningPath = provider.learningPaths[index];
-                final progress = provider.getPathProgress(learningPath.id);
-
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: LearningPathCard(
-                    learningPath: learningPath,
-                    progress: progress,
-                    onTap: () => _navigateToPathDetails(learningPath.id),
+              children: [
+                if (provider.aiRecommendations.isNotEmpty) ...[
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.psychology,
+                          color: LearningPathColors.primaryPurple,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Recomendações Inteligentes',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: LearningPathColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
+                  // Lista de recomendações
+                  ...provider.aiRecommendations.map((recommendation) {
+                    return AIRecommendationCard(
+                      recommendation: recommendation,
+                      showFullReasoning: true,
+                      onTap: () {
+                        final pathId = recommendation['path_id'] as String?;
+                        if (pathId != null) {
+                          _navigateToPathDetails(pathId);
+                        }
+                      },
+                    );
+                  }).toList(),
+
+                  // Separador
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 24),
+                    height: 1,
+                    color: LearningPathColors.textSecondary.withOpacity(0.3),
+                  ),
+
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: Text(
+                      'Todas as Trilhas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: LearningPathColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // Lista normal de trilhas (ordenada)
+                ..._getSortedLearningPaths(provider).map((learningPath) {
+                  final progress = provider.getPathProgress(learningPath.id);
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: LearningPathCard(
+                      learningPath: learningPath,
+                      progress: progress,
+                      onTap: () => _navigateToPathDetails(learningPath.id),
+                    ),
+                  );
+                }).toList(),
+              ],
             ),
           );
         },
       ),
     );
+  }
+
+  /// Ordena as trilhas conforme as regras especificadas:
+  /// 1. Trilhas iniciadas primeiro
+  /// 2. Entre trilhas iniciadas, ordena por porcentagem de progresso (maior primeiro)
+  /// 3. Trilhas não iniciadas ordenadas por dificuldade (Iniciante → Intermediário → Avançado)
+  List<LearningPath> _getSortedLearningPaths(LearningPathProvider provider) {
+    final paths = List<LearningPath>.from(provider.learningPaths);
+
+    // Função auxiliar para obter a ordem numérica da dificuldade
+    int getDifficultyOrder(String difficulty) {
+      switch (difficulty.toLowerCase()) {
+        case 'beginner':
+        case 'iniciante':
+          return 1;
+        case 'intermediate':
+        case 'intermediario':
+        case 'intermediário':
+          return 2;
+        case 'advanced':
+        case 'avancado':
+        case 'avançado':
+          return 3;
+        default:
+          return 0; // Dificuldade desconhecida vai para o final
+      }
+    }
+
+    paths.sort((a, b) {
+      final progressA = provider.getPathProgress(a.id);
+      final progressB = provider.getPathProgress(b.id);
+
+      final isStartedA = progressA != null;
+      final isStartedB = progressB != null;
+
+      // 1. Priorizar trilhas iniciadas
+      if (isStartedA && !isStartedB) {
+        return -1; // A vem antes de B
+      } else if (!isStartedA && isStartedB) {
+        return 1; // B vem antes de A
+      }
+
+      // 2. Se ambas estão iniciadas, ordenar por porcentagem de progresso (maior primeiro)
+      if (isStartedA && isStartedB) {
+        final progressPercentageA = progressA.progressPercentage;
+        final progressPercentageB = progressB.progressPercentage;
+
+        // Ordenar por progresso decrescente (maior primeiro)
+        final progressComparison =
+            progressPercentageB.compareTo(progressPercentageA);
+        if (progressComparison != 0) {
+          return progressComparison;
+        }
+        // Se o progresso for igual, manter ordem original ou ordenar por dificuldade
+        final difficultyOrderA = getDifficultyOrder(a.difficulty);
+        final difficultyOrderB = getDifficultyOrder(b.difficulty);
+        return difficultyOrderA.compareTo(difficultyOrderB);
+      }
+
+      // 3. Se nenhuma está iniciada, ordenar por dificuldade (Iniciante → Intermediário → Avançado)
+      final difficultyOrderA = getDifficultyOrder(a.difficulty);
+      final difficultyOrderB = getDifficultyOrder(b.difficulty);
+      return difficultyOrderA.compareTo(difficultyOrderB);
+    });
+
+    return paths;
   }
 
   void _navigateToPathDetails(String pathId) {

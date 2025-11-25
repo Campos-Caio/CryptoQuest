@@ -21,11 +21,9 @@ class AIService {
         final data = json.decode(response.body);
         return data['data'];
       } else {
-        print('Erro ao buscar perfil de IA: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Erro na requisição de perfil de IA: $e');
       return null;
     }
   }
@@ -47,11 +45,9 @@ class AIService {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data);
       } else {
-        print('Erro ao buscar recomendações: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('Erro na requisição de recomendações: $e');
       return [];
     }
   }
@@ -72,12 +68,34 @@ class AIService {
         final data = json.decode(response.body);
         return data['data'];
       } else {
-        print('Erro ao buscar insights: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Erro na requisição de insights: $e');
       return null;
+    }
+  }
+
+  /// Busca recomendações de learning paths (fallback para recomendações de IA)
+  static Future<List<Map<String, dynamic>>> getLearningPathRecommendations(
+      String userId, String token,
+      {int limit = 5}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/learning-paths/recommended?limit=$limit'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      } else {
+        return [];
+      }
+    } catch (e) {
+      return [];
     }
   }
 
@@ -97,11 +115,9 @@ class AIService {
         final data = json.decode(response.body);
         return data['data'];
       } else {
-        print('Erro ao buscar sugestão de dificuldade: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Erro na requisição de sugestão de dificuldade: $e');
       return null;
     }
   }
@@ -124,11 +140,9 @@ class AIService {
         final data = json.decode(response.body);
         return List<Map<String, dynamic>>.from(data);
       } else {
-        print('Erro ao buscar sugestões de conteúdo: ${response.statusCode}');
         return [];
       }
     } catch (e) {
-      print('Erro na requisição de sugestões de conteúdo: $e');
       return [];
     }
   }
@@ -148,11 +162,9 @@ class AIService {
         final data = json.decode(response.body);
         return data['data'];
       } else {
-        print('Erro ao buscar métricas dos modelos: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('Erro na requisição de métricas dos modelos: $e');
       return null;
     }
   }
@@ -170,7 +182,6 @@ class AIService {
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Erro ao verificar status da IA: $e');
       return false;
     }
   }

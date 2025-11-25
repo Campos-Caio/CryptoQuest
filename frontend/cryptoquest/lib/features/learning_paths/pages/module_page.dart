@@ -26,6 +26,14 @@ class ModulePage extends StatefulWidget {
 }
 
 class _ModulePageState extends State<ModulePage> {
+  UserPathProgress? _currentProgress;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentProgress = widget.progress;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,32 +59,50 @@ class _ModulePageState extends State<ModulePage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header do módulo
-            _buildModuleHeader(),
+      body: Consumer<LearningPathProvider>(
+        builder: (context, provider, child) {
+          // Obter progresso atualizado do provider
+          final updatedProgress = provider.getPathProgress(widget.pathId);
+          if (updatedProgress != null && updatedProgress != _currentProgress) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _currentProgress = updatedProgress;
+                });
+              }
+            });
+          }
+          
+          final progress = _currentProgress ?? updatedProgress ?? widget.progress;
+          
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header do módulo
+                _buildModuleHeader(progress),
 
-            // Descrição do módulo
-            _buildModuleDescription(),
+                // Descrição do módulo
+                _buildModuleDescription(),
 
-            // Status do módulo
-            _buildModuleStatus(),
+                // Status do módulo
+                _buildModuleStatus(progress),
 
-            // Lista de missões
-            _buildMissionsList(),
-          ],
-        ),
+                // Lista de missões
+                _buildMissionsList(progress),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildModuleHeader() {
+  Widget _buildModuleHeader(UserPathProgress? progress) {
     final isCompleted =
-        widget.progress?.completedModules.contains(widget.module.id) ?? false;
+        progress?.completedModules.contains(widget.module.id) ?? false;
     final isCurrentModule =
-        widget.progress?.currentModuleId == widget.module.id;
+        progress?.currentModuleId == widget.module.id;
 
     return Container(
       width: double.infinity,
@@ -193,14 +219,14 @@ class _ModulePageState extends State<ModulePage> {
     );
   }
 
-  Widget _buildModuleStatus() {
+  Widget _buildModuleStatus(UserPathProgress? progress) {
     final isCompleted =
-        widget.progress?.completedModules.contains(widget.module.id) ?? false;
+        progress?.completedModules.contains(widget.module.id) ?? false;
     final isCurrentModule =
-        widget.progress?.currentModuleId == widget.module.id;
+        progress?.currentModuleId == widget.module.id;
     final completedMissions = widget.module.missions
         .where((mission) =>
-            widget.progress?.completedMissions.contains(mission.id) ?? false)
+            progress?.completedMissions.contains(mission.id) ?? false)
         .length;
 
     return GlassmorphismCard(
@@ -299,7 +325,7 @@ class _ModulePageState extends State<ModulePage> {
     );
   }
 
-  Widget _buildMissionsList() {
+  Widget _buildMissionsList(UserPathProgress? progress) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -316,14 +342,14 @@ class _ModulePageState extends State<ModulePage> {
         ),
         ...widget.module.missions.map((mission) {
           final isCompleted =
-              widget.progress?.completedMissions.contains(mission.id) ?? false;
-          final isLocked = !isCompleted && !_isMissionAvailable(mission);
+              progress?.completedMissions.contains(mission.id) ?? false;
+          final isLocked = !isCompleted && !_isMissionAvailable(mission, progress);
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: MissionListItem(
               mission: mission,
-              progress: widget.progress,
+              progress: progress,
               isLocked: isLocked,
               onTap: () => _navigateToMission(mission),
             ),
@@ -334,19 +360,21 @@ class _ModulePageState extends State<ModulePage> {
     );
   }
 
-  bool _isMissionAvailable(MissionReference mission) {
+  bool _isMissionAvailable(MissionReference mission, UserPathProgress? progress) {
     // Verifica se a missão está disponível baseada na ordem
     final missionIndex = widget.module.missions.indexOf(mission);
+    final currentProgress = progress ?? _currentProgress ?? widget.progress;
 
-    // Se é a primeira missão, está sempre disponível se o módulo estiver ativo
     if (missionIndex == 0) {
       return true;
     }
 
-    // Para outras missões, verifica se a anterior foi concluída
     final previousMission = widget.module.missions[missionIndex - 1];
-    return widget.progress?.completedMissions.contains(previousMission.id) ??
-        false;
+    final isPreviousCompleted =
+        currentProgress?.completedMissions.contains(previousMission.id) ??
+            false;
+
+    return isPreviousCompleted;
   }
 
   void _navigateToMission(MissionReference mission) {
@@ -364,21 +392,27 @@ class _ModulePageState extends State<ModulePage> {
       ),
     ).then((result) async {
       if (result != null && result is Map<String, dynamic>) {
-        // Recarrega o progresso da trilha
+        // Recarrega o progresso da trilha para obter dados atualizados
         final authNotifier = Provider.of<AuthNotifier>(context, listen: false);
         final learningPathProvider =
             Provider.of<LearningPathProvider>(context, listen: false);
 
         if (authNotifier.token != null) {
+          // Atualizar os detalhes da trilha para obter o progresso atualizado
           await learningPathProvider.refreshPathDetails(
               widget.pathId, authNotifier.token);
+          
+          // Atualizar o progresso local com os dados atualizados do provider
+          final updatedDetails = learningPathProvider.getPathDetails(widget.pathId);
+          if (updatedDetails != null && updatedDetails.progress != null) {
+            setState(() {
+              _currentProgress = updatedDetails.progress;
+            });
+          }
         }
 
-        // Força rebuild da página
-        setState(() {});
-
-        // Retorna resultado para a página anterior
-        Navigator.of(context).pop(result);
+        // NÃO fazer pop - permanecer na tela do módulo para o usuário ver o progresso atualizado
+        // O quiz já fez pop e retornou para esta tela
       }
     });
   }

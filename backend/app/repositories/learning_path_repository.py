@@ -142,10 +142,11 @@ class LearningPathRepository:
             raise
     
     def update_progress(self, progress: UserPathProgress) -> UserPathProgress:
-        """Atualiza o progresso do usuário"""
+        """⚡ OTIMIZADO: Atualiza o progresso do usuário usando merge para evitar sobrescrever"""
         try:
             doc_id = f"{progress.user_id}_{progress.path_id}"
-            self.progress_collection.document(doc_id).set(progress.model_dump())
+            # ⚡ Usar merge=True para atualizar apenas campos fornecidos
+            self.progress_collection.document(doc_id).set(progress.model_dump(), merge=True)
             
             logger.info(f"Progresso atualizado para usuário {progress.user_id} na trilha {progress.path_id}")
             return progress

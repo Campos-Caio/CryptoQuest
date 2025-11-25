@@ -22,12 +22,7 @@ async def override_get_current_user():
     return FirebaseUser(uid="test_uid_123", name="Test User", email="test@exemple.com")
 
 # -- Testes --
-<<<<<<< HEAD
-@pytest.mark.asyncio
-async def test_register_user_sucess(mock_user_profile):
-=======
 async def test_register_user_sucess(mocker, mock_user_profile):
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     """
     Testa o endpoint de registro de usuario com sucesso (201 Created)
     Passado o usuario de teste
@@ -60,13 +55,9 @@ async def test_register_user_sucess(mocker, mock_user_profile):
 
     app.dependency_overrides = {}
 
-<<<<<<< HEAD
-@pytest.mark.asyncio
-async def test_get_me_sucess(mock_user_profile):
-=======
 
+@pytest.mark.asyncio
 async def test_get_me_sucess(mocker, mock_user_profile):
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     """
     Testa o endpoint /me com um usuario autenticado
     """

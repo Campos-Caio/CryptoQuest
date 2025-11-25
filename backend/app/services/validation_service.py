@@ -43,20 +43,20 @@ class ValidationService:
             
             # Verificar badges baseados no tipo de evento
             if isinstance(event, MissionCompletedEvent):
-                eligible_badges.extend(self._check_mission_badges(user_id, event))
+                eligible_badges.extend(await self._check_mission_badges(user_id, event))
             elif isinstance(event, LevelUpEvent):
-                eligible_badges.extend(self._check_level_badges(user_id, event))
+                eligible_badges.extend(await self._check_level_badges(user_id, event))
             elif isinstance(event, PointsEarnedEvent):
-                eligible_badges.extend(self._check_points_badges(user_id, event))
+                eligible_badges.extend(await self._check_points_badges(user_id, event))
             elif isinstance(event, LearningPathCompletedEvent):
-                eligible_badges.extend(self._check_learning_path_badges(user_id, event))
+                eligible_badges.extend(await self._check_learning_path_badges(user_id, event))
             elif isinstance(event, ModuleCompletedEvent):
-                eligible_badges.extend(self._check_module_badges(user_id, event))
+                eligible_badges.extend(await self._check_module_badges(user_id, event))
             elif isinstance(event, QuizCompletedEvent):
-                eligible_badges.extend(self._check_quiz_badges(user_id, event))
+                eligible_badges.extend(await self._check_quiz_badges(user_id, event))
             
             # Verificar badges gerais
-            eligible_badges.extend(self._check_general_badges(user_id, event))
+            eligible_badges.extend(await self._check_general_badges(user_id, event))
             
             logger.info(f"Badges elegíveis para usuário {user_id}: {eligible_badges}")
             return eligible_badges

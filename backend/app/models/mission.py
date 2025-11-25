@@ -20,6 +20,7 @@ class Mission(BaseModel):
     description: str 
     type: str 
     reward_points: int 
+    reward_xp: int  # ✅ ADICIONADO: Campo para XP
     required_level: int 
     content_id: str 
 

@@ -5,10 +5,6 @@ Testa o fluxo completo do novo sistema de badges.
 
 import asyncio
 import sys
-<<<<<<< HEAD
-import pytest
-=======
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -25,10 +21,6 @@ from app.models.events import MissionCompletedEvent, LevelUpEvent, PointsEarnedE
 from app.models.user import UserProfile
 
 
-<<<<<<< HEAD
-@pytest.mark.asyncio
-=======
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 async def test_event_system():
     """Testa o sistema de eventos completo"""
     print("🧪 Testando sistema de eventos...")
@@ -195,10 +187,6 @@ async def cleanup_test_data(db, user_id: str):
         print(f"⚠️ Erro ao limpar dados de teste: {e}")
 
 
-<<<<<<< HEAD
-@pytest.mark.asyncio
-=======
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 async def test_api_endpoints():
     """Testa endpoints da API"""
     print("\n🌐 Testando endpoints da API...")

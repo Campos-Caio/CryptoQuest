@@ -72,7 +72,7 @@ class BadgeEngine:
                 context=context
             )
             
-            success = self.badge_repo.save_user_badge(user_badge)
+            success = self.badge_repo.award_badge(user_id, badge_id, context)
             if success:
                 logger.info(f"✅ Badge {badge_id} concedido com sucesso para usuário {user_id}")
                 return True

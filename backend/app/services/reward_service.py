@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from datetime import datetime, timedelta
+from datetime import datetime
 from app.models.reward import UserReward, UserBadge, RewardType
 from app.repositories.user_repository import UserRepository, get_user_repository
 from app.repositories.reward_repository import RewardRepository, get_reward_repository
@@ -8,6 +8,7 @@ from app.services.badge_engine import get_badge_engine
 from app.services.event_bus import get_event_bus
 from app.core.firebase import get_firestore_db_async
 from app.core.logging_config import get_cryptoquest_logger
+from app.services.fast_cache_service import get_fast_cache
 from fastapi import Depends
 import logging
 
@@ -26,13 +27,18 @@ class RewardService:
 
         # Config de recompensas 
         self.REWARD_CONFIG = {
-            RewardType.DAILY_MISSION: {"points": 100, "xp": 50},
-            RewardType.LEARNING_PATH_MODULE: {"points": 200, "xp": 100},
-            RewardType.LEARNING_PATH_COMPLETE: {"points": 500, "xp": 250},
-            RewardType.STREAK_7_DAYS: {"points": 300, "xp": 150, "badge": "streak_7"},
-            RewardType.STREAK_30_DAYS: {"points": 1000, "xp": 500, "badge": "streak_30"},
-            RewardType.PERFECT_SCORE: {"points": 150, "xp": 75, "badge": "perfectionist"},
-            RewardType.FIRST_COMPLETION: {"points": 100, "xp": 50, "badge": "first_steps"},
+            # Recompensas base por missão (REBALANCEADAS)
+            RewardType.DAILY_MISSION: {"points": 50, "xp": 100},
+            RewardType.LEARNING_PATH_MODULE: {"points": 75, "xp": 150},
+            RewardType.LEARNING_PATH_COMPLETE: {"points": 250, "xp": 500},
+            
+            # Recompensas por sequência (MELHORADAS)
+            RewardType.STREAK_7_DAYS: {"points": 300, "xp": 200, "badge": "streak_7"},
+            RewardType.STREAK_30_DAYS: {"points": 1500, "xp": 1000, "badge": "streak_30"},
+            
+            # Recompensas por performance (OTIMIZADAS)
+            RewardType.PERFECT_SCORE: {"points": 100, "xp": 50, "badge": "perfectionist"},
+            RewardType.FIRST_COMPLETION: {"points": 150, "xp": 100, "badge": "first_steps"},
             RewardType.LEVEL_UP: {"points": 0, "xp": 0, "badge": "level_up"},
         }
 
@@ -62,7 +68,7 @@ class RewardService:
                 await self.award_badge(user_id, "first_steps", {'mission_id': mission_id})
 
             # Aplicar recompensas  
-            await self.apply_rewards(user_id, reward_type, points, xp, {
+            reward_data = await self.apply_rewards(user_id, reward_type, points, xp, {
                 'mission_id': mission_id,
                 'score': score,
                 'mission_type': mission_type
@@ -72,9 +78,6 @@ class RewardService:
             await self._check_streak_rewards(user_id)
 
             # Log de evento de negócio
-            # ✅ CORREÇÃO: Buscar usuário ATUALIZADO após apply_rewards
-            updated_user = self.user_repo.get_user_profile(user_id)
-            
             cryptoquest_logger.log_business_event(
                 "mission_reward_awarded",
                 {
@@ -87,13 +90,7 @@ class RewardService:
                 }
             )
 
-            return {
-                'points_earned': points,
-                'xp_earned': xp,
-                'total_points': updated_user.points if updated_user else 0,  # ✅ Valores ATUALIZADOS!
-                'total_xp': updated_user.xp if updated_user else 0,
-                'badges_earned': []  # Lista de badges conquistados
-            }
+            return reward_data
             
         except Exception as e:
             logger.error(f"Erro ao conceder recompensa de missão: {e}")
@@ -160,7 +157,7 @@ class RewardService:
         new_total_points = current_points + points
         new_total_xp = current_xp + xp
         
-        self.user_repo.update_user_Profile(user_id, {
+        self.user_repo.update_user_profile(user_id, {
             'points': new_total_points,
             'xp': new_total_xp
         })
@@ -179,7 +176,69 @@ class RewardService:
             awarded_at=datetime.now()
         )
         
+        # Salvar registro de recompensa
         await self.reward_repo.save_user_reward(user_reward)
+        
+        # Retornar dados de recompensa para o frontend
+        return {
+            'points_earned': points,
+            'xp_earned': xp,
+            'total_points': new_total_points,
+            'total_xp': new_total_xp,
+            'badges_earned': []  # Será populado pelo sistema de badges se funcionar
+        }
+    
+    async def apply_basic_rewards_fast(self, user_id: str, points: int, xp: int):
+        """
+        ⚡ OTIMIZADO: Versão rápida para aplicar recompensas básicas com cache.
+        Sem verificação de badges ou processamento pesado.
+        """
+        try:
+            cache = get_fast_cache()
+            cache_key = f"user_profile:{user_id}"
+            
+            # ⚡ Tentar buscar do cache primeiro
+            user = cache.get(cache_key)
+            
+            if not user:
+                # Cache miss - buscar do banco
+                user = self.user_repo.get_user_profile(user_id)
+                if not user:
+                    raise ValueError(f"Usuário {user_id} não encontrado")
+                
+                # Cachear por 2 minutos
+                cache.set(cache_key, user, ttl_seconds=120)
+                logger.debug(f"💾 User profile cacheado: {user_id}")
+            else:
+                logger.debug(f"⚡ Cache hit para user profile: {user_id}")
+            
+            current_points = user.points if user.points else 0
+            current_xp = user.xp if user.xp else 0
+            
+            # Atualizar perfil (operação única e rápida)
+            new_total_points = current_points + points
+            new_total_xp = current_xp + xp
+            
+            self.user_repo.update_user_profile(user_id, {
+                'points': new_total_points,
+                'xp': new_total_xp
+            })
+            
+            # ⚡ Invalidar cache após atualização
+            cache.invalidate(cache_key)
+            
+            logger.info(f"⚡ [FAST] Recompensas básicas aplicadas: {user_id} (+{points} pts, +{xp} XP)")
+            
+            return {
+                'points_earned': points,
+                'xp_earned': xp,
+                'total_points': new_total_points,
+                'total_xp': new_total_xp
+            }
+            
+        except Exception as e:
+            logger.error(f"Erro ao aplicar recompensas rápidas: {e}")
+            raise
     
     async def award_badge(self, user_id: str, badge_id: str, context: Dict[str, Any]): 
         """Concede badge ao usuário usando o novo sistema"""

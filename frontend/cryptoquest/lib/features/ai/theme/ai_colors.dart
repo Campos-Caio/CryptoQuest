@@ -166,6 +166,18 @@ class AIColors {
         return 'Aprendiz Cinestésico';
       case 'mixed':
         return 'Aprendiz Misto';
+      case 'new_learner':
+        return 'Novo Aprendiz';
+      case 'fast_learner':
+        return 'Aprendiz Rápido';
+      case 'methodical_learner':
+        return 'Aprendiz Metódico';
+      case 'visual_learner':
+        return 'Aprendiz Visual';
+      case 'auditory_learner':
+        return 'Aprendiz Auditivo';
+      case 'mixed_learner':
+        return 'Aprendiz Misto';
       default:
         return 'Analisando...';
     }
@@ -174,13 +186,22 @@ class AIColors {
   static IconData getLearningStyleIcon(String style) {
     switch (style.toLowerCase()) {
       case 'visual':
+      case 'visual_learner':
         return Icons.visibility;
       case 'auditory':
+      case 'auditory_learner':
         return Icons.hearing;
       case 'kinesthetic':
         return Icons.touch_app;
       case 'mixed':
+      case 'mixed_learner':
         return Icons.psychology;
+      case 'new_learner':
+        return Icons.school;
+      case 'fast_learner':
+        return Icons.flash_on;
+      case 'methodical_learner':
+        return Icons.timeline;
       default:
         return Icons.help_outline;
     }
