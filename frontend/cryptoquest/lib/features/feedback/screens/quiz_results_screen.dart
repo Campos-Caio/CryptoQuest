@@ -15,12 +15,14 @@ class QuizResultsScreen extends StatefulWidget {
   final RewardFeedbackModel rewardData;
   final VoidCallback? onContinue;
   final VoidCallback? onViewProfile;
+  final VoidCallback? onRetry;
 
   const QuizResultsScreen({
     super.key,
     required this.rewardData,
     this.onContinue,
     this.onViewProfile,
+    this.onRetry,
   });
 
   /// Exibe a tela de Quiz Results
@@ -29,6 +31,7 @@ class QuizResultsScreen extends StatefulWidget {
     required RewardFeedbackModel rewardData,
     VoidCallback? onContinue,
     VoidCallback? onViewProfile,
+    VoidCallback? onRetry,
   }) {
     return showDialog(
       context: context,
@@ -38,6 +41,7 @@ class QuizResultsScreen extends StatefulWidget {
         rewardData: rewardData,
         onContinue: onContinue,
         onViewProfile: onViewProfile,
+        onRetry: onRetry,
       ),
     );
   }
@@ -57,7 +61,10 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     super.initState();
 
     _confettiController = EnhancedConfettiController();
-    _lottieController = AnimationController(vsync: this);
+    _lottieController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5), // Duração temporária, será ajustada pelo AnimatedLottieWidget
+    );
     _progressController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -75,13 +82,15 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     } else if (percentage >= 70) {
       HapticFeedback.mediumImpact();
     } else {
-      HapticFeedback.lightImpact();
+      HapticFeedback.heavyImpact();
     }
 
     // Iniciar animação de progresso
     _progressController.forward();
 
-    // Confetti para performance excelente
+    // quando carregada, com repeat=true
+
+    // Confetti apenas para performance excelente (>= 80%)
     if (percentage >= 80) {
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
@@ -107,6 +116,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
 
     // Tela adaptável baseada na performance
     final percentage = widget.rewardData.quizPercentage;
+    final isFailure = percentage < 70;
     final maxHeight = percentage >= 90
         ? (screenHeight * 0.8).toDouble()
         : (screenHeight * 0.75).toDouble();
@@ -138,7 +148,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: _getPerformanceColor(percentage).withOpacity(0.3),
+                  color: _getPerformanceColor(percentage).withOpacity(isFailure ? 0.4 : 0.3),
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -222,6 +232,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
       lottieWidget = LottieAnimations.errorCross(
         size: 120,
         controller: _lottieController,
+        repeat: true,
       );
     }
 
@@ -271,29 +282,40 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     final performanceColor = _getPerformanceColor(percentage);
     final isExcellent = percentage >= 90;
     final isGood = percentage >= 70;
+    final isFailure = percentage < 70;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: isExcellent || isGood
+        gradient: isFailure
             ? LinearGradient(
                 colors: [
-                  performanceColor,
-                  performanceColor.withOpacity(0.7),
+                  AppColors.error,
+                  AppColors.error.withOpacity(0.7),
+                  Colors.red[800]!.withOpacity(0.8),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
-            : null,
-        color: isExcellent || isGood ? null : AppColors.surface,
+            : (isExcellent || isGood
+                ? LinearGradient(
+                    colors: [
+                      performanceColor,
+                      performanceColor.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null),
+        color: (isExcellent || isGood || isFailure) ? null : AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: performanceColor.withOpacity(0.3),
+          color: performanceColor.withOpacity(isFailure ? 0.5 : 0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: performanceColor.withOpacity(0.2),
+            color: performanceColor.withOpacity(isFailure ? 0.4 : 0.2),
             blurRadius: 15,
             spreadRadius: 2,
           ),
@@ -309,10 +331,12 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
               color: AppColors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: FaIcon(
-              _getPerformanceIcon(percentage),
-              size: 40,
-              color: AppColors.white,
+            child: Center(
+              child: FaIcon(
+                _getPerformanceIcon(percentage),
+                size: 40,
+                color: AppColors.white,
+              ),
             ),
           ).animate().scale(
                 begin: const Offset(0.0, 0.0),
@@ -489,6 +513,111 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
 
   /// Botões de ação
   Widget _buildActionButtons() {
+    final percentage = widget.rewardData.quizPercentage;
+    final isFailure = percentage < 70;
+
+    if (isFailure && widget.onRetry != null) {
+      return Row(
+        children: [
+          // Botão "Tentar Novamente" (principal para falha)
+          Expanded(
+            flex: 2,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.error,
+                    Colors.red[700]!,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.error.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  Navigator.of(context).pop();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    widget.onRetry?.call();
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FaIcon(FontAwesomeIcons.rotateRight, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Tentar Novamente',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Botão "Continuar" (secundário para falha)
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.error.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).pop();
+                  widget.onContinue?.call();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Continuar',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ).animate().fadeIn(delay: 1800.ms).slideY(begin: 0.3, end: 0.0);
+    }
+
     return Row(
       children: [
         // Botão principal (Continuar)
@@ -566,7 +695,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     if (percentage >= 80) return 'Muito Bom!';
     if (percentage >= 70) return 'Bom Trabalho!';
     if (percentage >= 60) return 'Quase Lá!';
-    return 'Continue Tentando!';
+    return 'Não Atingiu a Meta';
   }
 
   /// Retorna subtítulo baseado na performance
@@ -575,7 +704,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     if (percentage >= 80) return 'Você está indo muito bem!';
     if (percentage >= 70) return 'Boa performance!';
     if (percentage >= 60) return 'Você está melhorando!';
-    return 'Não desista, você consegue!';
+    return 'É necessário acertar pelo menos 70% para concluir';
   }
 
   /// Retorna texto de performance
@@ -584,7 +713,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     if (percentage >= 80) return 'EXCELENTE!';
     if (percentage >= 70) return 'MUITO BOM!';
     if (percentage >= 60) return 'BOM!';
-    return 'TENTE NOVAMENTE';
+    return 'NÃO APROVADO';
   }
 
   /// Retorna ícone baseado na performance
@@ -593,7 +722,7 @@ class _QuizResultsScreenState extends State<QuizResultsScreen>
     if (percentage >= 80) return FontAwesomeIcons.star;
     if (percentage >= 70) return FontAwesomeIcons.thumbsUp;
     if (percentage >= 60) return FontAwesomeIcons.thumbsUp;
-    return FontAwesomeIcons.rotateRight;
+    return FontAwesomeIcons.triangleExclamation;
   }
 
   /// Retorna cor baseada na performance

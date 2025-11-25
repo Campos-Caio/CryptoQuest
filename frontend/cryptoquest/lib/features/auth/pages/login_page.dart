@@ -107,11 +107,8 @@ class _LoginPageState extends State<LoginPage> {
       // Tratamento de erros específicos do FirebaseAuth
       String message = 'Erro de autenticação: ${e.message}';
       showMessage(message);
-      print("FirebaseAuthException: ${e.code} - ${e.message}");
     } catch (e) {
-      // Tratamento de outros erros gerais
       showMessage("Ocorreu um erro inesperado: $e");
-      print("Erro inesperado: $e"); // Para depuração
     } finally {
       // Define o estado de carregamento de volta para false, independentemente do resultado
       setState(() {

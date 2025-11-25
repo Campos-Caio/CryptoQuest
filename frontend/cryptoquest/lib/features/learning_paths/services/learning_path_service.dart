@@ -113,7 +113,6 @@ class LearningPathService {
       List<int>? hintsUsed,
       List<int>? attemptsPerQuestion}) async {
     try {
-      // 🆕 Preparar dados enriquecidos para IA
       Map<String, dynamic> submissionData = {
         'answers': answers,
       };
@@ -204,7 +203,7 @@ class LearningPathService {
 
   // ==================== ENDPOINTS DE IA ====================
 
-  /// 🆕 FASE 3: Busca learning paths recomendados pela IA baseado no perfil do usuário
+  /// Busca learning paths recomendados pela IA baseado no perfil do usuário
   Future<List<Map<String, dynamic>>> getRecommendedLearningPaths(String token,
       {int limit = 5}) async {
     try {

@@ -6,6 +6,7 @@ import '../theme/learning_path_colors.dart';
 import '../widgets/glassmorphism_card.dart';
 import '../widgets/ai_recommendation_card.dart';
 import '../../auth/state/auth_notifier.dart';
+import '../models/learning_path_model.dart';
 
 class LearningPathsPage extends StatefulWidget {
   const LearningPathsPage({Key? key}) : super(key: key);
@@ -29,9 +30,10 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
 
     provider.loadLearningPaths();
 
-    // 🆕 FASE 5: Carregar recomendações de IA
+    // Carregar progresso do usuário para ordenação correta
     if (authNotifier.token != null) {
-      provider.loadRecommendedLearningPaths(authNotifier.token!, limit: 5);
+      provider.loadUserProgress(authNotifier.token);
+      provider.loadRecommendedLearningPaths(authNotifier.token!, limit: 1);
     }
   }
 
@@ -186,7 +188,6 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
               children: [
-                // 🆕 FASE 5: Seção de Recomendações de IA
                 if (provider.aiRecommendations.isNotEmpty) ...[
                   Padding(
                     padding:
@@ -246,8 +247,8 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
                   ),
                 ],
 
-                // Lista normal de trilhas
-                ...provider.learningPaths.map((learningPath) {
+                // Lista normal de trilhas (ordenada)
+                ..._getSortedLearningPaths(provider).map((learningPath) {
                   final progress = provider.getPathProgress(learningPath.id);
 
                   return Padding(
@@ -265,6 +266,72 @@ class _LearningPathsPageState extends State<LearningPathsPage> {
         },
       ),
     );
+  }
+
+  /// Ordena as trilhas conforme as regras especificadas:
+  /// 1. Trilhas iniciadas primeiro
+  /// 2. Entre trilhas iniciadas, ordena por porcentagem de progresso (maior primeiro)
+  /// 3. Trilhas não iniciadas ordenadas por dificuldade (Iniciante → Intermediário → Avançado)
+  List<LearningPath> _getSortedLearningPaths(LearningPathProvider provider) {
+    final paths = List<LearningPath>.from(provider.learningPaths);
+
+    // Função auxiliar para obter a ordem numérica da dificuldade
+    int getDifficultyOrder(String difficulty) {
+      switch (difficulty.toLowerCase()) {
+        case 'beginner':
+        case 'iniciante':
+          return 1;
+        case 'intermediate':
+        case 'intermediario':
+        case 'intermediário':
+          return 2;
+        case 'advanced':
+        case 'avancado':
+        case 'avançado':
+          return 3;
+        default:
+          return 0; // Dificuldade desconhecida vai para o final
+      }
+    }
+
+    paths.sort((a, b) {
+      final progressA = provider.getPathProgress(a.id);
+      final progressB = provider.getPathProgress(b.id);
+
+      final isStartedA = progressA != null;
+      final isStartedB = progressB != null;
+
+      // 1. Priorizar trilhas iniciadas
+      if (isStartedA && !isStartedB) {
+        return -1; // A vem antes de B
+      } else if (!isStartedA && isStartedB) {
+        return 1; // B vem antes de A
+      }
+
+      // 2. Se ambas estão iniciadas, ordenar por porcentagem de progresso (maior primeiro)
+      if (isStartedA && isStartedB) {
+        final progressPercentageA = progressA.progressPercentage;
+        final progressPercentageB = progressB.progressPercentage;
+
+        // Ordenar por progresso decrescente (maior primeiro)
+        final progressComparison =
+            progressPercentageB.compareTo(progressPercentageA);
+        if (progressComparison != 0) {
+          return progressComparison;
+        }
+        // Se o progresso for igual, manter ordem original ou ordenar por dificuldade
+        final difficultyOrderA = getDifficultyOrder(a.difficulty);
+        final difficultyOrderB = getDifficultyOrder(b.difficulty);
+        return difficultyOrderA.compareTo(difficultyOrderB);
+      }
+
+      // 3. Se nenhuma está iniciada, ordenar por dificuldade (Iniciante → Intermediário → Avançado)
+      final difficultyOrderA = getDifficultyOrder(a.difficulty);
+      final difficultyOrderB = getDifficultyOrder(b.difficulty);
+      return difficultyOrderA.compareTo(difficultyOrderB);
+    });
+
+    return paths;
   }
 
   void _navigateToPathDetails(String pathId) {

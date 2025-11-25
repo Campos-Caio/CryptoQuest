@@ -39,7 +39,7 @@ class UserProfile {
     );
   }
 
-  /// ⚡ OTIMIZAÇÃO: Cria cópia do perfil com valores atualizados
+  /// Cria cópia do perfil com valores atualizados
   /// Permite atualizar pontos e XP sem fazer nova chamada à API
   UserProfile copyWith({
     String? uid,

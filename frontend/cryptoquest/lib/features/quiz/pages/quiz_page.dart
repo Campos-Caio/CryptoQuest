@@ -42,11 +42,8 @@ class _QuizPageState extends State<QuizPage> {
   bool _isAnswerSubmitted = false; // Se a resposta foi enviada
   bool _isAnswerCorrect = false; // Se a resposta está correta
 
-  // 🆕 COLETA DE DADOS COMPORTAMENTAIS REAIS PARA IA
-  DateTime? _questionStartTime; // Momento em que a questão foi exibida
-  DateTime? _quizStartTime; // Momento em que o quiz começou
-  List<double> _realTimePerQuestion =
-      []; // Tempo real gasto em cada questão (segundos)
+  DateTime? _questionStartTime;
+  List<double> _realTimePerQuestion = [];
   List<int> _attemptsPerQuestion = []; // Número de tentativas por questão
   int _currentQuestionAttempts = 0; // Tentativas na questão atual
 
@@ -73,41 +70,26 @@ class _QuizPageState extends State<QuizPage> {
           quiz = loadedQuiz;
           selectedAnswers = List.filled(loadedQuiz.questions.length, -1);
 
-          // 🆕 Inicializar coleta de dados comportamentais
-          _quizStartTime = DateTime.now();
-          _questionStartTime = DateTime.now(); // Primeira questão começa agora
+          _questionStartTime = DateTime.now();
           _realTimePerQuestion = [];
           _attemptsPerQuestion = List.filled(loadedQuiz.questions.length, 0);
           _currentQuestionAttempts = 0;
-
-          print('🎯 [IA] Quiz iniciado às ${_quizStartTime}');
-          print('🎯 [IA] Timer da primeira questão iniciado');
         });
       }
     }
   }
 
-  // NOVO MÉTODO: Processar seleção de resposta
-  void _selectAnswer(int answerIndex) {
-    if (_isAnswerSubmitted) return; // Evita múltiplas seleções
+    void _selectAnswer(int answerIndex) {
+      if (_isAnswerSubmitted) return;
 
-    // 🆕 CALCULAR TEMPO REAL gasto na questão
-    if (_questionStartTime != null) {
-      final elapsed = DateTime.now().difference(_questionStartTime!);
-      final timeInSeconds =
-          elapsed.inMilliseconds / 1000.0; // Precisão em milissegundos
-      _realTimePerQuestion.add(timeInSeconds);
+      if (_questionStartTime != null) {
+        final elapsed = DateTime.now().difference(_questionStartTime!);
+        final timeInSeconds = elapsed.inMilliseconds / 1000.0;
+        _realTimePerQuestion.add(timeInSeconds);
+      }
 
-      print(
-          '🎯 [IA] Questão ${currentQuestionIndex + 1}: ${timeInSeconds.toStringAsFixed(2)}s');
-    }
-
-    // 🆕 REGISTRAR tentativa
     _currentQuestionAttempts++;
     _attemptsPerQuestion[currentQuestionIndex] = _currentQuestionAttempts;
-
-    print(
-        '🎯 [IA] Tentativa #${_currentQuestionAttempts} na questão ${currentQuestionIndex + 1}');
 
     setState(() {
       _selectedAnswerIndex = answerIndex;
@@ -190,16 +172,11 @@ class _QuizPageState extends State<QuizPage> {
         _isAnswerSubmitted = false;
         _isAnswerCorrect = false;
 
-        // 🆕 RESETAR timer e tentativas para próxima questão
         _questionStartTime = DateTime.now();
         _currentQuestionAttempts = 0;
 
-        print('🎯 [IA] Avançou para questão ${currentQuestionIndex + 1}');
-        print('🎯 [IA] Timer da questão ${currentQuestionIndex + 1} iniciado');
       });
     } else {
-      // Última pergunta - submeter o quiz
-      print('🎯 [IA] Finalizando quiz...');
       _submitQuiz();
     }
   }
@@ -268,13 +245,6 @@ class _QuizPageState extends State<QuizPage> {
           // Usar serviço de trilhas de aprendizado
           final learningPathService = LearningPathService();
 
-          // 🆕 USAR DADOS COMPORTAMENTAIS REAIS coletados durante o quiz
-          print('🎯 [IA] ===== RESUMO DOS DADOS COLETADOS =====');
-          print(
-              '🎯 [IA] Tempo total do quiz: ${DateTime.now().difference(_quizStartTime!).inSeconds}s');
-          print('🎯 [IA] Tempo por questão (real): $_realTimePerQuestion');
-          print('🎯 [IA] Tentativas por questão: $_attemptsPerQuestion');
-          print('🎯 [IA] ===========================================');
 
           // Preparar dados de confiança (por enquanto estimado, mas estrutura pronta)
           // Estimativa baseada em tempo: resposta rápida = mais confiança
@@ -289,33 +259,32 @@ class _QuizPageState extends State<QuizPage> {
           // Preparar dados de dicas (por enquanto 0, mas estrutura pronta)
           List<int> hintsUsed = List.filled(selectedAnswers.length, 0);
 
-          print('🎯 [IA] Confiança estimada: $confidenceLevels');
 
           result = await learningPathService.completeMission(
             widget.pathId!,
             widget.missionId,
             selectedAnswers,
             authNotifier.token!,
-            timePerQuestion: _realTimePerQuestion, // ✅ DADOS REAIS!
-            confidenceLevels:
-                confidenceLevels, // ⚠️ Estimado, mas melhor que fake
-            hintsUsed: hintsUsed, // ⚠️ Por enquanto 0 (sem sistema de dicas)
-            attemptsPerQuestion: _attemptsPerQuestion, // ✅ DADOS REAIS!
+            timePerQuestion: _realTimePerQuestion,
+            confidenceLevels: confidenceLevels,
+            hintsUsed: hintsUsed,
+            attemptsPerQuestion: _attemptsPerQuestion,
           );
           success = result['success'] == true;
         } else {
           // Usar serviço de missões diárias (comportamento original)
           final missionNotifier =
               Provider.of<MissionNotifier>(context, listen: false);
-          success = await missionNotifier.completeMission(
+          result = await missionNotifier.completeMission(
             widget.missionId,
             selectedAnswers,
             authNotifier.token!,
           );
+          success = result != null;
         }
 
-        if (success && mounted) {
-          // Calcular pontuação
+        if (mounted) {
+          // Calcular pontuação localmente
           int correctAnswers = 0;
           for (int i = 0; i < quiz!.questions.length; i++) {
             if (selectedAnswers[i] == quiz!.questions[i].correctAnswerIndex) {
@@ -324,67 +293,41 @@ class _QuizPageState extends State<QuizPage> {
           }
           double percentage = (correctAnswers / quiz!.questions.length) * 100;
 
-          // 🔄 ATUALIZAR MISSION NOTIFIER COM DADOS CORRETOS
-          if (widget.pathId != null && result != null) {
+          if (success && widget.pathId != null && result != null) {
             final missionNotifier =
                 Provider.of<MissionNotifier>(context, listen: false);
             missionNotifier.setLastCompletedMission(result);
 
-            // 🔄 ATUALIZAR LEARNING PATH PROVIDER COM PROGRESSO ATUALIZADO
             final learningPathProvider =
                 Provider.of<LearningPathProvider>(context, listen: false);
-
-            // 🔍 DEBUG: Verificar se o progresso está sendo retornado
-            print('🔍 [DEBUG] Result keys: ${result.keys}');
-            print('🔍 [DEBUG] Progress data: ${result['progress']}');
 
             if (result['progress'] != null) {
               try {
                 final progress = UserPathProgress.fromJson(result['progress']);
-                print(
-                    '🔍 [DEBUG] Progress parsed successfully: ${progress.completedMissions}');
                 learningPathProvider.updateProgress(widget.pathId!, progress);
-                print('✅ [DEBUG] Progress updated in LearningPathProvider');
               } catch (e) {
-                print('❌ [DEBUG] Error parsing progress: $e');
+                // Error parsing progress
               }
-            } else {
-              print('⚠️ [DEBUG] No progress data in result');
             }
           }
 
-          // ⚡ OTIMIZAÇÃO: Backend já processou tudo - apenas atualizar dados locais!
-          // Backend retorna: points, xp, total_points, total_xp, progress
-          // Não precisa fazer novas chamadas à API
+          if (success && result != null && percentage >= 70) {
+            final updatedPoints = result['points'] as int?;
+            final updatedXp = result['xp'] as int?;
+            final updatedLevel = result['level'] as int?;
+            final updatedStreak = result['current_streak'] as int?;
+            final updatedBadges = result['badges'] as List<dynamic>?;
 
-          // Atualizar perfil local com dados que já vieram do backend
-          if (result != null &&
-              result.containsKey('xp') &&
-              result.containsKey('points')) {
-            // Calcular totais (backend pode retornar total_xp/total_points OU xp_earned/points_earned)
-            final totalXp = result['total_xp'] ??
-                (authNotifier.userProfile?.xp ?? 0) + (result['xp'] ?? 0);
-            final totalPoints = result['total_points'] ??
-                (authNotifier.userProfile?.points ?? 0) +
-                    (result['points'] ?? 0);
-
-            authNotifier.updateLocalProfile(
-              points: totalPoints,
-              xp: totalXp,
-            );
-
-            print(
-                '⚡ [OTIMIZAÇÃO] Perfil atualizado localmente sem chamada API');
-            print(
-                '   Points: ${authNotifier.userProfile?.points} → $totalPoints');
-            print('   XP: ${authNotifier.userProfile?.xp} → $totalXp');
+            if (updatedPoints != null || updatedXp != null) {
+              authNotifier.updateLocalProfile(
+                points: updatedPoints,
+                xp: updatedXp,
+                level: updatedLevel,
+                currentStreak: updatedStreak,
+                badges: updatedBadges?.map((e) => e.toString()).toList(),
+              );
+            }
           }
-
-          // ❌ REMOVIDO: _processRewardsAndBadges() - Backend já processou!
-          // ❌ REMOVIDO: refreshUserProfile() - Dados já atualizados localmente!
-          // ECONOMIA: ~3.7 segundos! ⚡
-
-          // Mostrar resultado
           _showResultDialog(percentage);
         }
       }
@@ -394,8 +337,6 @@ class _QuizPageState extends State<QuizPage> {
         String errorString = e.toString().toLowerCase();
 
         // Debug: imprimir o erro real para console
-        print('Erro capturado: $e');
-        print('Tipo do erro: ${e.runtimeType}');
 
         if (errorString.contains('já foi concluída hoje') ||
             errorString.contains('409') ||
@@ -404,9 +345,9 @@ class _QuizPageState extends State<QuizPage> {
             errorString.contains('não está disponível hoje')) {
           errorMessage =
               'Esta missão já foi concluída hoje. Tente novamente amanhã!';
-        } else if (errorString.contains('acertou')) {
-          errorMessage = e.toString();
         }
+        // Agora o backend não lança erro, apenas retorna resultado indicando falha
+        // O feedback será mostrado na tela de resultados
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -432,7 +373,6 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  // ⚡ OTIMIZAÇÃO: Métodos _processRewardsAndBadges e _showBadgeNotification REMOVIDOS
   // Backend já processa tudo (badges, recompensas) em background
   // Badges aparecem automaticamente quando backend terminar o processamento
   // ECONOMIA: ~3.2 segundos por não fazer POST /rewards/award/mission redundante
@@ -446,31 +386,23 @@ class _QuizPageState extends State<QuizPage> {
 
     // Preparar dados de feedback com informações mais ricas
     // Baseado nos logs do servidor, os campos corretos são:
-    final xpGained = (result?['xp_gained'] ??
-        result?['xp_earned'] ??
-        result?['xp'] ??
-        0) as int;
-    final pointsGained = (result?['points_gained'] ??
-        result?['points_earned'] ??
-        result?['points'] ??
-        0) as int;
-    final currentXP =
-        (result?['total_xp'] ?? result?['xp'] ?? userProfile?.xp ?? 0) as int;
-    final currentPoints = (result?['total_points'] ??
-        result?['points'] ??
-        userProfile?.points ??
-        0) as int;
+    final xpGained = percentage >= 70
+        ? ((result?['xp_gained'] ??
+            result?['xp_earned'] ??
+            result?['xp'] ??
+            0) as int)
+        : 0;
+    final pointsGained = percentage >= 70
+        ? ((result?['points_gained'] ??
+            result?['points_earned'] ??
+            result?['points'] ??
+            0) as int)
+        : 0;
+    final currentXP = percentage >= 70
+        ? ((result?['total_xp'] ?? result?['xp'] ?? userProfile?.xp ?? 0) as int)
+        : (userProfile?.xp ?? 0);
     final previousXP = currentXP - xpGained;
-    final previousPoints = currentPoints - pointsGained;
 
-    // 🔍 DEBUG: Verificar dados extraídos
-    print('🔍 [FEEDBACK DEBUG] Result data: $result');
-    print('🔍 [FEEDBACK DEBUG] XP gained: $xpGained');
-    print('🔍 [FEEDBACK DEBUG] Points gained: $pointsGained');
-    print('🔍 [FEEDBACK DEBUG] Current XP: $currentXP');
-    print('🔍 [FEEDBACK DEBUG] Current Points: $currentPoints');
-    print('🔍 [FEEDBACK DEBUG] Previous XP: $previousXP');
-    print('🔍 [FEEDBACK DEBUG] Previous Points: $previousPoints');
 
     // Calcular nível baseado no novo sistema de XP
     final currentLevel = _calculateLevelFromXP(currentXP);
@@ -515,17 +447,37 @@ class _QuizPageState extends State<QuizPage> {
         'points': result?['points'] ?? 0,
         'level': result?['level'] ?? 1,
         'answers': selectedAnswers,
+        'onRetry': percentage < 70 ? () {
+          // Recarregar o quiz para tentar novamente
+          _loadQuiz();
+          setState(() {
+            currentQuestionIndex = 0;
+            selectedAnswers = List.filled(quiz!.questions.length, -1);
+            _selectedAnswerIndex = null;
+            _correctAnswerIndex = null;
+            _isAnswerSubmitted = false;
+            _isAnswerCorrect = false;
+            _questionStartTime = DateTime.now();
+            _realTimePerQuestion = [];
+            _attemptsPerQuestion = List.filled(quiz!.questions.length, 0);
+            _currentQuestionAttempts = 0;
+          });
+        } : null,
       },
       rewardData: rewardData,
       onComplete: () {
-        // Retorna o resultado para a tela anterior
-        Navigator.of(context).pop({
-          'score': percentage.round(),
-          'success': percentage >= 70,
-          'points': result?['points'] ?? 0,
-          'level': result?['level'] ?? 1,
-          'answers': selectedAnswers,
-        });
+        // Para falha, o usuário deve escolher "Tentar Novamente" ou "Continuar"
+        if (percentage >= 70) {
+          // Retorna o resultado para a tela anterior
+          Navigator.of(context).pop({
+            'score': percentage.round(),
+            'success': percentage >= 70,
+            'points': result?['points'] ?? 0,
+            'level': result?['level'] ?? 1,
+            'answers': selectedAnswers,
+          });
+        }
+        // Se falhou, não fechar automaticamente - deixar o usuário escolher
       },
     );
   }
@@ -674,40 +626,6 @@ class _QuizPageState extends State<QuizPage> {
               },
             ),
           ),
-
-          // Mensagem de feedback
-          if (_isAnswerSubmitted)
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _isAnswerCorrect ? Colors.green[100] : Colors.red[100],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: _isAnswerCorrect ? Colors.green : Colors.red,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _isAnswerCorrect ? Icons.check_circle : Icons.cancel,
-                    color: _isAnswerCorrect ? Colors.green : Colors.red,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _isAnswerCorrect ? 'Correto!' : 'Incorreto!',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: _isAnswerCorrect
-                          ? Colors.green[800]
-                          : Colors.red[800],
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );

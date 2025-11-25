@@ -1,49 +1,34 @@
 #!/usr/bin/env python3
 """
-<<<<<<< HEAD
-Script para executar testes do backend CryptoQuest.
+Script para executar testes do backend CryptoQuest de forma organizada.
 """
 
 import sys
 import subprocess
-=======
-Script para executar testes de forma organizada.
-"""
-
-import subprocess
-import sys
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 import argparse
-from pathlib import Path
 
 
 def run_command(command, description):
     """Executa comando e exibe resultado"""
     print(f"\n{'='*60}")
-<<<<<<< HEAD
-    print(f"Executando: {description}")
-    print(f"Comando: {' '.join(command)}")
-    print(f"{'='*60}")
-    
-    try:
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
-=======
     print(f"🧪 {description}")
+    if isinstance(command, list):
+        print(f"Comando: {' '.join(command)}")
+    else:
+        print(f"Comando: {command}")
     print(f"{'='*60}")
     
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
+        if isinstance(command, list):
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
+        else:
+            result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         print(result.stdout)
         if result.stderr:
             print("STDERR:", result.stderr)
         return True
     except subprocess.CalledProcessError as e:
-<<<<<<< HEAD
-        print(f"ERRO: {e}")
-=======
         print(f"❌ Erro: {e}")
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
         print("STDOUT:", e.stdout)
         print("STDERR:", e.stderr)
         return False
@@ -51,11 +36,10 @@ def run_command(command, description):
 
 def main():
     """Função principal"""
-<<<<<<< HEAD
-    parser = argparse.ArgumentParser(description="Executar testes do CryptoQuest")
+    parser = argparse.ArgumentParser(description="Executar testes do backend CryptoQuest")
     parser.add_argument("--type", choices=["unit", "integration", "api", "all"], 
                        default="all", help="Tipo de teste a executar")
-    parser.add_argument("--coverage", action="store_true", 
+    parser.add_argument("--coverage", "-c", action="store_true", 
                        help="Executar com cobertura de código")
     parser.add_argument("--firebase", action="store_true", 
                        help="Incluir testes que requerem Firebase")
@@ -65,6 +49,33 @@ def main():
     parser.add_argument("--marker", help="Executar testes com marcador específico")
     
     args = parser.parse_args()
+    
+    # Se arquivo específico foi fornecido, executar apenas esse arquivo
+    if args.file:
+        base_cmd = ["python", "-m", "pytest", args.file]
+        if args.verbose:
+            base_cmd.append("-v")
+        if args.coverage:
+            base_cmd.extend(["--cov=app", "--cov-report=html", "--cov-report=term"])
+        if args.marker:
+            base_cmd.extend(["-m", args.marker])
+        if not args.firebase:
+            base_cmd.extend(["-m", "not firebase"])
+        
+        success = run_command(base_cmd, f"Executando teste: {args.file}")
+        
+        if success:
+            print(f"\n{'='*60}")
+            print("✅ Teste executado com sucesso!")
+            print(f"{'='*60}")
+            if args.coverage:
+                print("\nRelatório de cobertura gerado em: htmlcov/index.html")
+        else:
+            print(f"\n{'='*60}")
+            print("❌ Teste falhou!")
+            print(f"{'='*60}")
+            sys.exit(1)
+        return
     
     # Comando base
     base_cmd = ["python", "-m", "pytest"]
@@ -76,103 +87,82 @@ def main():
     if args.coverage:
         base_cmd.extend(["--cov=app", "--cov-report=html", "--cov-report=term"])
     
-    # Adicionar tipo de teste
-    if args.type == "unit":
-        base_cmd.extend(["tests/unit/", "-m", "unit"])
-    elif args.type == "integration":
-        base_cmd.extend(["tests/integration/", "-m", "integration"])
-    elif args.type == "api":
-        base_cmd.extend(["tests/api/", "-m", "api"])
-    else:  # all
-        base_cmd.append("tests/")
-    
-    # Adicionar arquivo específico
-    if args.file:
-        base_cmd = ["python", "-m", "pytest", args.file]
-        if args.verbose:
-            base_cmd.append("-v")
-    
-    # Adicionar marcador específico
+    # Adicionar marcador específico se fornecido
     if args.marker:
         base_cmd.extend(["-m", args.marker])
     
     # Excluir testes que requerem Firebase se não especificado
     if not args.firebase:
-        base_cmd.extend(["-m", "not firebase"])
-    
-    # Executar testes
-    success = run_command(base_cmd, "Testes do CryptoQuest")
-    
-    if success:
-        print(f"\n{'='*60}")
-        print("SUCESSO: Todos os testes passaram!")
-        print(f"{'='*60}")
-        
-        if args.coverage:
-            print("\nRelatório de cobertura gerado em: htmlcov/index.html")
-    else:
-        print(f"\n{'='*60}")
-        print("FALHA: Alguns testes falharam!")
-        print(f"{'='*60}")
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
-=======
-    parser = argparse.ArgumentParser(description="Executar testes do backend")
-    parser.add_argument("--type", choices=["unit", "integration", "api", "all"], 
-                       default="all", help="Tipo de teste a executar")
-    parser.add_argument("--verbose", "-v", action="store_true", 
-                       help="Modo verboso")
-    parser.add_argument("--coverage", "-c", action="store_true", 
-                       help="Executar com cobertura de código")
-    parser.add_argument("--firebase", action="store_true", 
-                       help="Incluir testes que requerem Firebase")
-    
-    args = parser.parse_args()
-    
-    # Comando base do pytest
-    base_cmd = "python -m pytest"
-    
-    if args.verbose:
-        base_cmd += " -v"
-    
-    if args.coverage:
-        base_cmd += " --cov=app --cov-report=html --cov-report=term"
-    
-    # Comandos por tipo
-    commands = {
-        "unit": f"{base_cmd} tests/unit/ -m unit",
-        "integration": f"{base_cmd} tests/integration/ -m integration",
-        "api": f"{base_cmd} tests/api/ -m api",
-        "all": f"{base_cmd} tests/ -m 'unit or integration or api'"
-    }
-    
-    # Adicionar marcadores se necessário
-    if not args.firebase:
-        for key in commands:
-            commands[key] += " -m \"not firebase\""
+        if args.marker:
+            # Se já tem um marcador, combinar com not firebase
+            base_cmd[-1] = f"{args.marker} and not firebase"
+        else:
+            base_cmd.extend(["-m", "not firebase"])
     
     # Executar testes
     success = True
     
     if args.type == "all":
         # Executar todos os tipos em sequência
-        for test_type, command in commands.items():
-            if test_type != "all":
-                if not run_command(command, f"Executando testes {test_type}"):
-                    success = False
+        test_types = ["unit", "integration", "api"]
+        for test_type in test_types:
+            # Construir comando do zero para evitar conflitos
+            cmd = ["python", "-m", "pytest", f"tests/{test_type}/"]
+            
+            # Adicionar opções
+            if args.verbose:
+                cmd.append("-v")
+            
+            if args.coverage:
+                cmd.extend(["--cov=app", "--cov-report=html", "--cov-report=term"])
+            
+            # Construir marcador corretamente
+            if args.marker:
+                if not args.firebase:
+                    cmd.extend(["-m", f"{args.marker} and not firebase"])
+                else:
+                    cmd.extend(["-m", args.marker])
+            else:
+                if not args.firebase:
+                    cmd.extend(["-m", f"{test_type} and not firebase"])
+                else:
+                    cmd.extend(["-m", test_type])
+            
+            if not run_command(cmd, f"Executando testes {test_type}"):
+                success = False
     else:
         # Executar tipo específico
-        command = commands[args.type]
-        if not run_command(command, f"Executando testes {args.type}"):
+        # Construir comando do zero para evitar conflitos
+        cmd = ["python", "-m", "pytest", f"tests/{args.type}/"]
+        
+        # Adicionar opções
+        if args.verbose:
+            cmd.append("-v")
+        
+        if args.coverage:
+            cmd.extend(["--cov=app", "--cov-report=html", "--cov-report=term"])
+        
+        # Construir marcador corretamente
+        if args.marker:
+            if not args.firebase:
+                cmd.extend(["-m", f"{args.marker} and not firebase"])
+            else:
+                cmd.extend(["-m", args.marker])
+        else:
+            if not args.firebase:
+                cmd.extend(["-m", f"{args.type} and not firebase"])
+            else:
+                cmd.extend(["-m", args.type])
+        
+        if not run_command(cmd, f"Executando testes {args.type}"):
             success = False
     
     # Resultado final
     print(f"\n{'='*60}")
     if success:
         print("✅ Todos os testes executados com sucesso!")
+        if args.coverage:
+            print("\nRelatório de cobertura gerado em: htmlcov/index.html")
     else:
         print("❌ Alguns testes falharam!")
         sys.exit(1)
@@ -181,4 +171,3 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     main()
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)

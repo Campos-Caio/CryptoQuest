@@ -45,7 +45,7 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  /// ✅ MÉTODO ROBUSTO: Executa login com Google e retorna o UserProfile garantindo estado atualizado
+  /// Executa login com Google e retorna o UserProfile garantindo estado atualizado
   Future<UserProfile?> signInWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
@@ -72,7 +72,7 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  /// ✅ MÉTODO AUXILIAR: Verifica se o usuário deve ir para home ou questionário
+  /// Verifica se o usuário deve ir para home ou questionário
   bool shouldGoToHome() {
     if (_userProfile == null) return false;
     return _userProfile!.hasCompletedQuestionnaire;
@@ -118,7 +118,7 @@ class AuthNotifier extends ChangeNotifier {
     }
   }
 
-  /// ⚡ OTIMIZAÇÃO: Atualiza perfil local sem fazer chamada à API
+  /// Atualiza perfil local sem fazer chamada à API
   ///
   /// Usa dados que já vieram do backend (ex: após completar missão)
   /// Economia: ~500ms por não fazer GET /auth/me

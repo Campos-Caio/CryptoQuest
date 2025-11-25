@@ -74,7 +74,7 @@ class MissionNotifier extends ChangeNotifier {
   }
 
   // Completar missão
-  Future<bool> completeMission(
+  Future<Map<String, dynamic>?> completeMission(
       String missionId, List<int> answers, String token) async {
     try {
       _isSubmitting = true;
@@ -90,7 +90,8 @@ class MissionNotifier extends ChangeNotifier {
       _lastCompletedMission = result;
       notifyListeners();
 
-      return true;
+      // Retornar o resultado para que possa ser usado para atualizar o AuthNotifier
+      return result;
     } catch (e) {
       _submitError = e.toString();
       _isSubmitting = false;

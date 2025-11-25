@@ -273,118 +273,129 @@ class MissionService:
                     correct_answers += 1
 
             score_percentage = ((correct_answers / len(questions)) * 100) if questions else 0
-            if score_percentage < 70.0:
-                raise ValueError(
-                    f"Você acertou {score_percentage:.0f}%. É necessário acertar pelo menos 70% para concluir."
-                )
+            mission_passed = score_percentage >= 70.0
+        else:
+            # Para outros tipos de missão, considerar como aprovado
+            mission_passed = True
+            score_percentage = 100
 
         # Calcular score baseado no tipo de missão
         if mission_data.get("type") == "QUIZ":
-            score_percentage = ((correct_answers / len(questions)) * 100) if questions else 0
+            # score_percentage já foi calculado acima
+            pass
         else:
             score_percentage = 100  # Para outros tipos de missão
+            mission_passed = True
 
         # Determinar tipo de missão
         mission_type = "daily" if mission_data.get("type") == "DAILY" else "learning_path"
 
-        # Recompensa e progressão
+        # Recompensa e progressão - apenas se passou na missão
         old_level = user_data.get("level", 1) or 1
-        new_points = (user_data.get("points", 0) or 0) + (mission_data.get("reward_points", 0) or 0)
-        new_level = old_level
-        
-        # Verificar level up baseado em XP (não pontos)
         current_xp = user_data.get("xp", 0) or 0
-        reward_xp = mission_data.get("reward_xp", 0) or 0
-        new_xp = current_xp + reward_xp
+        current_points = user_data.get("points", 0) or 0
         
-        # Calcular novo nível baseado em XP
-        new_level = self._calculate_level_from_xp(new_xp)
+        if mission_passed:
+            # Apenas conceder recompensas se passou
+            new_points = current_points + (mission_data.get("reward_points", 0) or 0)
+            reward_xp = mission_data.get("reward_xp", 0) or 0
+            new_xp = current_xp + reward_xp
+            
+            # Calcular novo nível baseado em XP
+            new_level = self._calculate_level_from_xp(new_xp)
+            
+            logger.info(f"XP CALCULATION - User: {user_id}")
+            logger.info(f"   Current XP: {current_xp}")
+            logger.info(f"   Reward XP: {reward_xp}")
+            logger.info(f"   New XP: {new_xp}")
+            logger.info(f"   Old Level: {old_level}")
+            logger.info(f"   New Level: {new_level}")
+
+            completion_field = f"completed_missions.{mission_id}"
+            update_data = {
+                "points": new_points,
+                "xp": new_xp,
+                "level": new_level,
+                completion_field: datetime.now(timezone.utc),
+            }
+
+            await user_ref.update(update_data)
+        else:
+            # Não passou - não atualizar nada, mas manter valores atuais
+            new_points = current_points
+            new_xp = current_xp
+            new_level = old_level
+            logger.info(f"Missão {mission_id} não aprovada - Score: {score_percentage:.1f}% (mínimo: 70%)")
         
-        # ✅ LOGS PARA DEBUG
-        logger.info(f"🎯 XP CALCULATION - User: {user_id}")
-        logger.info(f"   Current XP: {current_xp}")
-        logger.info(f"   Reward XP: {reward_xp}")
-        logger.info(f"   New XP: {new_xp}")
-        logger.info(f"   Old Level: {old_level}")
-        logger.info(f"   New Level: {new_level}")
+        if mission_passed:
+            logger.info(f"FIRESTORE UPDATE - User: {user_id}")
+            logger.info(f"   Points: {user_data.get('points', 0)} → {new_points}")
+            logger.info(f"   XP: {current_xp} → {new_xp}")
+            logger.info(f"   Level: {old_level} → {new_level}")
+            logger.info(f"   Mission: {mission_id} completed at {datetime.now(timezone.utc)}")
 
-        completion_field = f"completed_missions.{mission_id}"
-        update_data = {
-            "points": new_points,
-            "xp": new_xp,  # ✅ CORREÇÃO: Salvar XP no Firestore
-            "level": new_level,
-            completion_field: datetime.now(timezone.utc),
-        }
-
-        await user_ref.update(update_data)
-        
-        # ✅ LOG PARA CONFIRMAR SALVAMENTO
-        logger.info(f"💾 FIRESTORE UPDATE - User: {user_id}")
-        logger.info(f"   Points: {user_data.get('points', 0)} → {new_points}")
-        logger.info(f"   XP: {current_xp} → {new_xp}")
-        logger.info(f"   Level: {old_level} → {new_level}")
-        logger.info(f"   Mission: {mission_id} completed at {datetime.now(timezone.utc)}")
-
-        # 🎯 NOVO: Emitir eventos para o sistema de badges
-        try:
-            # Evento de missão completada
-            mission_event = MissionCompletedEvent(
-                user_id=user_id,
-                mission_id=mission_id,
-                score=score_percentage,
-                mission_type=mission_type,
-                points_earned=mission_data.get("reward_points", 0) or 0,
-                xp_earned=mission_data.get("reward_xp", 0) or 0
-            )
-            await self.event_bus.emit(mission_event)
-            logger.info(f"🎯 Evento de missão completada emitido: {mission_id}")
-
-            # Evento de level up (se aplicável)
-            if new_level > old_level:
-                level_up_event = LevelUpEvent(
-                    user_id=user_id,
-                    old_level=old_level,
-                    new_level=new_level,
-                    points_required=LEVEL_UP_REQUIREMENTS.get(new_level, 0),
-                    points_earned=new_points - (user_data.get("points", 0) or 0)
-                )
-                await self.event_bus.emit(level_up_event)
-                logger.info(f"🎯 Evento de level up emitido: {old_level} -> {new_level}")
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao emitir eventos: {e}")
-            # Não falha a missão se houver erro nos eventos
-
-        # 🎁 SISTEMA LEGADO: Desabilitado temporariamente para evitar duplicação de XP
-        # O XP agora é gerenciado diretamente pelo MissionService
-        if False and self.reward_service:  # ✅ DESABILITADO para evitar conflito
+            # Emitir eventos para o sistema de badges
             try:
-                logger.info(f"🎁 Concedendo recompensas legadas para missão {mission_id} (score: {score_percentage:.1f}%)")
-                
-                # Conceder recompensas
-                reward_result = await self.reward_service.award_mission_completion(
+                # Evento de missão completada
+                mission_event = MissionCompletedEvent(
                     user_id=user_id,
                     mission_id=mission_id,
                     score=score_percentage,
-                    mission_type=mission_type
+                    mission_type=mission_type,
+                    points_earned=mission_data.get("reward_points", 0) or 0,
+                    xp_earned=mission_data.get("reward_xp", 0) or 0
                 )
-                
-                logger.info(f"✅ Recompensas legadas concedidas: {reward_result}")
-                
-            except Exception as e:
-                logger.error(f"❌ Erro ao conceder recompensas legadas: {e}")
-                # Não falha a missão se houver erro nas recompensas
+                await self.event_bus.emit(mission_event)
+                logger.info(f"Evento de missão completada emitido: {mission_id}")
 
-        # Retorno do perfil atualizado
+                # Evento de level up (se aplicável)
+                if new_level > old_level:
+                    level_up_event = LevelUpEvent(
+                        user_id=user_id,
+                        old_level=old_level,
+                        new_level=new_level,
+                        points_required=LEVEL_UP_REQUIREMENTS.get(new_level, 0),
+                        points_earned=new_points - (user_data.get("points", 0) or 0)
+                    )
+                    await self.event_bus.emit(level_up_event)
+                    logger.info(f"Evento de level up emitido: {old_level} -> {new_level}")
+
+            except Exception as e:
+                logger.error(f"Erro ao emitir eventos: {e}")
+                # Não falha a missão se houver erro nos eventos
+
+            # Sistema legado desabilitado para evitar duplicação de XP
+            if False and self.reward_service:
+                try:
+                    logger.info(f"Concedendo recompensas legadas para missão {mission_id} (score: {score_percentage:.1f}%)")
+                    
+                    reward_result = await self.reward_service.award_mission_completion(
+                        user_id=user_id,
+                        mission_id=mission_id,
+                        score=score_percentage,
+                        mission_type=mission_type
+                    )
+                    
+                    logger.info(f"Recompensas legadas concedidas: {reward_result}")
+                    
+                except Exception as e:
+                    logger.error(f"Erro ao conceder recompensas legadas: {e}")
+                    # Não falha a missão se houver erro nas recompensas
+
+            # Atualizar completed_missions apenas se passou
+            if not user_data.get("completed_missions"):
+                user_data["completed_missions"] = {}
+            user_data["completed_missions"][mission_id] = update_data[completion_field]
+            
+            # Invalidar cache do usuário quando missão é completada
+            await self._invalidate_user_cache(user_id)
+        else:
+            # Não passou - não atualizar perfil, apenas retornar dados atuais
+            logger.info(f"Missão {mission_id} não aprovada - mantendo perfil atual")
+            # Não invalidar cache pois a missão não foi completada
+
+        # Retornar perfil (atualizado se passou, ou atual se não passou)
         user_data.update({"points": new_points, "xp": new_xp, "level": new_level})
-        # completed_missions pode não existir
-        if not user_data.get("completed_missions"):
-            user_data["completed_missions"] = {}
-        user_data["completed_missions"][mission_id] = update_data[completion_field]
-        
-        # Invalidar cache do usuário quando missão é completada
-        await self._invalidate_user_cache(user_id)
-        
         return UserProfile(**{**user_data, "uid": user_id})
 
 

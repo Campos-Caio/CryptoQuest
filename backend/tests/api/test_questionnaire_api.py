@@ -24,11 +24,7 @@ async def override_get_current_user_existing():
 
 pytestmark = pytest.mark.asyncio
 
-<<<<<<< HEAD
-async def test_submit_questionnaire_success_for_new_user(mock_user_profile_new):
-=======
 async def test_submit_questionnaire_success_for_new_user(mocker, mock_user_profile_new):
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
     # Arrange
     class MockUserRepository:
         def get_user_profile(self, uid: str):

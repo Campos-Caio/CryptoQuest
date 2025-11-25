@@ -6,10 +6,7 @@ import pytest
 from app.models.user import UserProfile, FirebaseUser
 from datetime import datetime, timezone
 
-<<<<<<< HEAD
-=======
 
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 @pytest.fixture
 def mock_user_profile():
     """Mock de perfil de usuário para testes"""
@@ -24,10 +21,7 @@ def mock_user_profile():
         has_completed_questionnaire=False
     )
 
-<<<<<<< HEAD
-=======
 
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 @pytest.fixture
 def mock_user_profile_new():
     """Mock de perfil de usuário novo para testes"""
@@ -42,10 +36,7 @@ def mock_user_profile_new():
         has_completed_questionnaire=False
     )
 
-<<<<<<< HEAD
-=======
 
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 @pytest.fixture
 def mock_updated_user_profile():
     """Mock de perfil de usuário atualizado para testes"""
@@ -54,14 +45,6 @@ def mock_updated_user_profile():
         name="Novo nome",
         email="test@example.com",
         register_date=datetime.now(timezone.utc),
-<<<<<<< HEAD
-        level=2,
-        points=100,
-        xp=50,
-        has_completed_questionnaire=True
-    )
-
-=======
         level=1,
         points=0,
         xp=0,
@@ -69,7 +52,6 @@ def mock_updated_user_profile():
     )
 
 
->>>>>>> ceffef1 (feat: Implementacao final do sistema de recompensas)
 @pytest.fixture
 def mock_firebase_user():
     """Mock de usuário Firebase para testes"""

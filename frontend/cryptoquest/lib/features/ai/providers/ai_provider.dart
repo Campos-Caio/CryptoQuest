@@ -72,7 +72,6 @@ class AIProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // ✅ CORREÇÃO: Usar o mesmo sistema de recomendações da HomePage
       final recommendations =
           await AIService.getUserRecommendations(userId, token, limit: limit);
 
@@ -85,11 +84,9 @@ class AIProvider extends ChangeNotifier {
           if (learningPathRecommendations.isNotEmpty) {
             _recommendations = learningPathRecommendations;
           } else {
-            // ✅ CORREÇÃO: Se ainda está vazio, criar recomendações básicas
             _recommendations = _createFallbackRecommendations();
           }
         } catch (e) {
-          // ✅ CORREÇÃO: Se falhar, criar recomendações básicas
           _recommendations = _createFallbackRecommendations();
         }
       } else {
@@ -160,7 +157,6 @@ class AIProvider extends ChangeNotifier {
     try {
       return await AIService.getDifficultySuggestion(userId, domain, token);
     } catch (e) {
-      print('Erro ao buscar sugestão de dificuldade: $e');
       return null;
     }
   }
@@ -173,7 +169,6 @@ class AIProvider extends ChangeNotifier {
       return await AIService.getContentSuggestions(userId, domain, token,
           limit: limit);
     } catch (e) {
-      print('Erro ao buscar sugestões de conteúdo: $e');
       return [];
     }
   }
@@ -183,7 +178,6 @@ class AIProvider extends ChangeNotifier {
     try {
       return await AIService.isAIEnabled(token);
     } catch (e) {
-      print('Erro ao verificar status da IA: $e');
       return false;
     }
   }
@@ -235,7 +229,7 @@ class AIProvider extends ChangeNotifier {
       {
         'content_id': 'btc_quiz_01',
         'content_type': 'quiz',
-        'title': 'Fundamentos do Bitcoin', // ✅ CORREÇÃO: Título real
+        'title': 'Fundamentos do Bitcoin',
         'relevance_score': 0.8,
         'reasoning': 'Conteúdo fundamental recomendado para iniciantes',
         'learning_objectives': [
@@ -248,7 +242,7 @@ class AIProvider extends ChangeNotifier {
       {
         'content_id': 'blockchain_conceitos_questionnaire',
         'content_type': 'quiz',
-        'title': 'A Blockchain e a Criptografia', // ✅ CORREÇÃO: Título real
+        'title': 'A Blockchain e a Criptografia',
         'relevance_score': 0.7,
         'reasoning': 'Conceitos essenciais de blockchain',
         'learning_objectives': [
@@ -261,7 +255,7 @@ class AIProvider extends ChangeNotifier {
       {
         'content_id': 'daily_crypto_security_quiz',
         'content_type': 'quiz',
-        'title': 'Segurança em Cripto', // ✅ CORREÇÃO: Título real
+        'title': 'Segurança em Cripto',
         'relevance_score': 0.6,
         'reasoning': 'Segurança é fundamental no mundo crypto',
         'learning_objectives': [

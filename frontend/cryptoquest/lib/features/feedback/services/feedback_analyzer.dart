@@ -59,10 +59,16 @@ class FeedbackAnalyzer {
         ));
       }
     } else {
-      // Quiz falhou
-      events.add(FeedbackEvent.quizFailure(
+      // Quiz falhou - passar contexto para acesso ao callback de retry
+      events.add(FeedbackEvent(
+        type: FeedbackType.quizFailure,
         data: rewardData,
         delay: Duration.zero,
+        actions: [
+          FeedbackAction.retry,
+          FeedbackAction.continueAction,
+        ],
+        customData: contextData,
       ));
     }
 

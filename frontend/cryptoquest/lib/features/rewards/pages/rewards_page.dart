@@ -17,18 +17,16 @@ class _RewardsPageState extends State<RewardsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadRewardsData();
     });
   }
 
-  // 🎯 NOVO MÉTODO: Carregar dados de recompensas
   Future<void> _loadRewardsData() async {
     final rewardProvider = Provider.of<RewardProvider>(context, listen: false);
     await Future.wait([
-      rewardProvider.loadUserRewardsHistory(),
       rewardProvider.loadUserBadges(),
       rewardProvider.loadAvailableBadges(),
     ]);
@@ -40,7 +38,6 @@ class _RewardsPageState extends State<RewardsPage>
     super.dispose();
   }
 
-  // 🎯 NOVO MÉTODO: Atualizar quando a tela for focada
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -64,8 +61,7 @@ class _RewardsPageState extends State<RewardsPage>
           labelColor: Colors.white,
           unselectedLabelColor: Colors.white70,
           tabs: const [
-            Tab(text: 'Histórico', icon: Icon(Icons.history)),
-            Tab(text: 'Badges', icon: Icon(Icons.emoji_events)),
+            Tab(text: 'Minhas Badges', icon: Icon(Icons.emoji_events)),
             Tab(text: 'Disponíveis', icon: Icon(Icons.star)),
           ],
         ),
@@ -73,73 +69,10 @@ class _RewardsPageState extends State<RewardsPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildRewardsHistory(),
           _buildUserBadges(),
           _buildAvailableBadges(),
         ],
       ),
-    );
-  }
-
-  Widget _buildRewardsHistory() {
-    return Consumer<RewardProvider>(
-      builder: (context, rewardProvider, child) {
-        if (rewardProvider.isLoading) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF00FFC8),
-            ),
-          );
-        }
-
-        if (rewardProvider.errorMessage != null) {
-          return _buildErrorWidget(rewardProvider.errorMessage!);
-        }
-
-        if (rewardProvider.userRewards.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.card_giftcard,
-                  color: Colors.white70,
-                  size: 64,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'Nenhuma recompensa ainda',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 18,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Complete missões para ganhar recompensas!',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return RefreshIndicator(
-          onRefresh: () => rewardProvider.loadUserRewardsHistory(),
-          color: const Color(0xFF00FFC8),
-          child: Column(
-            children: [
-              _buildStatsCard(rewardProvider),
-              Expanded(
-                child: _buildRewardsList(rewardProvider.userRewards),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -229,198 +162,6 @@ class _RewardsPageState extends State<RewardsPage>
           child: _buildBadgesGrid([], rewardProvider.availableBadges),
         );
       },
-    );
-  }
-
-  Widget _buildStatsCard(RewardProvider rewardProvider) {
-    final totalPoints = rewardProvider.getTotalPointsEarned();
-    final totalXp = rewardProvider.getTotalXpEarned();
-    final recentRewards = rewardProvider.getRecentRewards(limit: 5);
-
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6926C4), Color(0xFF7F5AF0)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem('Total Pontos', '$totalPoints', Icons.stars),
-              _buildStatItem('Total XP', '$totalXp', Icons.trending_up),
-              _buildStatItem('Recompensas',
-                  '${rewardProvider.userRewards.length}', Icons.card_giftcard),
-            ],
-          ),
-          if (recentRewards.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            const Divider(color: Colors.white30),
-            const SizedBox(height: 8),
-            Text(
-              'Recompensas Recentes',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...recentRewards
-                .take(3)
-                .map((reward) => _buildRecentRewardItem(reward)),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: const Color(0xFF00FFC8),
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Color(0xFF00FFC8),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRecentRewardItem(UserReward reward) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '${reward.pointsEarned} pts',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-            ),
-          ),
-          Text(
-            '${reward.earnedAt.day}/${reward.earnedAt.month}',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRewardsList(List<UserReward> rewards) {
-    final sortedRewards = List<UserReward>.from(rewards);
-    sortedRewards.sort((a, b) => b.earnedAt.compareTo(a.earnedAt));
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: sortedRewards.length,
-      itemBuilder: (context, index) {
-        final reward = sortedRewards[index];
-        return _buildRewardItem(reward);
-      },
-    );
-  }
-
-  Widget _buildRewardItem(UserReward reward) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF242629),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF00FFC8).withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00FFC8).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Icon(
-              Icons.card_giftcard,
-              color: Color(0xFF00FFC8),
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Recompensa Conquistada',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${reward.pointsEarned} pontos • ${reward.xpEarned} XP',
-                  style: const TextStyle(
-                    color: Color(0xFF00FFC8),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatDate(reward.earnedAt),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -557,7 +298,6 @@ class _RewardsPageState extends State<RewardsPage>
             onPressed: () {
               final rewardProvider =
                   Provider.of<RewardProvider>(context, listen: false);
-              rewardProvider.loadUserRewardsHistory();
               rewardProvider.loadUserBadges();
               rewardProvider.loadAvailableBadges();
             },

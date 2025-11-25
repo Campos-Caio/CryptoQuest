@@ -8,16 +8,25 @@ class FeedbackSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle, color: AppColors.success),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            const Icon(Icons.check_circle, color: AppColors.success, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
         backgroundColor: AppColors.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.success, width: 1),
+          side: const BorderSide(color: AppColors.success, width: 2),
         ),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
@@ -30,16 +39,25 @@ class FeedbackSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error, color: AppColors.error),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            const Icon(Icons.error, color: AppColors.error, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
         backgroundColor: AppColors.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.error, width: 1),
+          side: const BorderSide(color: AppColors.error, width: 2),
         ),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 4),
@@ -52,16 +70,25 @@ class FeedbackSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.warning, color: AppColors.warning),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            const Icon(Icons.warning, color: AppColors.warning, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
         backgroundColor: AppColors.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.warning, width: 1),
+          side: const BorderSide(color: AppColors.warning, width: 2),
         ),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),
@@ -74,16 +101,25 @@ class FeedbackSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.info, color: AppColors.info),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
+            const Icon(Icons.info, color: AppColors.info, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: AppColors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
         backgroundColor: AppColors.surface,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.info, width: 1),
+          side: const BorderSide(color: AppColors.info, width: 2),
         ),
         margin: const EdgeInsets.all(16),
         duration: const Duration(seconds: 3),

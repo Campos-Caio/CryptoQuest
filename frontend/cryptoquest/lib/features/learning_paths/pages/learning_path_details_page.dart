@@ -81,7 +81,22 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
       ),
       body: Consumer<LearningPathProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoadingDetails) {
+          // Obter detalhes atualizados do provider
+          final pathDetails =
+              provider.getPathDetails(widget.pathId) ?? _pathDetails;
+
+          // Atualizar _pathDetails quando o provider tiver dados atualizados
+          if (pathDetails != null && pathDetails != _pathDetails) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _pathDetails = pathDetails;
+                });
+              }
+            });
+          }
+
+          if (provider.isLoadingDetails && pathDetails == null) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -104,7 +119,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
             );
           }
 
-          if (provider.detailsErrorMessage != null) {
+          if (provider.detailsErrorMessage != null && pathDetails == null) {
             return Center(
               child: GlassmorphismCard(
                 margin: const EdgeInsets.all(20),
@@ -157,7 +172,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
             );
           }
 
-          if (_pathDetails == null) {
+          if (pathDetails == null) {
             return Center(
               child: GlassmorphismCard(
                 margin: const EdgeInsets.all(20),
@@ -189,16 +204,16 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header da trilha
-                _buildPathHeader(),
+                _buildPathHeader(pathDetails),
 
                 // Estatísticas
-                _buildStatsSection(),
+                _buildStatsSection(pathDetails),
 
                 // Botão de ação
-                _buildActionButton(),
+                _buildActionButton(pathDetails),
 
                 // Lista de módulos
-                _buildModulesSection(),
+                _buildModulesSection(pathDetails),
               ],
             ),
           );
@@ -207,7 +222,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
     );
   }
 
-  Widget _buildPathHeader() {
+  Widget _buildPathHeader(LearningPathResponse pathDetails) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -222,7 +237,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
             children: [
               Expanded(
                 child: Text(
-                  _pathDetails!.path.name,
+                  pathDetails.path.name,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -235,23 +250,23 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: LearningPathColors.getDifficultyColor(
-                          _pathDetails!.path.difficulty)
+                          pathDetails.path.difficulty)
                       .withOpacity(0.2),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: LearningPathColors.getDifficultyColor(
-                            _pathDetails!.path.difficulty)
+                            pathDetails.path.difficulty)
                         .withOpacity(0.3),
                   ),
                 ),
                 child: Text(
                   LearningPathColors.getDifficultyText(
-                      _pathDetails!.path.difficulty),
+                      pathDetails.path.difficulty),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: LearningPathColors.getDifficultyColor(
-                        _pathDetails!.path.difficulty),
+                        pathDetails.path.difficulty),
                   ),
                 ),
               ),
@@ -259,7 +274,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            _pathDetails!.path.description,
+            pathDetails.path.description,
             style: const TextStyle(
               fontSize: 16,
               color: LearningPathColors.textSecondary,
@@ -276,7 +291,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
               ),
               const SizedBox(width: 6),
               Text(
-                _pathDetails!.path.estimatedDuration,
+                pathDetails.path.estimatedDuration,
                 style: const TextStyle(
                   fontSize: 14,
                   color: LearningPathColors.textSecondary,
@@ -291,7 +306,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
               ),
               const SizedBox(width: 6),
               Text(
-                '${_pathDetails!.path.modules.length} módulos',
+                '${pathDetails.path.modules.length} módulos',
                 style: const TextStyle(
                   fontSize: 14,
                   color: LearningPathColors.textSecondary,
@@ -305,7 +320,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
     );
   }
 
-  Widget _buildStatsSection() {
+  Widget _buildStatsSection(LearningPathResponse pathDetails) {
     return GlassmorphismCard(
       margin: const EdgeInsets.all(16),
       child: Column(
@@ -324,14 +339,14 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
                 ),
               ),
               AnimatedProgressRing(
-                progress: _pathDetails!.progressPercentage / 100,
+                progress: pathDetails.progressPercentage / 100,
                 size: 60,
                 strokeWidth: 6,
-                progressColor: _pathDetails!.progressPercentage == 100
+                progressColor: pathDetails.progressPercentage == 100
                     ? LearningPathColors.successGreen
                     : LearningPathColors.primaryPurple,
                 child: Text(
-                  '${_pathDetails!.progressPercentage.toInt()}%',
+                  '${pathDetails.progressPercentage.toInt()}%',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -347,7 +362,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
               Expanded(
                 child: _buildStatItem(
                   'Módulos',
-                  '${_pathDetails!.completedModules}/${_pathDetails!.totalModules}',
+                  '${pathDetails.completedModules}/${pathDetails.totalModules}',
                   Icons.layers,
                   LearningPathColors.primaryPurple,
                 ),
@@ -355,7 +370,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
               Expanded(
                 child: _buildStatItem(
                   'Missões',
-                  '${_pathDetails!.completedMissions}/${_pathDetails!.totalMissions}',
+                  '${pathDetails.completedMissions}/${pathDetails.totalMissions}',
                   Icons.quiz,
                   LearningPathColors.successGreen,
                 ),
@@ -371,12 +386,12 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
             ),
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: _pathDetails!.progressPercentage / 100,
+              widthFactor: pathDetails.progressPercentage / 100,
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
                   gradient: LinearGradient(
-                    colors: _pathDetails!.progressPercentage == 100
+                    colors: pathDetails.progressPercentage == 100
                         ? [
                             LearningPathColors.successGreen,
                             LearningPathColors.successGreenLight
@@ -392,7 +407,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${_pathDetails!.progressPercentage.toStringAsFixed(1)}% concluído',
+            '${pathDetails.progressPercentage.toStringAsFixed(1)}% concluído',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -445,9 +460,9 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
     );
   }
 
-  Widget _buildActionButton() {
-    final isStarted = _pathDetails!.isStarted;
-    final isCompleted = _pathDetails!.isCompleted;
+  Widget _buildActionButton(LearningPathResponse pathDetails) {
+    final isStarted = pathDetails.isStarted;
+    final isCompleted = pathDetails.isCompleted;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -481,7 +496,9 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
           return SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: provider.isStartingPath ? null : _handleActionButton,
+              onPressed: provider.isStartingPath
+                  ? null
+                  : () => _handleActionButton(pathDetails),
               icon: provider.isStartingPath
                   ? const SizedBox(
                       height: 20,
@@ -526,7 +543,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
     );
   }
 
-  Widget _buildModulesSection() {
+  Widget _buildModulesSection(LearningPathResponse pathDetails) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -541,22 +558,24 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
             ),
           ),
         ),
-        ..._pathDetails!.path.modules.map((module) {
+        ...pathDetails.path.modules.map((module) {
           final isCurrentModule =
-              _pathDetails!.progress?.currentModuleId == module.id;
+              pathDetails.progress?.currentModuleId == module.id;
+          // Verificar se o módulo está realmente completo baseado no progresso
           final isCompleted =
-              _pathDetails!.progress?.completedModules.contains(module.id) ??
+              pathDetails.progress?.completedModules.contains(module.id) ??
                   false;
-          final isUnlocked = _isModuleUnlocked(module, _pathDetails!.progress);
+          final isUnlocked = _isModuleUnlocked(module, pathDetails.progress);
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: ModuleCard(
               module: module,
-              progress: _pathDetails!.progress,
+              progress: pathDetails.progress,
               isCurrentModule: isCurrentModule,
-              isCompleted: isCompleted, // Passar o status de concluído
-              allModules: _pathDetails!.path.modules,
+              isCompleted:
+                  isCompleted, // Passar o status de concluído baseado no progresso real
+              allModules: pathDetails.path.modules,
               onTap: (isUnlocked || isCompleted || isCurrentModule)
                   ? () => _navigateToModule(module)
                   : null,
@@ -568,7 +587,7 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
     );
   }
 
-  void _handleActionButton() async {
+  void _handleActionButton(LearningPathResponse pathDetails) async {
     final authProvider = Provider.of<AuthNotifier>(context, listen: false);
     final learningPathProvider =
         Provider.of<LearningPathProvider>(context, listen: false);
@@ -579,7 +598,11 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
       return;
     }
 
-    if (!_pathDetails!.isStarted) {
+    // Obter pathDetails atualizado do provider se necessário
+    final currentPathDetails =
+        learningPathProvider.getPathDetails(widget.pathId) ?? pathDetails;
+
+    if (!currentPathDetails.isStarted) {
       // Iniciar trilha
       final success =
           await learningPathProvider.startLearningPath(widget.pathId, token);
@@ -592,28 +615,34 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
       }
     } else {
       // Continuar trilha - navegar para o módulo atual do usuário
-      final currentModuleId = _pathDetails!.progress?.currentModuleId;
+      final currentModuleId = currentPathDetails.progress?.currentModuleId;
       if (currentModuleId != null) {
         // Encontra o módulo atual
-        final currentModule = _pathDetails!.path.modules
+        final currentModule = currentPathDetails.path.modules
             .firstWhere((module) => module.id == currentModuleId);
         _navigateToModule(currentModule);
       } else {
         // Se não há módulo atual, vai para o primeiro
-        final firstModule = _pathDetails!.path.modules.first;
+        final firstModule = currentPathDetails.path.modules.first;
         _navigateToModule(firstModule);
       }
     }
   }
 
   void _navigateToModule(module) {
+    // Obter detalhes atualizados do provider antes de navegar
+    final learningPathProvider =
+        Provider.of<LearningPathProvider>(context, listen: false);
+    final pathDetails =
+        learningPathProvider.getPathDetails(widget.pathId) ?? _pathDetails;
+
     Navigator.pushNamed(
       context,
       '/module-details',
       arguments: {
         'pathId': widget.pathId,
         'module': module,
-        'progress': _pathDetails!.progress,
+        'progress': pathDetails?.progress ?? _pathDetails?.progress,
       },
     ).then((result) {
       // Recarrega os detalhes quando retorna da página do módulo
@@ -666,8 +695,15 @@ class _LearningPathDetailsPageState extends State<LearningPathDetailsPage> {
       return true;
     }
 
+    // Obter detalhes atualizados do provider
+    final learningPathProvider =
+        Provider.of<LearningPathProvider>(context, listen: false);
+    final pathDetails =
+        learningPathProvider.getPathDetails(widget.pathId) ?? _pathDetails;
+    if (pathDetails == null) return false;
+
     // Busca módulo anterior
-    final previousModule = _pathDetails!.path.modules
+    final previousModule = pathDetails.path.modules
         .where((m) => m.order == module.order - 1)
         .firstOrNull;
 

@@ -5,6 +5,7 @@ import 'package:cryptoquest/features/missions/pages/missions_pages.dart';
 import 'package:cryptoquest/features/learning_paths/learning_paths.dart';
 import 'package:cryptoquest/features/learning_paths/widgets/ai_recommendation_home_card.dart';
 import 'package:cryptoquest/core/config/theme/app_colors.dart';
+import 'package:cryptoquest/features/rewards/providers/reward_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -74,14 +75,19 @@ class _HomePageState extends State<HomePage> {
           Provider.of<LearningPathProvider>(context, listen: false);
 
       if (authNotifier.token != null) {
-        // 🚀 OTIMIZAÇÃO: Carregar recomendações PRIMEIRO (prioridade)
+        final rewardProvider = Provider.of<RewardProvider>(context, listen: false);
+        
         learningPathProvider.loadRecommendedLearningPaths(authNotifier.token!,
             limit: 2);
 
-        // Carregar outros dados em paralelo
         missionNotifier.fetchDailyMissions(authNotifier.token!);
         learningPathProvider.loadLearningPaths();
         learningPathProvider.loadUserProgress(authNotifier.token!);
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (authNotifier.userProfile?.uid != null) {
+            rewardProvider.loadUserBadges();
+          }
+        });
       }
     });
   }
@@ -206,14 +212,25 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      drawer: Consumer2<AuthNotifier, LearningPathProvider>(
-        builder: (context, authNotifier, learningPathProvider, child) {
+      drawer: Consumer3<AuthNotifier, LearningPathProvider, RewardProvider>(
+        builder: (context, authNotifier, learningPathProvider, rewardProvider, child) {
           final userProfile = authNotifier.userProfile;
           final level = userProfile?.level ?? 1;
           final points = userProfile?.points ?? 0;
           final xp = userProfile?.xp ?? 0;
           final streak = userProfile?.currentStreak ?? 0;
-          final badges = userProfile?.badges ?? [];
+          
+          // Usar badges do RewardProvider em vez de userProfile.badges
+          if (userProfile != null && 
+              rewardProvider.userBadges.isEmpty && 
+              !rewardProvider.isLoading &&
+              authNotifier.token != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              rewardProvider.loadUserBadges();
+            });
+          }
+          
+          final badgesCount = rewardProvider.userBadges.length;
 
           // Calcular XP necessário para próximo nível (fórmula simples)
           final xpForNextLevel = level * 1000;
@@ -416,7 +433,7 @@ class _HomePageState extends State<HomePage> {
                               child: _StatCard(
                                 icon: Icons.emoji_events,
                                 label: 'Badges',
-                                value: badges.length.toString(),
+                                value: badgesCount.toString(),
                                 color: Colors.amber,
                               ),
                             ),
@@ -588,19 +605,17 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // 🎯 PRIORIDADE 1: Recomendações de IA (primeiro item)
             Consumer<LearningPathProvider>(
               builder: (context, learningPathProvider, child) {
                 return _buildRecommendationsSection(learningPathProvider);
               },
             ),
 
-            // 🎯 PRIORIDADE 2: Trilha principal do usuário
             Consumer<LearningPathProvider>(
               builder: (context, learningPathProvider, child) {
                 // Busca a primeira trilha ativa ou em progresso
                 String title = "Trilhas de Aprendizado";
-                String subtitle = "Explore novas trilhas";
+                String subtitle = "Inicie sua jornada no mundo Crypto";
                 double progressValue = 0.0;
                 String progressText = "0 / 0";
 
@@ -610,14 +625,9 @@ class _HomePageState extends State<HomePage> {
                       learningPathProvider.getPathProgress(firstPath.id);
 
                   if (pathProgress != null) {
-                    title = firstPath.name;
-                    subtitle = "Continue sua jornada";
                     progressValue = pathProgress.progressPercentage / 100;
                     progressText =
                         "${pathProgress.completedMissions.length} / ${firstPath.modules.fold(0, (sum, module) => sum + module.missions.length)}";
-                  } else {
-                    title = firstPath.name;
-                    subtitle = "Inicie sua jornada";
                   }
                 }
 
@@ -659,7 +669,7 @@ class _HomePageState extends State<HomePage> {
             ),
             FeatureCard(
               title: "Missão Diária",
-              subtitle: "Complete um Quizz sobre BTC",
+              subtitle: "Complete Quizzes Diários",
               icon: Icons.check_circle,
               iconColor: AppColors.accent,
               onTap: () {

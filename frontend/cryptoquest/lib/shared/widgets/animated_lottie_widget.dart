@@ -35,15 +35,38 @@ class AnimatedLottieWidget extends StatelessWidget {
       fit: fit,
       repeat: repeat,
       controller: controller,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.error_outline,
+            size: (width ?? height ?? 120) * 0.6,
+            color: Colors.red,
+          ),
+        );
+      },
       onLoaded: (composition) {
         if (controller != null) {
-          controller!
-            ..duration = composition.duration
-            ..forward().whenComplete(() {
+          controller!.duration = composition.duration;
+          if (repeat) {
+            if (controller!.status == AnimationStatus.dismissed) {
+              controller!.repeat();
+            } else {
+              controller!.reset();
+              controller!.repeat();
+            }
+          } else {
+            controller!.forward().whenComplete(() {
               if (onComplete != null) {
                 onComplete!();
               }
             });
+          }
         }
       },
       // Substituir cores da animação pelas cores do app (se habilitado)
@@ -62,6 +85,19 @@ class AnimatedLottieWidget extends StatelessWidget {
               ],
             )
           : null,
+      frameBuilder: (context, child, frame) {
+        if (frame == null) {
+          // Se não há frame, mostrar um indicador de carregamento
+          return Container(
+            width: width,
+            height: height,
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        return child;
+      },
     );
   }
 }
@@ -153,14 +189,16 @@ class LottieAnimations {
     double size = 120,
     AnimationController? controller,
     VoidCallback? onComplete,
+    bool repeat = false,
   }) {
     return AnimatedLottieWidget(
       assetPath: LottieAssets.errorCross,
       width: size,
       height: size,
-      repeat: false,
+      repeat: repeat,
       controller: controller,
       onComplete: onComplete,
+      enableColorReplacement: false,
     );
   }
 

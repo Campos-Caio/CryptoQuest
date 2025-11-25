@@ -16,7 +16,6 @@ class AIRecommendationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ CORREÇÃO: Usar title se disponível, senão name, senão content_id
     final name = recommendation['title'] as String? ??
         recommendation['name'] as String? ??
         recommendation['content_id'] as String? ??

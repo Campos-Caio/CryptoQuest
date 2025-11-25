@@ -132,9 +132,15 @@ class FeedbackSequencer {
         );
 
       case FeedbackType.quizFailure:
-        return _showQuizFailureScreen(
+        // Tentar obter callback de retry do contexto do evento
+        final onRetryCallback = event.customData?['onRetry'] as VoidCallback?;
+        return QuizResultsScreen.show(
           context: context,
-          event: event,
+          rewardData: event.data,
+          onContinue: () =>
+              _handleEventAction(context, event, FeedbackAction.continueAction),
+          onRetry: onRetryCallback ?? () =>
+              _handleEventAction(context, event, FeedbackAction.retry),
         );
 
       case FeedbackType.streakCelebration:
@@ -263,34 +269,6 @@ class FeedbackSequencer {
 
   // Métodos auxiliares para telas que ainda não existem
 
-  /// Mostra tela de falha de quiz
-  static Future<void> _showQuizFailureScreen({
-    required BuildContext context,
-    required FeedbackEvent event,
-  }) {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Quiz Não Aprovado'),
-        content: Text(
-            'Você acertou ${event.data.quizPercentage.toStringAsFixed(0)}% das questões. '
-            'É necessário acertar pelo menos 70% para passar.'),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                _handleEventAction(context, event, FeedbackAction.retry),
-            child: const Text('Tentar Novamente'),
-          ),
-          TextButton(
-            onPressed: () =>
-                _handleEventAction(context, event, FeedbackAction.goHome),
-            child: const Text('Voltar ao Início'),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Mostra tela de missão completa
   static Future<void> _showMissionCompleteScreen({
